@@ -46,7 +46,7 @@ export function WatchButton({ address }: { address: string }) {
   }
   return (
     <div className="flex flex-col items-start gap-1">
-      <button type="button" disabled={busy} onClick={on ? stop : start} className="btn btn-secondary min-h-10 px-4 text-[14px] disabled:opacity-50" aria-pressed={on}>
+      <button type="button" disabled={busy} onClick={on ? stop : start} className="btn btn-secondary min-h-10 px-4 disabled:opacity-50" aria-pressed={on}>
         {busy ? "One moment…" : on ? "Watching · stop" : "Watch this wallet"}
       </button>
       {msg && <span role="status" className="text-[12.5px] text-muted">{msg}</span>}

@@ -29,14 +29,16 @@ export function FeeCalc() {
           The manager holds $HEIM <span className="font-mono text-[12px] text-muted">(Heimdall&apos;s cut halves)</span>
         </label>
       </div>
-      <dl className="flex flex-col justify-between gap-3 p-6 font-mono text-[14px]">
-        <div className="flex justify-between"><dt className="text-muted">Profit</dt><dd>{usd(profit)}</dd></div>
-        <div className="flex justify-between"><dt className="text-muted">Manager · 10%</dt><dd>−{usd(mgr)}</dd></div>
-        <div className="flex justify-between"><dt className="text-muted">Heimdall · {holder ? "2.5" : "5"}%</dt><dd>−{usd(hd)}</dd></div>
-        <div className="flex justify-between"><dt className="text-muted">Management or exit fee</dt><dd>$0.00</dd></div>
-        <div className="mt-2 flex items-end justify-between border-t border-ink pt-4"><dt className="label text-ink">You keep</dt><dd className={`display text-[44px] ${keep < 0 ? "text-deny" : "text-ink"}`}>{usd(d + keep)}</dd></div>
+      <div className="flex flex-col justify-between gap-3 p-6">
+        <dl className="flex flex-col gap-3 font-mono text-[14px]">
+          <div className="flex justify-between"><dt className="text-muted">Profit</dt><dd>{usd(profit)}</dd></div>
+          <div className="flex justify-between"><dt className="text-muted">Manager · 10%</dt><dd>−{usd(mgr)}</dd></div>
+          <div className="flex justify-between"><dt className="text-muted">Heimdall · {holder ? "2.5" : "5"}%</dt><dd>−{usd(hd)}</dd></div>
+          <div className="flex justify-between"><dt className="text-muted">Management or exit fee</dt><dd>$0.00</dd></div>
+          <div className="mt-2 flex items-end justify-between border-t border-ink pt-4"><dt className="label text-ink">You keep</dt><dd className={`display text-[44px] ${keep < 0 ? "text-deny" : "text-ink"}`}>{usd(d + keep)}</dd></div>
+        </dl>
         <p className="text-[11px] leading-relaxed text-muted">{profit <= 0 ? "No profit, no fee: fees are charged only above the vault's previous high." : "Fees are taken only on new profit above the vault's previous high, as newly minted shares."}</p>
-      </dl>
+      </div>
     </div>
   );
 }

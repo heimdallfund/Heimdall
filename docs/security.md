@@ -6,9 +6,10 @@
 | --- | --- | --- | --- |
 | Review 1 | Vaults, Signals, factory, Shield guard | 1 critical, 2 high, 6 medium, 5 low, 6 info | All critical, high and medium fixed |
 | Review 2 | Heimdall Pay, staking, fee splitter, stock price feed | 1 medium, 5 low, 7 info | Medium and lows fixed or accepted |
+| Review 3 | All contracts: stateful invariant testing, ERC-4626 views, production build size | 2 low | Both fixed |
 | Addendum | Auto-Invest | 2 low, 3 info | Lows fixed |
 
-Every attack found is kept as a regression test. The contracts have 97 tests, including 10 fuzz properties (256 runs each), and Slither static analysis. An external audit has not been done yet; its report will be published when it is.
+Every attack found is kept as a regression test. The contracts have 112 tests, including 13 fuzz properties and 12 stateful invariants (10,000 fuzz runs and 512 random sequences of 200 actions before each release), and Slither static analysis. An external audit has not been done yet; its report will be published when it is.
 
 ## Bug bounty
 

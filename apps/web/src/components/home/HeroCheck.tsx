@@ -97,8 +97,8 @@ export function HeroCheck() {
           )}
           {url && (
             <div className="mt-4 flex flex-wrap gap-2 border-t border-line pt-4">
-              <Link href={url} className="btn btn-secondary min-h-10 px-3.5 text-[14px]">Full result <Icon name="arrow" size={15} /></Link>
-              <a href={`https://x.com/intent/post?text=${encodeURIComponent(`Heimdall Shield says ${res.r.verdict}: ${res.r.summary[0] ?? ""}`)}&url=${encodeURIComponent(`${location.origin}${url}`)}`} target="_blank" rel="noreferrer" className="btn btn-secondary min-h-10 px-3.5 text-[14px]">Share on X</a>
+              <Link href={url} className="btn btn-secondary min-h-10 px-3.5">Full result <Icon name="arrow" size={15} /></Link>
+              <a href={`https://x.com/intent/post?text=${encodeURIComponent(`Heimdall Shield says ${res.r.verdict}: ${res.r.summary[0] ?? ""}`)}&url=${encodeURIComponent(`${location.origin}${url}`)}`} target="_blank" rel="noreferrer" className="btn btn-secondary min-h-10 px-3.5">Share on X</a>
             </div>
           )}
         </div>

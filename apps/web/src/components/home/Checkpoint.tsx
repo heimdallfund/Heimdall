@@ -64,8 +64,8 @@ export function Checkpoint() {
     <div aria-hidden="true" className="checkpoint grid-paper relative h-[340px] overflow-hidden border border-ink bg-panel shadow-[6px_6px_0_var(--color-ink)] sm:h-[420px] lg:h-[480px]" style={{ containerType: "inline-size" }}>
       <div className="absolute inset-0 bg-[radial-gradient(70%_60%_at_60%_50%,rgba(246,244,238,0)_0%,rgba(246,244,238,0.9)_100%)]" />
       {/* the Shield line */}
-      <div className="absolute inset-y-0 left-[58%] w-px bg-brand">
-        <div className="checkpoint-scan absolute -left-[3px] h-24 w-[7px] bg-gradient-to-b from-transparent via-brand to-transparent opacity-70" />
+      <div className="checkpoint-track absolute inset-y-0 left-[58%] w-px bg-brand">
+        <div className="checkpoint-scan absolute -left-[3px] top-0 h-24 w-[7px] bg-gradient-to-b from-transparent via-brand to-transparent opacity-70" />
       </div>
       <div className="absolute left-[58%] top-3 -translate-x-1/2 border border-brand bg-brand px-2 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.12em] text-white">Shield</div>
       <div className="absolute bottom-3 left-3 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-muted">Agent transactions</div>

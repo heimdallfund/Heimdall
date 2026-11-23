@@ -40,13 +40,13 @@ export function Footer() {
         <nav aria-label="Footer" className="grid grid-cols-2 gap-x-16 gap-y-8 text-sm sm:grid-cols-3">
           {cols.map(([title, links]) => (
             <div key={title} className="flex flex-col gap-2.5">
-              <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-paper/50">{title}</span>
+              <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-paper/60">{title}</span>
               {links.map(([href, label]) => <Link key={href} href={href} className="text-paper/80 hover:text-paper hover:underline hover:underline-offset-4">{label}</Link>)}
             </div>
           ))}
         </nav>
       </div>
-      <div className="mx-auto flex max-w-[1280px] flex-wrap justify-between gap-3 border-t border-paper/15 px-6 py-5 font-mono text-[11px] uppercase tracking-[0.1em] text-paper/50">
+      <div className="mx-auto flex max-w-[1280px] flex-wrap justify-between gap-3 border-t border-paper/15 px-6 py-5 font-mono text-[11px] uppercase tracking-[0.1em] text-paper/60">
         <span>© 2026 Heimdall · Not investment advice</span>
         <span>Robinhood Chain · chain ID 4663</span>
       </div>

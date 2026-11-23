@@ -36,11 +36,12 @@ export function Search() {
 
   return (
     <>
-      <button type="button" onClick={() => setOpen(true)} aria-label="Search"
+      <button type="button" onClick={() => setOpen(true)} aria-keyshortcuts="Meta+K Control+K"
         className="flex min-h-10 items-center gap-2 border border-ink/20 bg-panel px-3 font-mono text-[12px] uppercase tracking-[0.06em] text-muted transition hover:border-ink md:w-[180px] 2xl:w-[220px]">
         <SearchIcon />
+        <span className="sr-only md:hidden">Search</span>
         <span className="hidden md:inline">Search…</span>
-        <kbd className="ml-auto hidden rounded border border-line bg-panel px-1.5 font-sans text-[11px] md:inline">⌘K</kbd>
+        <kbd aria-hidden="true" className="ml-auto hidden rounded border border-line bg-panel px-1.5 font-sans text-[11px] md:inline">⌘K</kbd>
       </button>
       {open && createPortal(
         <div className="fixed inset-0 z-50 flex items-start justify-center bg-ink/25 px-4 pt-[12vh]" onClick={() => setOpen(false)} role="presentation">

@@ -29,7 +29,7 @@ async function Metrics() {
         <Stat label="Open security findings" value={0} tone="text-allow" />
         <Stat label="Max vault loss per day" value={5} suffix="%" />
         <Stat label="Receipt lifetime (s)" value={120} />
-        <Stat label="Contract tests" value={97} />
+        <Stat label="Contract tests" value={112} />
       </>
     );
   }
@@ -109,12 +109,12 @@ export default function Home() {
           <Checkpoint />
         </div>
         <div className="mx-auto max-w-[1280px] px-6 pb-16">
-          <div className="grid border border-ink bg-panel lg:grid-cols-[1.2fr_2fr]">
-            <div className="flex flex-col gap-3 border-b border-ink p-5 lg:border-b-0 lg:border-r">
+          <div className="grid grid-cols-[minmax(0,1fr)] border border-ink bg-panel lg:grid-cols-[minmax(0,1.2fr)_minmax(0,2fr)]">
+            <div className="flex min-w-0 flex-col gap-3 border-b border-ink p-5 lg:border-b-0 lg:border-r">
               <span className="label text-ink">Check anything, free</span>
               <HeroCheck />
             </div>
-            <div className="grid grid-cols-2 gap-px bg-line md:grid-cols-4">
+            <div className="grid min-w-0 grid-cols-2 gap-px bg-line md:grid-cols-4">
               <Suspense fallback={<><Stat label="…" value={null} /><Stat label="…" value={null} /><Stat label="…" value={null} /><Stat label="…" value={null} /></>}><Metrics /></Suspense>
             </div>
           </div>
@@ -208,7 +208,7 @@ export default function Home() {
         <SectionHead n="06" kicker="SECURITY" id="review" title={<>Reviewed before<br />a single deposit.</>}>Two reviews of every contract found 3 serious and 7 medium issues before launch. All are fixed and kept as regression tests next to property-based fuzzing, and a bug bounty pays up to 10,000 USDG.</SectionHead>
         <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
           <dl className="grid grid-cols-2 border-l border-t border-ink bg-panel">
-            {[["10 / 10", "Serious & medium fixed"], ["97", "Contract tests"], ["10", "Fuzz properties"], ["10,000", "USDG cap per vault"]].map(([v, l]) => (
+            {[["10 / 10", "Serious & medium fixed"], ["112", "Contract tests"], ["25", "Fuzz & invariant properties"], ["10,000", "USDG cap per vault"]].map(([v, l]) => (
               <div key={l} className="border-b border-r border-ink p-6"><dt className="label">{l}</dt><dd className="display mt-3 text-[56px]">{v}</dd></div>
             ))}
           </dl>

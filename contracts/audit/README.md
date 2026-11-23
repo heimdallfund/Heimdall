@@ -9,7 +9,7 @@ Everything an external auditor needs to scope, build and test the Heimdall contr
 | Libraries | OpenZeppelin Contracts 5.6.1 |
 | Money at risk | USDG (Paxos Global Dollar, 6 decimals; pausable, with an address blocklist) and tokenized stocks (NVDA, TSLA, GOOGL, …, 18 decimals) |
 | Owner of every contract | A Safe multisig through `Ownable2Step`. The deployer never keeps ownership. |
-| Status | Not deployed yet. Three internal reviews (below), Slither, 112 tests (13 fuzz properties and 15 stateful invariants), 2 mainnet-fork tests and a full launch rehearsal on a fork (`scripts/rehearsal.sh`). |
+| Status | Not deployed yet. Three internal reviews (below), Slither, 112 tests (13 fuzz properties and 12 stateful invariants), 2 mainnet-fork tests and a full launch rehearsal on a fork (`scripts/rehearsal.sh`). |
 
 ## Scope
 

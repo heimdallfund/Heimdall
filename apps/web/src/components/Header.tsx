@@ -54,7 +54,7 @@ function HeaderView({ path }: { path: string }) {
         <div className="hidden items-center gap-1 whitespace-nowrap font-mono text-[12px] font-semibold uppercase tracking-[0.08em] xl:mx-auto xl:flex">
           {LINKS.map((l) => {
             const active = l.match.some((m) => path === m || path.startsWith(`${m}/`));
-            return <Link key={l.href} href={l.href} aria-current={active ? "page" : undefined} className={`relative px-2.5 py-2 transition-colors ${active ? "text-ink after:absolute after:inset-x-2.5 after:-bottom-px after:h-[2px] after:bg-brand" : "text-ink/60 hover:text-ink"}`}>{l.label}</Link>;
+            return <Link key={l.href} href={l.href} aria-current={active ? "page" : undefined} className={`relative inline-flex min-h-10 items-center px-2.5 transition-colors ${active ? "text-ink after:absolute after:inset-x-2.5 after:-bottom-px after:h-[2px] after:bg-brand" : "text-ink/60 hover:text-ink"}`}>{l.label}</Link>;
           })}
         </div>
         <div className="ml-auto flex min-w-0 items-center gap-1.5 sm:gap-2 xl:ml-0">

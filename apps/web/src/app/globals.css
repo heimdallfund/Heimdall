@@ -63,6 +63,8 @@
 .float-3d { animation: float3d 6s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .scanline, .float-3d { animation: none; } }
 
+/* Components live in a layer so Tailwind utilities on the same element (hidden, colours, sizes) win. */
+@layer components {
 .reveal { opacity: 0; transform: translateY(14px); transition: opacity .6s ease, transform .6s ease; }
 .reveal.in { opacity: 1; transform: none; }
 .btn { display: inline-flex; min-height: 46px; align-items: center; justify-content: center; gap: 10px; border-radius: 3px; padding: 0 20px;
@@ -84,6 +86,7 @@
 /* condensed display type */
 .display { font-family: var(--font-display); font-stretch: 62%; font-weight: 800; text-transform: uppercase; line-height: .9; letter-spacing: -.005em; }
 .grid-paper { background-image: linear-gradient(var(--color-line) 1px, transparent 1px), linear-gradient(90deg, var(--color-line) 1px, transparent 1px); background-size: 48px 48px; }
+}
 
 /* ── motion ─────────────────────────────────────────── */
 .words .word-wrap { display: inline-block; overflow: hidden; vertical-align: top; padding-bottom: .08em; margin-bottom: -.08em; }
@@ -107,11 +110,13 @@
 
 /* ── signature motif ─────────────────────────────────── */
 .scan-line { background: linear-gradient(90deg, transparent, #D5DBEE 20%, #D5DBEE 80%, transparent); position: relative; overflow: hidden; }
-.scan-line::after { content: ""; position: absolute; top: -1px; height: 3px; width: 120px; background: linear-gradient(90deg, transparent, #3355FF, transparent); animation: scanx 4.5s ease-in-out infinite; }
+.scan-line { container-type: inline-size; }
+.scan-line::after { content: ""; position: absolute; top: -1px; left: 0; height: 3px; width: 120px; background: linear-gradient(90deg, transparent, #3355FF, transparent); animation: scanx 4.5s ease-in-out infinite; will-change: transform; }
 .scan-rev::after { animation-direction: reverse; }
-@keyframes scanx { 0% { left: -120px; } 60%, 100% { left: 100%; } }
+/* transform-only motion: no layout or paint work per frame */
+@keyframes scanx { 0% { transform: translateX(-120px); } 60%, 100% { transform: translateX(100cqw); } }
 .scanner { animation: scany 1.4s ease-in-out infinite; }
-@keyframes scany { 0% { top: -16px; } 100% { top: 66px; } }
+@keyframes scany { 0% { transform: translateY(-16px); } 100% { transform: translateY(66px); } }
 @media (prefers-reduced-motion: reduce) { .scan-line::after, .scanner { animation: none; } }
 
 /* links inside running text are underlined, so they never rely on colour alone (WCAG 1.4.1) */
@@ -138,7 +143,7 @@ h1:not(.docs-prose h1):not(.guide-prose h1):not(.plain) { font-family: var(--fon
 @keyframes cp-tint { 0%, 41% { border-color: var(--color-ink); } 43%, 100% { border-color: var(--color-deny); } }
 @keyframes cp-tint-head { 0%, 41% { background: var(--color-ink); } 43%, 100% { background: var(--color-deny); } }
 @keyframes cp-stamp { 0%, 41% { opacity: 0; transform: scale(.5) rotate(-8deg); } 44% { opacity: 1; transform: scale(1.12) rotate(-4deg); } 47%, 100% { opacity: 1; transform: scale(1) rotate(-4deg); } }
-@keyframes cp-scan { from { top: -100px; } to { top: 100%; } }
+@keyframes cp-scan { from { transform: translateY(-100%); } to { transform: translateY(100cqh); } }
 .cp-pass { animation: cp-pass linear both; }
 .cp-stop { animation: cp-stop linear both; }
 .cp-tint { animation: cp-tint linear both; }
@@ -146,5 +151,6 @@ h1:not(.docs-prose h1):not(.guide-prose h1):not(.plain) { font-family: var(--fon
 .cp-stamp { animation: cp-stamp linear both; transform-origin: left center; }
 @keyframes cp-fade { 0%, 44% { opacity: 0; } 48%, 100% { opacity: 1; } }
 .cp-fade { animation: cp-fade linear both; }
-.checkpoint-scan { animation: cp-scan 2.4s linear infinite; }
-@media (prefers-reduced-motion: reduce) { .checkpoint-scan { animation: none; top: 40%; } }
+.checkpoint-track { container-type: size; }
+.checkpoint-scan { animation: cp-scan 2.4s linear infinite; will-change: transform; }
+@media (prefers-reduced-motion: reduce) { .checkpoint-scan { animation: none; transform: translateY(40cqh); } }

@@ -95,9 +95,9 @@ export function WalletReport({ address }: { address: Address }) {
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4">
           <h2 className="text-[17px] font-semibold">{r.summary.total} live approval{r.summary.total === 1 ? "" : "s"}</h2>
           <div className="flex flex-wrap gap-2">
-            {own && risky.length > 1 && <button type="button" disabled={!!busy} onClick={revokeAllRisky} className="btn btn-primary min-h-10 px-4 text-[14px] disabled:opacity-50">Revoke all risky ({risky.length})</button>}
+            {own && risky.length > 1 && <button type="button" disabled={!!busy} onClick={revokeAllRisky} className="btn btn-primary min-h-10 px-4 disabled:opacity-50">Revoke all risky ({risky.length})</button>}
             <WatchButton address={r.owner} />
-            <a href={`https://x.com/intent/tweet?text=${shareText}&url=${shareUrl}`} target="_blank" rel="noopener" className="btn btn-secondary min-h-10 px-4 text-[14px]">Share score</a>
+            <a href={`https://x.com/intent/tweet?text=${shareText}&url=${shareUrl}`} target="_blank" rel="noopener" className="btn btn-secondary min-h-10 px-4">Share score</a>
           </div>
         </div>
         {r.approvals.length === 0 ? (
