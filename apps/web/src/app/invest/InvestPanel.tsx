@@ -6,6 +6,7 @@ import { useAccount, usePublicClient, useReadContract, useReadContracts, useWrit
 import { heimdallAutoInvestAbi } from "@/lib/abi";
 import { ADDRESSES, INVEST_TOKENS } from "@/lib/config";
 import { ConnectButton } from "@/components/ConnectButton";
+import { TokenIcon } from "@/components/TokenIcon";
 
 const ERC20 = [
   { type: "function", name: "allowance", stateMutability: "view", inputs: [{ type: "address" }, { type: "address" }], outputs: [{ type: "uint256" }] },
@@ -69,7 +70,7 @@ export function InvestPanel({ ai }: { ai: Address }) {
         <div className="grid gap-3 sm:grid-cols-3">
           {INVEST_TOKENS.map((t, i) => {
             const p = prices?.[i]?.result as bigint | undefined;
-            return <div key={t.symbol} className="card p-4"><p className="text-[13px] text-muted">{t.name}</p><p className="mt-1 font-mono text-[22px] font-semibold">{t.symbol} <span className="text-[15px] text-muted">{p ? `$${Number(formatUnits(p, 6)).toFixed(2)}` : "—"}</span></p></div>;
+            return <div key={t.symbol} className="card p-4"><p className="text-[13px] text-muted">{t.name}</p><p className="mt-1 flex items-center gap-2 font-mono text-[22px] font-semibold"><TokenIcon symbol={t.symbol} size={26} />{t.symbol} <span className="text-[15px] text-muted">{p ? `$${Number(formatUnits(p, 6)).toFixed(2)}` : "—"}</span></p></div>;
           })}
         </div>
         <div className="card min-w-0 overflow-hidden">
@@ -91,7 +92,7 @@ export function InvestPanel({ ai }: { ai: Address }) {
       <form onSubmit={create} className="card flex flex-col gap-4 p-5">
         <h2 className="text-[17px] font-semibold">New plan</h2>
         <div className="grid grid-cols-3 gap-1 rounded-xl bg-ink-2 p-1">
-          {INVEST_TOKENS.map((t) => <button key={t.symbol} type="button" onClick={() => setToken(t.address)} className={`min-h-10 rounded-lg text-[14.5px] font-semibold ${token === t.address ? "bg-white shadow-sm" : "text-muted"}`}>{t.symbol}</button>)}
+          {INVEST_TOKENS.map((t) => <button key={t.symbol} type="button" onClick={() => setToken(t.address)} className={`inline-flex min-h-10 items-center justify-center gap-1.5 rounded-lg text-[14.5px] font-semibold ${token === t.address ? "bg-white shadow-sm" : "text-muted"}`}><TokenIcon symbol={t.symbol} size={18} />{t.symbol}</button>)}
         </div>
         <label className="flex flex-col gap-1.5 text-[13.5px] font-medium">Amount per buy (USDG)<input className={`${input} font-mono`} value={amount} onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ""))} inputMode="decimal" /></label>
         <label className="flex flex-col gap-1.5 text-[13.5px] font-medium">How often<select className={input} value={interval} onChange={(e) => setIntervalSec(Number(e.target.value))}>{EVERY.map(([l, v]) => <option key={v} value={v}>{l}</option>)}</select></label>

@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { useScrollProgress } from "../motion/useScrollProgress";
 import { VerdictBadge } from "../Verdict";
 import { Icon } from "../Icons";
+import { TokenText } from "@/components/TokenIcon";
 
 const seg = (p: number, a: number, b: number) => Math.min(1, Math.max(0, (p - a) / (b - a)));
 const ease = (x: number) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
@@ -111,7 +112,7 @@ function TxCard({ title, line, sub, scan }: { title: string; line: string; sub: 
   return (
     <div className="card relative w-[200px] overflow-hidden px-4 py-3 border-ink shadow-[4px_4px_0_var(--color-ink)]">
       <div className="font-mono text-[15px] font-semibold text-brand-600">{title}</div>
-      <div className="mt-1 text-[13px]">{line}</div>
+      <div className="mt-1 text-[13px]"><TokenText text={line} size={15} /></div>
       <div className="font-mono text-[11.5px] text-muted">{sub}</div>
       {scan > 0 && scan < 1 && <div className="absolute inset-y-0 w-12 bg-gradient-to-r from-transparent via-brand/25 to-transparent" style={{ left: `${-20 + scan * 120}%` }} />}
     </div>

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Logo } from "./Logo";
 import { StatusPill } from "./StatusPill";
+import { BrandLogo } from "@/components/BrandLogo";
 
 const social = [
   { href: process.env.NEXT_PUBLIC_X_URL, label: "X", path: "M17.8 3h3.1l-6.8 7.8 8 10.2h-6.3l-4.9-6.4L5.3 21H2.2l7.3-8.3L1.8 3h6.4l4.4 5.8L17.8 3Zm-1.1 16.2h1.7L7.4 4.7H5.6l11.1 14.5Z" },
@@ -48,7 +49,7 @@ export function Footer() {
       </div>
       <div className="mx-auto flex max-w-[1280px] flex-wrap justify-between gap-3 border-t border-paper/15 px-6 py-5 font-mono text-[11px] uppercase tracking-[0.1em] text-paper/60">
         <span>© 2026 Heimdall · Not investment advice</span>
-        <span>Robinhood Chain · chain ID 4663</span>
+        <span className="inline-flex items-center gap-2"><BrandLogo name="robinhood" size={16} />Robinhood Chain · chain ID 4663</span>
       </div>
     </footer>
   );

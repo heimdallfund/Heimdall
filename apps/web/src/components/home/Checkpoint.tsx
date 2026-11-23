@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { PUBLIC_API_URL } from "@/lib/config";
+import { TokenText } from "@/components/TokenIcon";
 
 /**
  * Hero visual: agent transactions travel to the Shield line. Safe ones are stamped ALLOW and pass; risky ones are
@@ -78,7 +79,7 @@ export function Checkpoint() {
               <svg width="14" height="14" viewBox="0 0 24 24" className="mt-0.5 shrink-0"><path d="M3 2l18 8-8 3-3 8z" fill="var(--color-ink)" /></svg>
               <div className={`border bg-panel ${j.verdict === "DENY" && !reduced ? "cp-tint" : j.verdict === "DENY" ? "border-deny" : "border-ink"}`} style={reduced ? undefined : { animationDuration: `${TRAVEL}s` }}>
                 <div className={`px-2 py-0.5 font-mono text-[10.5px] font-bold tracking-[0.08em] text-white ${j.verdict === "DENY" ? (reduced ? "bg-deny" : "bg-ink cp-tint-head") : "bg-ink"}`} style={reduced ? undefined : { animationDuration: `${TRAVEL}s` }}>{j.agent}</div>
-                <div className="whitespace-nowrap px-2 py-1 font-mono text-[11px] text-ink/80">{j.what}</div>
+                <div className="whitespace-nowrap px-2 py-1 font-mono text-[11px] text-ink/80"><TokenText text={j.what} size={13} /></div>
               </div>
               {/* the verdict stamp lands on the card at the Shield line and travels with it */}
               {(!reduced || j.id !== 3) && (

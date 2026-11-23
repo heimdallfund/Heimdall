@@ -9,6 +9,7 @@ import { WatchButton } from "@/components/WatchButton";
 import { Icon } from "@/components/Icons";
 import { ScanLoader } from "@/components/Motif";
 import { explorerAddress, short } from "@/lib/config";
+import { TokenIcon } from "@/components/TokenIcon";
 
 type Risk = "danger" | "review" | "ok";
 interface Row { kind: "erc20" | "all" | "permit2"; token: Address; symbol: string; spender: Address; spenderLabel: string | null; spenderIsContract: boolean; allowance: string; unlimited: boolean; expiresAt: number | null; atRiskUsd: number | null; risk: Risk; reasons: string[] }
@@ -110,6 +111,7 @@ export function WalletReport({ address }: { address: Address }) {
                 <li key={`${row.kind}|${id}`} className="grid min-w-0 gap-3 px-5 py-4 md:grid-cols-[minmax(0,1.1fr)_minmax(0,1.4fr)_auto] md:items-center">
                   <div className="flex min-w-0 items-center gap-3">
                     <span className={`shrink-0 rounded-sm px-2.5 py-1 text-[12px] font-semibold ${TONE[row.risk]}`}>{LABEL[row.risk]}</span>
+                    <TokenIcon symbol={row.symbol} size={30} />
                     <div className="min-w-0"><div className="truncate text-[15px] font-semibold">{row.symbol} <span className="font-mono text-[13px] font-medium text-muted">{row.kind === "all" ? "all tokens" : row.allowance}</span></div>
                       <div className="text-[13px] text-muted">{row.kind === "permit2" ? "via Permit2" : row.kind === "all" ? "operator approval" : "token approval"}{row.atRiskUsd ? ` · ${usd(row.atRiskUsd)} exposed` : ""}</div></div>
                   </div>

@@ -5,6 +5,7 @@ import { CtaBand, Faq, Steps } from "@/components/ProductSections";
 import { IconTile } from "@/components/Icons";
 import { FacetDivider } from "@/components/Motif";
 
+import { LogoRow } from "@/components/BrandLogo";
 export const metadata: Metadata = {
   title: "Heimdall Pay",
   description: "USDG escrow for work between AI agents on Robinhood Chain. Money moves when the work is delivered, not before.",
@@ -42,6 +43,7 @@ export default function Page() {
         <span className="eyebrow">Heimdall Pay</span>
         <h1 className="max-w-[820px] text-[50px] md:text-[75px]">Agents hire agents. The money waits for the work.</h1>
         <p className="max-w-[640px] text-[18px] leading-relaxed text-muted">USDG escrow for jobs between AI agents, or people. The client funds the job, the provider delivers, and payment is released on approval, after a review window, or by an arbiter. Nothing delivered by the deadline? The client gets every cent back.</p>
+        <LogoRow className="mt-1" items={[{ token: "USDG", label: "USDG escrow" }, { brand: "robinhood", label: "Robinhood Chain" }]} />
         <div className="flex flex-wrap gap-3"><Link href="/app/pay" className="btn btn-primary min-h-12 px-6">Open Pay</Link><Link href="/docs" className="btn btn-secondary min-h-12 px-6">Read the docs</Link></div>
         </div>
         <JobVisual />

@@ -5,6 +5,7 @@ import { connection } from "next/server";
 import { Icon } from "@/components/Icons";
 import { readHeimSupply } from "@/lib/heimSupply";
 
+import { LogoRow } from "@/components/BrandLogo";
 export const metadata: Metadata = { title: "$HEIM", description: "The Heimdall token: holding it makes the guardian cheaper to use." };
 
 const rows: [string, string, string][] = [
@@ -45,6 +46,7 @@ export default function TokenPage() {
         <span className="eyebrow">Token</span>
         <h1 className="text-[55px] md:text-[73px]">$HEIM</h1>
         <p className="max-w-[560px] text-[18px] leading-relaxed text-muted">The Heimdall token. Hold it and the guardian is cheaper to use. Stake it and you earn a share of protocol fees, paid in USDG. No lock-up.</p>
+        <LogoRow className="mt-1" items={[{ token: "HEIM", label: "$HEIM" }, { token: "USDG", label: "Fees in USDG" }, { brand: "robinhood", label: "Robinhood Chain" }]} />
       </header>
 
       <section className="card p-6">

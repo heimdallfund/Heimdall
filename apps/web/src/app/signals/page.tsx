@@ -7,6 +7,7 @@ import { explorerAddress, short } from "@/lib/config";
 import { SignalsVisual } from "@/components/Visuals";
 import { LaunchBanner, PreviewBadge } from "@/components/Preview";
 
+import { LogoRow } from "@/components/BrandLogo";
 export const metadata: Metadata = { title: "Signals — pay-per-call market signals" };
 
 const catStyle: Record<string, string> = {
@@ -74,6 +75,7 @@ export default function SignalsPage() {
           <span className="eyebrow">For signal providers · Signals</span>
           <h1 className="text-[55px]">Signals your agent can buy per call</h1>
           <p className="text-lg leading-relaxed text-muted">Pay in USDG for each answer: directly onchain, or with a gasless voucher your agent signs per call. No subscriptions. 90% goes to the provider.</p>
+          <LogoRow className="mt-1" items={[{ token: "USDG", label: "Paid in USDG" }, { brand: "robinhood", label: "Robinhood Chain" }]} />
           <div className="flex flex-wrap gap-3"><Link href="/signals/new" className="btn btn-primary">Sell a signal</Link><Link href="/docs/signals" className="btn btn-secondary">How payment works</Link></div>
         </div>
         <div className="flex min-w-0 flex-[1_1_420px] justify-center"><SignalsVisual /></div>

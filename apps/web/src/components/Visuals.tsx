@@ -1,5 +1,6 @@
 import { VerdictBadge } from "./Verdict";
 import { Icon } from "./Icons";
+import { TokenIcon } from "./TokenIcon";
 
 /** Illustrative product visuals (static, labelled as examples where they show numbers). */
 
@@ -96,7 +97,7 @@ export function VaultVisual() {
         <div>
           <div className="mb-2 text-[12px] text-muted">Holdings</div>
           <div className="flex h-2.5 overflow-hidden rounded-full">{holdings.map(([s, w, c]) => <span key={s} style={{ width: `${w}%`, background: c }} />)}</div>
-          <div className="mt-2 flex gap-4 text-[12px]">{holdings.map(([s, w, c]) => <span key={s} className="flex items-center gap-1.5"><span className="size-2 rounded-full" style={{ background: c }} />{s} <span className="font-mono text-muted">{w}%</span></span>)}</div>
+          <div className="mt-2 flex gap-4 text-[12px]">{holdings.map(([s, w, c]) => <span key={s} className="flex items-center gap-1.5"><span className="size-2 rounded-full" style={{ background: c }} /><TokenIcon symbol={s} size={16} />{s} <span className="font-mono text-muted">{w}%</span></span>)}</div>
         </div>
         <div className="grid grid-cols-3 gap-3">
           {limits.map(([l, fill, v]) => (

@@ -1,5 +1,6 @@
 "use client";
 import { useState, type ReactNode } from "react";
+import { BrandLogo, logoFor } from "@/components/BrandLogo";
 
 /** Tab strip over pre-rendered panes (each pane is a server-rendered <Code>). */
 export function ClientTabs({ tabs }: { tabs: { id: string; label: string; note?: string; pane: ReactNode }[] }) {
@@ -11,8 +12,9 @@ export function ClientTabs({ tabs }: { tabs: { id: string; label: string; note?:
         {tabs.map((t) => (
           <button
             key={t.id} role="tab" aria-selected={t.id === cur.id} onClick={() => setActive(t.id)}
-            className={`rounded-sm border px-3 py-1 text-[13px] font-medium transition ${t.id === cur.id ? "border-brand bg-brand text-white" : "border-line bg-white text-muted hover:border-brand/40 hover:text-ink"}`}
+            className={`inline-flex items-center gap-2 rounded-sm border px-3 py-1 text-[13px] font-medium transition ${t.id === cur.id ? "border-brand bg-brand text-white" : "border-line bg-white text-muted hover:border-brand/40 hover:text-ink"}`}
           >
+            {(() => { const n = logoFor(t.label); return n ? <BrandLogo name={n} size={18} className={t.id === cur.id ? "border-white/30" : ""} /> : null; })()}
             {t.label}
           </button>
         ))}

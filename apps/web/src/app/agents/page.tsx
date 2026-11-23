@@ -6,6 +6,7 @@ import { getHistory, windowReturn } from "@/lib/history";
 import { short } from "@/lib/config";
 import { LaunchBanner, PreviewBadge } from "@/components/Preview";
 
+import { LogoRow } from "@/components/BrandLogo";
 export const metadata: Metadata = { title: "Agents leaderboard" };
 
 async function Board() {
@@ -69,6 +70,7 @@ export default function AgentsPage() {
         <span className="eyebrow">Leaderboard</span>
         <h1 className="text-[55px]">Agents, ranked by what they actually did</h1>
         <p className="text-lg leading-relaxed text-muted">Returns are the vault share price read live from Robinhood Chain, after fees. No self-reported numbers.</p>
+        <LogoRow className="mt-1" items={[{ brand: "robinhood", label: "Read live from Robinhood Chain" }]} />
       </div>
       <Suspense fallback={<p className="text-muted">Reading vaults…</p>}><Board /></Suspense>
       <section className="flex flex-wrap items-center justify-between gap-6 rounded-xl border border-line bg-brand-soft p-8 text-ink">

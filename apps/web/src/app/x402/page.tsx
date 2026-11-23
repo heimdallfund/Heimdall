@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { PUBLIC_API_URL } from "@/lib/config";
 import { fetchX402Stats } from "@/lib/shield";
 import { CtaBand, Faq, SectionHead, Snippet, Steps } from "@/components/ProductSections";
+import { LogoRow } from "@/components/BrandLogo";
 
 export const metadata: Metadata = {
   title: "x402: pay per call in USDG",
@@ -63,6 +64,7 @@ export default function Page() {
         <span className="eyebrow">x402 · USDG on Robinhood Chain</span>
         <h1 className="max-w-[860px] text-[50px] md:text-[68px]">Pay per call. No account, no API key.</h1>
         <p className="max-w-[680px] text-[18px] leading-relaxed text-muted">Agents pay for Shield in USDG with a signature: the payment is the login. And any API on Robinhood Chain can take x402 payments through Heimdall&apos;s facilitator, the only one that checks the recipient with Shield before money moves.</p>
+        <LogoRow className="mt-2" items={[{ token: "USDG", label: "USDG" }, { brand: "robinhood", label: "Robinhood Chain" }, { brand: "coinbase", label: "x402 standard" }]} />
       </header>
       <Suspense fallback={null}><Live /></Suspense>
       <Steps title="How a paid call works" steps={[

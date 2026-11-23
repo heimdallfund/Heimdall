@@ -3,6 +3,7 @@ import { ADDRESSES, explorerAddress } from "@/lib/config";
 import { LaunchBanner } from "@/components/Preview";
 import { CtaBand, Faq, SectionHead, Snippet, Steps } from "@/components/ProductSections";
 import { SetupBuilder } from "./SetupBuilder";
+import { LogoRow } from "@/components/BrandLogo";
 
 export const metadata: Metadata = {
   title: "Heimdall Guard for Safe",
@@ -37,6 +38,7 @@ export default function Page() {
         <span className="eyebrow">Heimdall Guard · Safe module</span>
         <h1 className="max-w-[860px] text-[50px] md:text-[68px]">Your agent gets a wallet. You keep the keys.</h1>
         <p className="max-w-[680px] text-[18px] leading-relaxed text-muted">Add one module to a Safe and an AI agent can spend from it, but only calls Shield approved, only up to the daily limits you set, and never on the Safe itself. The agent is not an owner: your owners can pause it, change its limits or remove it at any time.</p>
+        <LogoRow className="mt-2" items={[{ brand: "safe", label: "Safe 1.4.1" }, { brand: "robinhood", label: "Robinhood Chain" }, { token: "USDG", label: "USDG limits" }]} />
       </header>
       {ADDRESSES.guardModule ? <p className="font-mono text-[13px]">Module: <a className="text-brand hover:underline" href={explorerAddress(ADDRESSES.guardModule)}>{ADDRESSES.guardModule}</a></p> : <LaunchBanner>The Guard module goes live with the mainnet launch. It is tested against Safe 1.4.1, the version deployed on Robinhood Chain.</LaunchBanner>}
       <SetupBuilder module={ADDRESSES.guardModule} />

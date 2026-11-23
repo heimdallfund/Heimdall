@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { CtaBand, SectionHead, Snippet } from "@/components/ProductSections";
 import { IconTile, type IconName } from "@/components/Icons";
+import { BrandLogo, type BrandName } from "@/components/BrandLogo";
 
 export const metadata: Metadata = {
   title: "Integrate Heimdall",
@@ -15,6 +16,7 @@ const BLOCKS: { href: string; icon: IconName; kicker: string; title: string; tex
   { href: "/passport", icon: "receipt", kicker: "ERC-8004", title: "Agent Passport", text: "A score built from Shield, Pay and the risk list, tied to ERC-8004 identity and published on the official registry.", who: "Agent marketplaces, credit, hiring", code: "registry.getSummary(id, [heimdall], \"heimdall\", \"\");" },
 ];
 
+const MORE_LOGOS: Record<string, BrandName[]> = { "/docs/mcp": ["claude", "cursor", "mcp"], "/docs/frameworks": ["vercel", "langchain"], "/docs/shield": ["robinhood"] };
 const MORE: [string, string, string][] = [
   ["/docs/sdk", "TypeScript SDK", "Checks, receipts, vaults, Pay, Guard, x402 and Passport in one package."],
   ["/docs/mcp", "MCP server", "Claude, Cursor and any MCP client: check transactions, risk and passports."],
@@ -46,7 +48,7 @@ export default function Page() {
       <section className="flex flex-col gap-8">
         <SectionHead kicker="Also" title="Everything else" lead="The pieces Heimdall already runs on, open to you." />
         <div className="grid gap-px border border-ink bg-ink sm:grid-cols-2 lg:grid-cols-3">
-          {MORE.map(([href, t, d]) => <Link key={href} href={href} className="flex flex-col gap-2 bg-panel p-6 hover:bg-paper"><span className="text-[17px] font-semibold">{t}</span><span className="text-[14.5px] text-muted">{d}</span></Link>)}
+          {MORE.map(([href, t, d]) => <Link key={href} href={href} className="flex flex-col gap-2 bg-panel p-6 hover:bg-paper"><span className="text-[17px] font-semibold">{t}</span><span className="text-[14.5px] text-muted">{d}</span>{MORE_LOGOS[href] && <span className="mt-1 flex gap-1.5">{MORE_LOGOS[href].map((n) => <BrandLogo key={n} name={n} size={24} />)}</span>}</Link>)}
         </div>
       </section>
       <section className="grid items-start gap-8 lg:grid-cols-[1fr_1.1fr]">

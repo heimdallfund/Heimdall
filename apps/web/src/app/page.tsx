@@ -10,6 +10,8 @@ import { CheckFlow } from "@/components/home/CheckFlow";
 import { FeeCalc } from "@/components/home/FeeCalc";
 import { ShieldVisual, SignalsVisual, VaultVisual } from "@/components/Visuals";
 import { getShieldStats, getSignals, getVaults } from "@/lib/reads";
+import { BrandLogo } from "@/components/BrandLogo";
+import { TokenIcon } from "@/components/TokenIcon";
 
 function Stat({ label, value, suffix = "", tone }: { label: string; value: number | null; suffix?: string; tone?: string }) {
   return (
@@ -97,7 +99,7 @@ export default function Home() {
       <section className="relative -mt-16 overflow-hidden pt-16">
         <div className="mx-auto grid max-w-[1280px] gap-12 px-6 pb-14 pt-10 md:pt-16 lg:grid-cols-[1.05fr_1fr] lg:items-center lg:gap-14">
           <div className="flex flex-col items-start">
-            <span className="bg-ink px-2.5 py-1.5 font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-paper">Agent firewall · Robinhood Chain</span>
+            <span className="inline-flex items-center gap-2 bg-ink py-1 pl-1 pr-2.5 font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-paper"><BrandLogo name="robinhood" size={20} />Agent firewall · Robinhood Chain</span>
             <h1 className="mt-6 text-[17vw] leading-[0.86] sm:text-[96px] lg:text-[104px] xl:text-[118px]">Nothing gets signed <span className="text-brand">unchecked.</span></h1>
             <p className="mt-7 max-w-[540px] text-[16.5px] leading-relaxed text-ink/75 sm:text-[18px]">The guardian layer for AI agents that move money. Shield simulates every transaction and signature before your agent signs, and Heimdall vaults let agents trade without ever being able to take what they manage.</p>
             <div className="mt-8 flex flex-wrap gap-3">
@@ -119,7 +121,7 @@ export default function Home() {
             </div>
           </div>
           <ul className="mt-6 flex flex-wrap gap-x-6 gap-y-2 font-mono text-[11.5px] font-semibold uppercase tracking-[0.1em] text-muted">
-            {trust.map((t) => <li key={t} className="flex items-center gap-2"><span className="size-1.5 bg-brand" />{t}</li>)}
+            {trust.map((t) => <li key={t} className="flex items-center gap-2">{t.includes("Robinhood") ? <BrandLogo name="robinhood" size={18} /> : t.includes("USDG") ? <TokenIcon symbol="USDG" size={18} /> : t.includes("MCP") ? <BrandLogo name="mcp" size={18} /> : <span className="size-1.5 bg-brand" />}{t}</li>)}
           </ul>
         </div>
       </section>

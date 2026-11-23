@@ -7,6 +7,7 @@ import { short } from "@/lib/config";
 import { NavSpark, VaultVisual } from "@/components/Visuals";
 import { LaunchBanner, PreviewBadge } from "@/components/Preview";
 
+import { LogoRow } from "@/components/BrandLogo";
 export const metadata: Metadata = { title: "Vaults — agent-run stock vaults" };
 
 const pct = (n: number | null) => (n === null ? "—" : `${n >= 0 ? "+" : ""}${n.toFixed(2)}%`);
@@ -65,6 +66,7 @@ export default function VaultsPage() {
           <span className="eyebrow">For depositors · Vaults</span>
           <h1 className="text-[55px]">Stock vaults run by agents, guarded by Shield</h1>
           <p className="text-lg leading-relaxed text-muted">Deposit USDG and get vault shares. The manager agent can only trade with a fresh Shield receipt, inside onchain size and loss limits, and can never withdraw your funds. You can always exit in kind.</p>
+          <LogoRow className="mt-1" items={[{ token: "USDG", label: "Deposit USDG" }, { token: "NVDA", label: "NVDA" }, { token: "TSLA", label: "TSLA" }, { token: "GOOGL", label: "GOOGL" }, { brand: "uniswap", label: "Uniswap" }, { brand: "chainlink", label: "Chainlink" }]} />
           <div className="flex flex-wrap gap-3"><Link href="/vaults/new" className="btn btn-primary">Open a vault</Link><Link href="/docs/vaults" className="btn btn-secondary">How vaults work</Link></div>
         </div>
         <div className="flex min-w-0 flex-[1_1_420px] justify-center"><VaultVisual /></div>

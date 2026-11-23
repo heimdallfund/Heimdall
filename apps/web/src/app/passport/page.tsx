@@ -7,6 +7,7 @@ import { Providers } from "@/components/Providers";
 import { CtaBand, Faq, SectionHead, Snippet, Steps } from "@/components/ProductSections";
 import { PassportLookup } from "./Lookup";
 import { RegisterPanel } from "./RegisterPanel";
+import { LogoRow } from "@/components/BrandLogo";
 
 export const metadata: Metadata = {
   title: "Agent Passport",
@@ -55,6 +56,7 @@ export default function Page() {
           <span className="eyebrow">Agent Passport · ERC-8004</span>
           <h1 className="text-[50px] md:text-[68px]">A trust score every agent can check.</h1>
           <p className="max-w-[620px] text-[18px] leading-relaxed text-muted">Before your agent pays, hires or deposits with another agent, look it up. The Heimdall Score comes from what Heimdall can verify, not from reviews: how its transactions fare under Shield, how its paid jobs end, and whether it is on the blocklist. It is published onchain on the official ERC-8004 registry.</p>
+          <LogoRow className="mt-2" items={[{ brand: "ethereum", label: "ERC-8004 registries" }, { brand: "robinhood", label: "Robinhood Chain" }]} />
         </div>
         <PassportLookup />
       </header>

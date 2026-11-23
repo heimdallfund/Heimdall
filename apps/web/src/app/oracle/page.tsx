@@ -5,6 +5,7 @@ import { fetchRiskList } from "@/lib/shield";
 import { LaunchBanner } from "@/components/Preview";
 import { CtaBand, Faq, SectionHead, Snippet, Steps } from "@/components/ProductSections";
 import { RiskLookup } from "./RiskLookup";
+import { LogoRow } from "@/components/BrandLogo";
 
 export const metadata: Metadata = {
   title: "Risk Oracle",
@@ -47,6 +48,7 @@ export default function Page() {
           <span className="eyebrow">Risk Oracle · free for every contract</span>
           <h1 className="text-[50px] md:text-[68px]">One call to keep drainers out.</h1>
           <p className="max-w-[600px] text-[18px] leading-relaxed text-muted">Heimdall writes what Shield learns onchain: drainers, phishing contracts, exploiters and honeypot tokens on Robinhood Chain. Your DEX, launchpad, bridge or wallet reads it in one view call and stops them before they touch your users.</p>
+          <LogoRow items={[{ brand: "robinhood", label: "Robinhood Chain" }, { brand: "uniswap", label: "For DEXs" }, { brand: "safe", label: "For wallets and Safes" }]} />
           <Count />
         </div>
         <RiskLookup />
