@@ -18,6 +18,16 @@ function setup() {
 const ADDR = "0x9999999999999999999999999999999999999999";
 
 describe("admin panel API", () => {
+  it("keeps the launch-day checklist, admin only, and drops anything malformed", async () => {
+    const { req } = setup();
+    expect((await req("/v1/admin/launch", { admin: false })).status).toBe(403);
+    expect(await (await req("/v1/admin/launch")).json()).toEqual({});
+    const body = { "deploy-core": { at: 1, note: "tx 0xabc" }, "Bad Id!": { at: 2 }, "no-time": { note: "x" } };
+    expect(await (await req("/v1/admin/launch", { method: "PUT", body: JSON.stringify(body) })).json()).toEqual({ "deploy-core": { at: 1, note: "tx 0xabc" } });
+    expect(await (await req("/v1/admin/launch")).json()).toEqual({ "deploy-core": { at: 1, note: "tx 0xabc" } });
+    expect((await req("/v1/admin/launch", { method: "PUT", body: "[]" })).status).toBe(400);
+  });
+
   it("refuses every admin route without the key", async () => {
     const { req } = setup();
     for (const [m, p] of [["GET", "/v1/admin/overview"], ["GET", "/v1/admin/analytics"], ["PUT", "/v1/admin/arena/seasons"], ["DELETE", `/v1/admin/blocklist/${ADDR}`]]) {

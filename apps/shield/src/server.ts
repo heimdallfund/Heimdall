@@ -785,6 +785,20 @@ export function buildApp(opts: AppOptions = {}) {
     await recordHeartbeat(store, b.service, probes, b.detail);
     return c.body(null, 204);
   }));
+  /** Launch-day checklist (admin/launch on the web): which steps are done, by whom and when. Kept for a year. */
+  app.get("/v1/admin/launch", admin(async (c) => c.json(JSON.parse((await store.fetch("launch:checklist")) ?? "{}"))));
+  app.put("/v1/admin/launch", limitBody, admin(async (c) => {
+    const b = (await c.req.json().catch(() => null)) as Record<string, unknown> | null;
+    if (!b || typeof b !== "object" || Array.isArray(b)) return c.json({ error: "invalid_body" }, 400);
+    const clean: Record<string, { at: number; note?: string }> = {};
+    for (const [id, v] of Object.entries(b).slice(0, 200)) {
+      const e = v as { at?: unknown; note?: unknown };
+      if (!/^[a-z0-9-]{1,40}$/.test(id) || typeof e?.at !== "number") continue;
+      clean[id] = { at: e.at, ...(typeof e.note === "string" && e.note ? { note: e.note.slice(0, 300) } : {}) };
+    }
+    await store.put("launch:checklist", JSON.stringify(clean), 400 * 86_400);
+    return c.json(clean);
+  }));
   app.get("/v1/admin/incidents", admin(async (c) => c.json(await listIncidents(store))));
   app.post("/v1/admin/incidents", limitBody, admin(async (c) => {
     const r = await upsertIncident(store, (await c.req.json().catch(() => ({}))) as Record<string, string>);

@@ -110,7 +110,8 @@ After any emergency action:
 ## Hosting
 
 - Web: Vercel project `heimdall-web` (root `apps/web`), deployed on every push to `main` of `heimdallfund/Heimdall`.
-- Shield API: a second Vercel project (root `apps/shield`) once the KMS signer, Upstash and RPC keys exist; it refuses to start in production without a signer.
+- Shield API: Vercel project `heimdall-shield` (root `apps/shield`), deployed on every push to `main`. Until launch it runs in pre-launch mode (`SHIELD_PRELAUNCH=1`): checks work, no receipts are signed. At launch add `SHIELD_KMS_KEY_ID`, Upstash and the contract addresses and delete `SHIELD_PRELAUNCH`; without a signer it refuses to start in production.
+- Launch day: follow `https://heimdall.fund/admin/launch`, the checklist in order (ticks are saved on the Shield API when the admin key is open).
 - Monitor and keeper: one always-on container (`apps/monitor`).
 
 ## Docs on GitBook
