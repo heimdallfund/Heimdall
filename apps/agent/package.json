@@ -1,5 +1,5 @@
 {
-  "name": "@heimdall/agent",
+  "name": "@heimdallfund/agent",
   "version": "0.1.0",
   "description": "Heimdall reference manager agent: buys signals, checks every trade with Shield, trades a Heimdall vault",
   "directories": {
@@ -13,7 +13,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@heimdall/sdk": "file:../../packages/sdk",
+    "@heimdallfund/sdk": "file:../../packages/sdk",
     "viem": "^2.58.4",
     "zod": "^4.6.7"
   },

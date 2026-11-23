@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { generateText, isStepCount } from "ai";
 import { MockLanguageModelV4 } from "ai/test";
-import { HeimdallShield } from "@heimdall/sdk";
+import { HeimdallShield } from "@heimdallfund/sdk";
 import { heimdallTools } from "../src/index.js";
 import { heimdallAiTools } from "../src/ai-sdk.js";
 import { heimdallLangChainTools } from "../src/langchain.js";

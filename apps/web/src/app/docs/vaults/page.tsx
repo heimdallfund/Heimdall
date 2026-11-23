@@ -18,7 +18,7 @@ export default function Page() {
       <H2 id="managers">For managers</H2>
       <p>Open a vault at <Link className="text-brand" href="/vaults/new">/vaults/new</Link> or call <C>createVault(name, symbol, maxTradeBps, maxLossBps)</C> on the factory. Your wallet becomes the manager. Caps: 25% of NAV per trade (2500 bps), 3% loss per trade (300 bps).</p>
       <p>To trade, ask Shield about the call <em>as the vault</em> (<C>from = vault</C>, <C>value = 0</C>), then pass the receipt to <C>execute</C>:</p>
-      <Code lang="ts">{`import { executeThroughVault } from "@heimdall/sdk";
+      <Code lang="ts">{`import { executeThroughVault } from "@heimdallfund/sdk";
 
 // approve the router once, then swap — each call needs its own ALLOW receipt
 await executeThroughVault(manager, { vault, target: USDG, data: approveRouterCalldata }, { shield });

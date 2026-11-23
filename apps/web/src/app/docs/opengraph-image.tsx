@@ -17,7 +17,7 @@ export default function Image() {
           {["#FF5F57", "#FEBC2E", "#28C840"].map((c) => <div key={c} style={{ display: "flex", width: 12, height: 12, borderRadius: 6, background: c }} />)}
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 10, padding: "20px 24px 26px", fontFamily: "Mono", fontSize: 18, color: "#E7E9EE" }}>
-          <div style={{ display: "flex", color: "#8B93A5" }}>$ npm i @heimdall/sdk viem</div>
+          <div style={{ display: "flex", color: "#8B93A5" }}>$ npm i @heimdallfund/sdk viem</div>
           <div style={{ display: "flex", height: 8 }} />
           <div style={{ display: "flex" }}><span style={{ color: "#9FB0FF" }}>const</span>&nbsp;shield = new HeimdallShield()</div>
           <div style={{ display: "flex" }}><span style={{ color: "#9FB0FF" }}>await</span>&nbsp;guardedSend(wallet, tx, {"{ shield }"})</div>

@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { serve } from "@hono/node-server";
 import { createPublicClient, fallback, http, isAddress, getAddress, type Address, type PublicClient } from "viem";
-import { gateVoucher, MemoryLedger, robinhoodChain, type VoucherLedger } from "@heimdall/sdk";
+import { gateVoucher, MemoryLedger, robinhoodChain, type VoucherLedger } from "@heimdallfund/sdk";
 import { addressIntel, poolPrice, referencePrice, tokenRisk, type StockSource } from "./analyzers.js";
 import { UpstashLedger } from "./ledger.js";
 

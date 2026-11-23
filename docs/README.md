@@ -20,13 +20,13 @@ Heimdall runs on Robinhood Chain mainnet (chain ID 4663).
 **1. Install the SDK.**
 
 ```bash
-npm install @heimdall/sdk viem
+npm install @heimdallfund/sdk viem
 ```
 
 **2. Replace your agent's `sendTransaction` with `guardedSend`.** It asks Shield first and only sends on ALLOW.
 
 ```ts
-import { HeimdallShield, guardedSend, HeimdallDenied } from "@heimdall/sdk";
+import { HeimdallShield, guardedSend, HeimdallDenied } from "@heimdallfund/sdk";
 
 const shield = new HeimdallShield({ apiKey: process.env.HEIMDALL_API_KEY }); // key optional on the free plan
 

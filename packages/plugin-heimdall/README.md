@@ -1,15 +1,15 @@
-# @heimdall/plugin-heimdall
+# @heimdallfund/plugin-heimdall
 
 ElizaOS plugin for [Heimdall](https://heimdall.fund), the guardian layer for AI agents on Robinhood Chain.
 
 Your agent checks every transaction and signature with Heimdall Shield before it signs: Shield simulates it, then answers ALLOW, WARN or DENY with the reasons and every token that would move. A DENY means do not sign.
 
 ```bash
-npm i @heimdall/plugin-heimdall
+npm i @heimdallfund/plugin-heimdall
 ```
 
 ```ts
-import heimdall from "@heimdall/plugin-heimdall";
+import heimdall from "@heimdallfund/plugin-heimdall";
 
 export const character = {
   name: "Trader",
@@ -29,7 +29,7 @@ export const character = {
 | `HEIMDALL_THREATS` | Known drainers, most-denied contracts and the community blocklist |
 | `HEIMDALL_PAY_JOB`, `HEIMDALL_PAY_RECORD` | Heimdall Pay escrow jobs and provider track records (needs `HEIMDALL_PAY_ADDRESS`) |
 
-To let the agent send only what Shield allows, build the plugin in code with a wallet: `heimdallPlugin({ wallet })` from `@heimdall/agent-kit/eliza` adds `HEIMDALL_SAFE_SEND`.
+To let the agent send only what Shield allows, build the plugin in code with a wallet: `heimdallPlugin({ wallet })` from `@heimdallfund/agent-kit/eliza` adds `HEIMDALL_SAFE_SEND`.
 
 ## Settings
 

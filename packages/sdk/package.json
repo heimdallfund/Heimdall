@@ -1,5 +1,5 @@
 {
-  "name": "@heimdall/sdk",
+  "name": "@heimdallfund/sdk",
   "version": "0.1.0",
   "description": "Heimdall SDK for Robinhood Chain agents: Shield transaction firewall, guarded vault execution, Heimdall Pay escrow, Auto-Invest and pay-per-call Signals",
   "keywords": [

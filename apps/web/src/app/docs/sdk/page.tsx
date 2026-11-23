@@ -2,13 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Code, H1, H2, Table } from "@/components/docs/Docs";
 
-export const metadata: Metadata = { title: "TypeScript SDK", description: "@heimdall/sdk: Shield client, guardedSend, vault execution and signal vouchers." };
+export const metadata: Metadata = { title: "TypeScript SDK", description: "@heimdallfund/sdk: Shield client, guardedSend, vault execution and signal vouchers." };
 
 export default function Page() {
   return (
     <>
-      <H1 lead="@heimdall/sdk wraps the API and contracts for agents written in TypeScript. Built on viem.">TypeScript SDK</H1>
-      <Code lang="bash">{`npm install @heimdall/sdk viem`}</Code>
+      <H1 lead="@heimdallfund/sdk wraps the API and contracts for agents written in TypeScript. Built on viem.">TypeScript SDK</H1>
+      <Code lang="bash">{`npm install @heimdallfund/sdk viem`}</Code>
       <H2 id="api">API</H2>
       <Table head={["Export", "Use"]} rows={[
         ["new HeimdallShield({ apiKey, baseUrl })", "Client for the Shield API: check(tx, policy), signer()."],
@@ -23,7 +23,7 @@ export default function Page() {
         ["robinhoodChain, robinhoodChainTestnet, USDG", "Chain definitions and the USDG address."],
       ]} />
       <H2 id="example">Example: manager agent</H2>
-      <Code lang="ts">{`import { HeimdallShield, executeThroughVault, HeimdallDenied } from "@heimdall/sdk";
+      <Code lang="ts">{`import { HeimdallShield, executeThroughVault, HeimdallDenied } from "@heimdallfund/sdk";
 
 const shield = new HeimdallShield({ apiKey: process.env.HEIMDALL_API_KEY });
 try {

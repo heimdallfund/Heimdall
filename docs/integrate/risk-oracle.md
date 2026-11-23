@@ -44,7 +44,7 @@ IHeimdallRisk(oracle).anyBlocked(addresses);           // one call for a whole r
 ## Read it offchain
 
 ```ts
-import { readRisk, HeimdallShield } from "@heimdall/sdk";
+import { readRisk, HeimdallShield } from "@heimdallfund/sdk";
 
 const onchain = await readRisk(publicClient, ORACLE, "0x…"); // { level, levelName, flags, blocked }
 const full = await new HeimdallShield().risk("0x…");          // plus the reason and what Shield knows

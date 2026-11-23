@@ -105,15 +105,15 @@ export const GUIDES: Guide[] = [
         <p>Claude, Cursor and any MCP agent get the checks as tools. Add the server to the client&apos;s config:</p>
         <Pre>{`{
   "mcpServers": {
-    "heimdall": { "command": "npx", "args": ["-y", "@heimdall/mcp"] }
+    "heimdall": { "command": "npx", "args": ["-y", "@heimdallfund/mcp"] }
   }
 }`}</Pre>
         <p>The server tells the model to check every transaction and signature before signing and never to sign on DENY. See <A href="/docs/mcp">MCP server</A> for every client.</p>
 
         <h2 id="code">In your own agent code</h2>
-        <p>With the Vercel AI SDK, LangChain or ElizaOS, <A href="/docs/frameworks">@heimdall/agent-kit</A> adds the checks as native tools. Give it the wallet and the agent gets <C>heimdall_safe_send</C>, which only sends what Shield allows:</p>
+        <p>With the Vercel AI SDK, LangChain or ElizaOS, <A href="/docs/frameworks">@heimdallfund/agent-kit</A> adds the checks as native tools. Give it the wallet and the agent gets <C>heimdall_safe_send</C>, which only sends what Shield allows:</p>
         <Pre>{`import { generateText } from "ai";
-import { heimdallAiTools } from "@heimdall/agent-kit/ai-sdk";
+import { heimdallAiTools } from "@heimdallfund/agent-kit/ai-sdk";
 
 const { text } = await generateText({
   model,
@@ -127,7 +127,7 @@ const { text } = await generateText({
   prompt: "Swap 50 USDG for NVDA",
 });`}</Pre>
         <p>Or call it directly before you send anything:</p>
-        <Pre>{`import { HeimdallShield, guardedSend } from "@heimdall/sdk";
+        <Pre>{`import { HeimdallShield, guardedSend } from "@heimdallfund/sdk";
 
 const shield = new HeimdallShield({ apiKey: process.env.HEIMDALL_API_KEY });
 const { hash } = await guardedSend(wallet, { to, data, value }, { shield }); // throws HeimdallDenied unless ALLOW`}</Pre>

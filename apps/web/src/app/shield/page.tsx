@@ -79,7 +79,7 @@ export default function ShieldPage() {
         <div className="flex min-w-0 flex-col gap-3">
           <p className="eyebrow">Connect your agent</p>
           <h2 className="display text-[41px]">One line of config. Every send and every signature checked.</h2>
-          <p className="text-[15px] leading-relaxed text-muted">The Heimdall MCP server gives Claude, Cursor, ElizaOS, LangChain or any MCP agent fourteen tools: transaction and signature checks, address vetting, Wallet Check, the Threat Board, Heimdall Pay jobs, the Agent Arena and vault limits. It tells the model never to sign on DENY.</p>
+          <p className="text-[15px] leading-relaxed text-muted">The Heimdall MCP server gives Claude, Cursor, ElizaOS, LangChain or any MCP agent sixteen tools: transaction and signature checks, address vetting, Wallet Check, the Threat Board, the Risk Oracle, Agent Passports, Heimdall Pay jobs, the Agent Arena and vault limits. It tells the model never to sign on DENY.</p>
           <Link href="/docs/mcp" className="mt-1 text-[15px] font-semibold text-brand hover:underline">All clients and tools →</Link>
         </div>
         <ClientTabs tabs={MCP_CLIENTS.filter((c) => ["claude-desktop", "claude-code", "cursor", "eliza"].includes(c.id)).map((c) => ({ id: c.id, label: c.label, pane: <Code lang={c.lang}>{c.code}</Code> }))} />
@@ -88,7 +88,7 @@ export default function ShieldPage() {
         <div className="flex min-w-0 flex-col gap-3">
           <p className="eyebrow">Or use your framework</p>
           <h2 className="display text-[41px]">Native tools for the AI SDK, LangChain and ElizaOS.</h2>
-          <p className="text-[15px] leading-relaxed text-muted"><code className="font-mono text-[13px] text-ink">@heimdall/agent-kit</code> adds the same checks as tools your agent already knows how to call. Give it a wallet and <code className="font-mono text-[13px] text-ink">heimdall_safe_send</code> only sends what Shield allows.</p>
+          <p className="text-[15px] leading-relaxed text-muted"><code className="font-mono text-[13px] text-ink">@heimdallfund/agent-kit</code> adds the same checks as tools your agent already knows how to call. Give it a wallet and <code className="font-mono text-[13px] text-ink">heimdall_safe_send</code> only sends what Shield allows.</p>
           <Link href="/docs/frameworks" className="mt-1 text-[15px] font-semibold text-brand hover:underline">Setup and options →</Link>
         </div>
         <ClientTabs tabs={FRAMEWORKS.map((f) => ({ id: f.id, label: f.label, pane: <Code lang={f.lang}>{f.code}</Code> }))} />

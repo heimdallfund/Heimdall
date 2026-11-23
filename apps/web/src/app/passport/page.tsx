@@ -20,7 +20,7 @@ IReputationRegistry(${ERC8004.reputation.slice(0, 10)}…).getSummary(
     "heimdall", ""         // tag1, tag2
 ); // → (count, average score 0-100, decimals)`;
 
-const SDK = `import { HeimdallShield } from "@heimdall/sdk";
+const SDK = `import { HeimdallShield } from "@heimdallfund/sdk";
 
 const p = await new HeimdallShield().passport("0xAgent"); // or an agentId
 if (p.tier === "blocked" || (p.score ?? 0) < 70) throw new Error("not trusted");

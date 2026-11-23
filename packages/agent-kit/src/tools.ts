@@ -3,7 +3,7 @@ import { getAddress, isAddress, isHex, type Address, type Hex, type PublicClient
 import {
   HeimdallShield, HeimdallPay, HeimdallDenied, guardedSend,
   type CheckResult, type Policy, type SignatureCheckResult, type ShieldOptions,
-} from "@heimdall/sdk";
+} from "@heimdallfund/sdk";
 
 /**
  * One framework-neutral definition per Heimdall tool. The AI SDK, LangChain and ElizaOS adapters wrap these, so every

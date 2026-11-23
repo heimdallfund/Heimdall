@@ -14,7 +14,7 @@ There are two ways to pay:
 * **Vouchers (recommended):** prefund once, then sign a voucher per call, offchain and without gas.
 
 ```ts
-import { signVoucher, encodeVoucherHeader } from "@heimdall/sdk";
+import { signVoucher, encodeVoucherHeader } from "@heimdallfund/sdk";
 
 // once: USDG.approve(signals, amount) then signals.fund(amount)
 spent += price;                                  // keep a running total per signal
@@ -31,7 +31,7 @@ Vouchers are _cumulative_: each one states the total you have ever agreed to pay
 3. Redeem the latest voucher per payer regularly with `redeem(voucher, signature)`.
 
 ```ts
-import { gateVoucher, MemoryLedger } from "@heimdall/sdk";
+import { gateVoucher, MemoryLedger } from "@heimdallfund/sdk";
 
 const ledger = new MemoryLedger(); // use a shared store (e.g. Redis) in production
 app.get("/my-signal", async (c) => {

@@ -1,5 +1,5 @@
 {
-  "package": "@heimdall/plugin-heimdall",
+  "package": "@heimdallfund/plugin-heimdall",
   "repository": "github:<GITHUB_ORG>/plugin-heimdall",
   "kind": "plugin",
   "description": "Heimdall Shield for elizaOS: every Robinhood Chain transaction and signature is checked (ALLOW, WARN or DENY) before the agent signs.",

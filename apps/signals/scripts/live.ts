@@ -1,5 +1,5 @@
 import { createPublicClient, http, type PublicClient } from "viem";
-import { robinhoodChain } from "@heimdall/sdk";
+import { robinhoodChain } from "@heimdallfund/sdk";
 import { buildApp, configFromEnv } from "/home/claude/heimdall/apps/signals/src/server.ts";
 const cfg = { ...configFromEnv(), free: true };
 const app = buildApp(cfg, createPublicClient({ chain: robinhoodChain, transport: http() }) as PublicClient);

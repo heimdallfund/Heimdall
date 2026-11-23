@@ -1,5 +1,5 @@
 {
-  "name": "@heimdall/shield",
+  "name": "@heimdallfund/shield",
   "version": "0.1.0",
   "description": "Heimdall Shield — transaction firewall for AI agents on Robinhood Chain",
   "directories": {

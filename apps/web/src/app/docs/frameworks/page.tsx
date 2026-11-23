@@ -5,7 +5,7 @@ import { FRAMEWORKS, KIT_TOOLS } from "@/lib/frameworks";
 
 export const metadata: Metadata = {
   title: "Agent frameworks",
-  description: "@heimdall/agent-kit: Heimdall Shield and Pay as native tools for the Vercel AI SDK, LangChain and ElizaOS.",
+  description: "@heimdallfund/agent-kit: Heimdall Shield and Pay as native tools for the Vercel AI SDK, LangChain and ElizaOS.",
 };
 
 export default function Page() {
@@ -13,7 +13,7 @@ export default function Page() {
     <>
       <H1 lead="Native Heimdall tools for the Vercel AI SDK, LangChain and ElizaOS. Same names, inputs and answers in every framework, and no MCP server to run.">Agent frameworks</H1>
       <H2 id="install">Install</H2>
-      <Code lang="bash">{"npm i @heimdall/agent-kit"}</Code>
+      <Code lang="bash">{"npm i @heimdallfund/agent-kit"}</Code>
       <p className="text-[15px] leading-relaxed text-muted">Install the framework you already use next to it. The kit only loads the adapter you import.</p>
       <H2 id="use">Add it to your agent</H2>
       <ClientTabs tabs={FRAMEWORKS.map((f) => ({ id: f.id, label: f.label, pane: <Code lang={f.lang}>{f.code}</Code> }))} />

@@ -5,7 +5,7 @@ import { MCP_CLIENTS, MCP_TOOLS } from "@/lib/mcpClients";
 
 export const metadata: Metadata = {
   title: "MCP server",
-  description: "@heimdall/mcp: give Claude, Cursor, ElizaOS or any MCP-capable agent a firewall for Robinhood Chain transactions and signatures.",
+  description: "@heimdallfund/mcp: give Claude, Cursor, ElizaOS or any MCP-capable agent a firewall for Robinhood Chain transactions and signatures.",
 };
 
 export default function Page() {

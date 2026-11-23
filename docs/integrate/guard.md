@@ -27,7 +27,7 @@ From the Safe, run these transactions (the setup page on heimdall.fund/guard bui
 With the SDK:
 
 ```ts
-import { guardSetupCalls, safeBatch } from "@heimdall/sdk";
+import { guardSetupCalls, safeBatch } from "@heimdallfund/sdk";
 
 const calls = guardSetupCalls(safe, {
   module: GUARD_MODULE,
@@ -42,7 +42,7 @@ writeFileSync("setup.json", JSON.stringify(safeBatch(4663, safe, calls)));
 ## Run the agent through it
 
 ```ts
-import { executeThroughGuard, guardRemaining, HeimdallShield } from "@heimdall/sdk";
+import { executeThroughGuard, guardRemaining, HeimdallShield } from "@heimdallfund/sdk";
 
 await executeThroughGuard(agentWallet, { module: GUARD_MODULE, safe, to: USDG, data }, { shield: new HeimdallShield() });
 const left = await guardRemaining(publicClient, GUARD_MODULE, safe, USDG); // budget left today

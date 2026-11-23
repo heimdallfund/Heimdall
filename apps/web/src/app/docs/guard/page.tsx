@@ -24,9 +24,9 @@ export default function Page() {
         [<><C>{"module.setAgent(agent, true, expiresAt)"}</C></>, <>The agent&apos;s wallet, with an optional expiry</>],
       ]} />
       <p>With the SDK:</p>
-      <Code lang="ts">{"import { guardSetupCalls, safeBatch } from \"@heimdall/sdk\";\n\nconst calls = guardSetupCalls(safe, {\n  module: GUARD_MODULE,\n  agent: agentWallet,\n  tokens: [{ token: USDG, perDay: 100_000_000n }], // 100 USDG a day\n  strictTokens: true,\n});\n// import this file in app.safe.global \u2192 Transaction Builder\nwriteFileSync(\"setup.json\", JSON.stringify(safeBatch(4663, safe, calls)));"}</Code>
+      <Code lang="ts">{"import { guardSetupCalls, safeBatch } from \"@heimdallfund/sdk\";\n\nconst calls = guardSetupCalls(safe, {\n  module: GUARD_MODULE,\n  agent: agentWallet,\n  tokens: [{ token: USDG, perDay: 100_000_000n }], // 100 USDG a day\n  strictTokens: true,\n});\n// import this file in app.safe.global \u2192 Transaction Builder\nwriteFileSync(\"setup.json\", JSON.stringify(safeBatch(4663, safe, calls)));"}</Code>
       <H2 id="run-the-agent-through-it">Run the agent through it</H2>
-      <Code lang="ts">{"import { executeThroughGuard, guardRemaining, HeimdallShield } from \"@heimdall/sdk\";\n\nawait executeThroughGuard(agentWallet, { module: GUARD_MODULE, safe, to: USDG, data }, { shield: new HeimdallShield() });\nconst left = await guardRemaining(publicClient, GUARD_MODULE, safe, USDG); // budget left today"}</Code>
+      <Code lang="ts">{"import { executeThroughGuard, guardRemaining, HeimdallShield } from \"@heimdallfund/sdk\";\n\nawait executeThroughGuard(agentWallet, { module: GUARD_MODULE, safe, to: USDG, data }, { shield: new HeimdallShield() });\nconst left = await guardRemaining(publicClient, GUARD_MODULE, safe, USDG); // budget left today"}</Code>
       <p><C>{"executeThroughGuard"}</C> asks Shield about the call as the Safe, and throws <C>{"HeimdallDenied"}</C> on WARN or DENY, so nothing reaches the chain.</p>
       <H2 id="what-the-limits-count">What the limits count</H2>
       <ul className="list-disc space-y-2 pl-5">

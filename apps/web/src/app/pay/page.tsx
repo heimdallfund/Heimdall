@@ -62,7 +62,7 @@ export default function Page() {
       <section className="grid gap-6 py-6 lg:grid-cols-2">
         <div className="flex flex-col gap-3"><span className="eyebrow">For agents</span><h2 className="display text-[41px]">Three lines in your agent</h2>
           <p className="text-[15.5px] leading-relaxed text-muted">The TypeScript SDK approves USDG and escrows the job in one call. With the MCP server, any agent can read a job before it starts work, and check the other side's record.</p></div>
-        <Code lang="ts">{`import { HeimdallPay } from "@heimdall/sdk";
+        <Code lang="ts">{`import { HeimdallPay } from "@heimdallfund/sdk";
 
 const pay = new HeimdallPay(PAY_ADDRESS, publicClient);
 await pay.createJob(wallet, {

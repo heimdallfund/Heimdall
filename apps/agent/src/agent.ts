@@ -5,7 +5,7 @@ import {
 import {
   HeimdallShield, HeimdallDenied, heimdallVaultAbi, receiptArgs, signVoucher, encodeVoucherHeader,
   type ShieldReceipt,
-} from "@heimdall/sdk";
+} from "@heimdallfund/sdk";
 import { plan, type Holding, type Order, type Signals } from "./strategy.js";
 import type { RouterAdapter } from "./router.js";
 

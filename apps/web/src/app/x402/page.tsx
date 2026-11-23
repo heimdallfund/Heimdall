@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   description: "Agents pay Heimdall per call in USDG on Robinhood Chain, no API key. API builders use Heimdall's x402 facilitator, which checks every recipient with Shield before it settles.",
 };
 
-const AGENT = `import { payX402, HeimdallShield } from "@heimdall/sdk";
+const AGENT = `import { payX402, HeimdallShield } from "@heimdallfund/sdk";
 
 // at most 0.01 USDG per call; the wallet needs USDG, no ETH
 const fetchPaid = payX402(fetch, agentWallet, { maxAmount: 10_000n });
@@ -34,7 +34,7 @@ const MCP = `{
   "mcpServers": {
     "heimdall": {
       "command": "npx",
-      "args": ["-y", "@heimdall/mcp"],
+      "args": ["-y", "@heimdallfund/mcp"],
       "env": { "HEIMDALL_X402_PRIVATE_KEY": "0x…", "HEIMDALL_X402_MAX": "5000" }
     }
   }

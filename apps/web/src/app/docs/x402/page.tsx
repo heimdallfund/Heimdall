@@ -20,7 +20,7 @@ export default function Page() {
         [<><C>{"POST /v1/check-signature"}</C></>, <>0.001 USDG</>],
         [<><C>{"GET /v1/wallet/:address"}</C></>, <>0.002 USDG</>],
       ]} />
-      <Code lang="ts">{"import { payX402, HeimdallShield } from \"@heimdall/sdk\";\n\n// pays only when asked, never above 0.01 USDG per call; the wallet needs USDG, not ETH\nconst shield = new HeimdallShield({ fetch: payX402(fetch, agentWallet, { maxAmount: 10_000n }) });"}</Code>
+      <Code lang="ts">{"import { payX402, HeimdallShield } from \"@heimdallfund/sdk\";\n\n// pays only when asked, never above 0.01 USDG per call; the wallet needs USDG, not ETH\nconst shield = new HeimdallShield({ fetch: payX402(fetch, agentWallet, { maxAmount: 10_000n }) });"}</Code>
       <p>MCP: set <C>{"HEIMDALL_X402_PRIVATE_KEY"}</C> (a wallet holding USDG) and optionally <C>{"HEIMDALL_X402_MAX"}</C> (raw units per call, default 5000).</p>
       <p>One payment buys one call. Shield refuses a replayed payment header, and validates the request body before charging, so a malformed request is never paid for.</p>
       <H2 id="use-the-facilitator-for-your-api">Use the facilitator for your API</H2>

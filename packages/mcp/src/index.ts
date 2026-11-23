@@ -13,7 +13,7 @@ import {
   payX402, readRisk,
   HeimdallShield, HeimdallPay, heimdallSignalsAbi, heimdallVaultAbi, heimdallVaultFactoryAbi, type Job,
   robinhoodChain, robinhoodChainTestnet, USDG, type CheckResult, type SignatureCheckResult,
-} from "@heimdall/sdk";
+} from "@heimdallfund/sdk";
 
 export const VERSION = "0.2.0";
 

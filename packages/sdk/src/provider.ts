@@ -60,7 +60,7 @@ export async function gateVoucher(cfg: GateConfig, header: string | null | undef
         currency: "USDG",
         decimals: 6,
         header: "x-heimdall-voucher",
-        howTo: "Prefund with HeimdallSignals.fund(amount), then send a cumulative EIP-712 Voucher signed by the payer (see @heimdall/sdk signVoucher).",
+        howTo: "Prefund with HeimdallSignals.fund(amount), then send a cumulative EIP-712 Voucher signed by the payer (see @heimdallfund/sdk signVoucher).",
       },
     },
   });

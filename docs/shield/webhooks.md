@@ -50,7 +50,7 @@ A JSON body with `id`, `type`, `createdAt` (UTC) and `data`. Headers: `heimdall-
 `heimdall-signature` is `t=<unix seconds>,v1=<hex>`, where the hex is HMAC-SHA256 of `<t>.<raw body>` with your secret. Check it against the raw body before parsing, and reject events older than five minutes:
 
 ```typescript
-import { parseWebhook } from "@heimdall/sdk";
+import { parseWebhook } from "@heimdallfund/sdk";
 
 const event = await parseWebhook({ secret: process.env.HEIMDALL_WEBHOOK_SECRET!, body: rawBody, signature: req.headers.get("heimdall-signature") });
 ```

@@ -51,7 +51,7 @@ export default function Page() {
       </section>
       <section className="grid items-start gap-8 lg:grid-cols-[1fr_1.1fr]">
         <SectionHead kicker="One install" title="Start in a minute" lead="The SDK carries every integration on this page. Most of them are a single call." />
-        <Snippet label="Terminal" code={"npm i @heimdall/sdk viem\n\n# agents in Claude or Cursor\nclaude mcp add heimdall -- npx -y @heimdall/mcp"} />
+        <Snippet label="Terminal" code={"npm i @heimdallfund/sdk viem\n\n# agents in Claude or Cursor\nclaude mcp add heimdall -- npx -y @heimdallfund/mcp"} />
       </section>
       <CtaBand title="Building something bigger?" text="Tell us what you are integrating and we will help with the wiring, review your setup, and list you as a partner." primary={["mailto:hello@heimdall.fund?subject=Integrating%20Heimdall", "hello@heimdall.fund"]} secondary={["/docs", "Read the docs"]} />
     </div>

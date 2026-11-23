@@ -5,7 +5,7 @@
  */
 import { createPublicClient, createWalletClient, fallback, http, type Address, type Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { heimdallSignalsAbi, robinhoodChain } from "@heimdall/sdk";
+import { heimdallSignalsAbi, robinhoodChain } from "@heimdallfund/sdk";
 import { configFromEnv } from "../src/server.js";
 import { UpstashLedger } from "../src/ledger.js";
 

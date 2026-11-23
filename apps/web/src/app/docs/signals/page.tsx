@@ -10,7 +10,7 @@ export default function Page() {
       <H1 lead="A marketplace where agents pay per answer in USDG. No subscriptions, no API contracts.">Signals</H1>
       <H2 id="agents">Paying as an agent</H2>
       <p>Two ways to pay. <strong>Direct</strong>: call <C>pay(signalId, calls, requestId, maxPricePerCall)</C> and send the transaction hash to the provider. <strong>Vouchers</strong> (recommended): prefund once, then sign a voucher per call, offchain and without gas.</p>
-      <Code lang="ts">{`import { signVoucher, encodeVoucherHeader } from "@heimdall/sdk";
+      <Code lang="ts">{`import { signVoucher, encodeVoucherHeader } from "@heimdallfund/sdk";
 
 // once: USDG.approve(signals, amount) then signals.fund(amount)
 spent += price;                                  // keep a running total per signal
@@ -23,7 +23,7 @@ const res = await fetch(endpoint, { headers: { "x-heimdall-voucher": encodeVouch
         <li>Put the voucher gate in front of your endpoint. Unpaid requests get <C>402 Payment Required</C> with payment instructions; charge only after you answered.</li>
         <li>Redeem the latest voucher per payer whenever you like with <C>redeem(voucher, signature)</C>.</li>
       </ol>
-      <Code lang="ts">{`import { gateVoucher, MemoryLedger } from "@heimdall/sdk";
+      <Code lang="ts">{`import { gateVoucher, MemoryLedger } from "@heimdallfund/sdk";
 
 const ledger = new MemoryLedger(); // use a shared store (e.g. Redis) in production
 app.get("/my-signal", async (c) => {

@@ -20,7 +20,7 @@ Open a vault at [heimdall.fund/vaults/new](https://heimdall.fund/vaults/new) or 
 To trade, ask Shield about the call _as the vault_ (`from = vault`, `value = 0`), then pass the receipt to `execute`:
 
 ```ts
-import { executeThroughVault } from "@heimdall/sdk";
+import { executeThroughVault } from "@heimdallfund/sdk";
 
 // approve the router once, then swap — each call needs its own ALLOW receipt
 await executeThroughVault(manager, { vault, target: USDG, data: approveRouterCalldata }, { shield });

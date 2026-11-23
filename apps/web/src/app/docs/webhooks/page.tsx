@@ -45,7 +45,7 @@ export default function Page() {
       <p><C>wallet.risky_approval</C> carries <C>wallet</C>, <C>approvals</C> (token, symbol, spender, risk, value at risk in USD) and <C>reportUrl</C>, the Wallet Check page where it can be revoked.</p>
       <H2 id="verify">Verify the signature</H2>
       <p><C>heimdall-signature</C> is <C>{"t=<unix seconds>,v1=<hex>"}</C>, where the hex is HMAC-SHA256 of <C>{"<t>.<raw body>"}</C> with your secret. Check it against the raw body before parsing, and reject events older than five minutes. The SDK does both:</p>
-      <Code lang="ts">{`import { parseWebhook } from "@heimdall/sdk";
+      <Code lang="ts">{`import { parseWebhook } from "@heimdallfund/sdk";
 
 export async function POST(req: Request) {
   const body = await req.text(); // the raw body, not re-serialised JSON

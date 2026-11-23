@@ -23,7 +23,7 @@ export default function Page() {
       <p>Direct reads:</p>
       <Code lang="solidity">{"IHeimdallRisk(oracle).isBlocked(recipient);            // bool\nIHeimdallRisk(oracle).riskOf(addr);                    // (uint8 level, uint32 flags, uint64 updatedAt)\nIHeimdallRisk(oracle).anyBlocked(addresses);           // one call for a whole route"}</Code>
       <H2 id="read-it-offchain">Read it offchain</H2>
-      <Code lang="ts">{"import { readRisk, HeimdallShield } from \"@heimdall/sdk\";\n\nconst onchain = await readRisk(publicClient, ORACLE, \"0x\u2026\"); // { level, levelName, flags, blocked }\nconst full = await new HeimdallShield().risk(\"0x\u2026\");          // plus the reason and what Shield knows"}</Code>
+      <Code lang="ts">{"import { readRisk, HeimdallShield } from \"@heimdallfund/sdk\";\n\nconst onchain = await readRisk(publicClient, ORACLE, \"0x\u2026\"); // { level, levelName, flags, blocked }\nconst full = await new HeimdallShield().risk(\"0x\u2026\");          // plus the reason and what Shield knows"}</Code>
       <p>The HTTP API answers without a key: <C>{"GET /v1/risk/:address"}</C> for one address, <C>{"GET /v1/risk"}</C> for the whole list. The MCP server and agent-kit have the same lookup as the <C>{"heimdall_risk"}</C> tool.</p>
       <H2 id="how-it-stays-current">How it stays current</H2>
       <ul className="list-disc space-y-2 pl-5">

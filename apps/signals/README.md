@@ -11,7 +11,7 @@ after the answer is produced.
 | `GET /v1/stock-premium?symbol=NVDA` | Onchain stock token price (pool) vs exchange reference price → premium in bps | $0.05 |
 | `GET /v1/signals` | Catalogue | free |
 
-Provider template: `gateVoucher` and `MemoryLedger` from `@heimdall/sdk` work in any server; production uses
+Provider template: `gateVoucher` and `MemoryLedger` from `@heimdallfund/sdk` work in any server; production uses
 `UpstashLedger` (atomic compare-and-set). `npm run redeem` claims the latest vouchers onchain.
 
 Stock premium needs two data sources you choose: the stock token pools on Robinhood Chain (`STOCK_POOLS`) and an

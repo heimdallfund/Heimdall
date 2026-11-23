@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
-import { HeimdallShield } from "@heimdall/sdk";
+import { HeimdallShield } from "@heimdallfund/sdk";
 import type { PublicClient } from "viem";
 import { buildServer, startHttp, type Deps } from "../src/index.js";
 

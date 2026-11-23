@@ -1,5 +1,5 @@
 import type { Address } from "viem";
-import { decodeVoucherHeader, encodeVoucherHeader, type SignedVoucher, type VoucherLedger } from "@heimdall/sdk";
+import { decodeVoucherHeader, encodeVoucherHeader, type SignedVoucher, type VoucherLedger } from "@heimdallfund/sdk";
 
 /** Upstash Redis (REST) ledger with an atomic compare-and-set, safe across many server instances. */
 export class UpstashLedger implements VoucherLedger {

@@ -1,9 +1,9 @@
-# @heimdall/sdk
+# @heimdallfund/sdk
 
 TypeScript SDK for Heimdall on Robinhood Chain.
 
 ```ts
-import { HeimdallShield, guardedSend, executeThroughVault, signVoucher } from "@heimdall/sdk";
+import { HeimdallShield, guardedSend, executeThroughVault, signVoucher } from "@heimdallfund/sdk";
 
 const shield = new HeimdallShield({ apiKey: process.env.HEIMDALL_API_KEY });
 

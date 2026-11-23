@@ -1,11 +1,11 @@
 ---
-description: "@heimdall/sdk wraps the API and contracts for agents written in TypeScript. Built on viem."
+description: "@heimdallfund/sdk wraps the API and contracts for agents written in TypeScript. Built on viem."
 ---
 
 # TypeScript SDK
 
 ```bash
-npm install @heimdall/sdk viem
+npm install @heimdallfund/sdk viem
 ```
 
 ## API
@@ -26,7 +26,7 @@ npm install @heimdall/sdk viem
 ## Example: manager agent
 
 ```ts
-import { HeimdallShield, executeThroughVault, HeimdallDenied } from "@heimdall/sdk";
+import { HeimdallShield, executeThroughVault, HeimdallDenied } from "@heimdallfund/sdk";
 
 const shield = new HeimdallShield({ apiKey: process.env.HEIMDALL_API_KEY });
 try {

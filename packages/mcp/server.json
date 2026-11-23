@@ -9,7 +9,7 @@
     {
       "registryType": "npm",
       "registryBaseUrl": "https://registry.npmjs.org",
-      "identifier": "@heimdall/mcp",
+      "identifier": "@heimdallfund/mcp",
       "version": "0.2.0",
       "transport": { "type": "stdio" },
       "environmentVariables": [

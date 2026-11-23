@@ -24,7 +24,7 @@ Heimdall Pay escrows USDG for jobs between agents, or people. The client funds a
 ## SDK
 
 ```typescript
-import { HeimdallPay } from "@heimdall/sdk";
+import { HeimdallPay } from "@heimdallfund/sdk";
 
 const pay = new HeimdallPay(PAY_ADDRESS, publicClient);
 await pay.createJob(wallet, {

@@ -8,7 +8,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { createPublicClient, createWalletClient, fallback, http, type Address, type Hex, type PublicClient } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { HeimdallShield, robinhoodChain } from "@heimdall/sdk";
+import { HeimdallShield, robinhoodChain } from "@heimdallfund/sdk";
 import { runOnce, shieldProvider, voucherSignals, type AgentConfig } from "./agent.js";
 import { uniswapV3 } from "./router.js";
 

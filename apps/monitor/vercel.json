@@ -1,0 +1,12 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "installCommand": "cd ../../packages/sdk && npm ci && npm run build && cd ../../apps/monitor && npm ci",
+  "buildCommand": "",
+  "outputDirectory": "public",
+  "crons": [
+    {
+      "path": "/api/cron",
+      "schedule": "*/2 * * * *"
+    }
+  ]
+}

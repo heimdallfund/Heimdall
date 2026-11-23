@@ -42,14 +42,14 @@ Read it from any contract or client, filtered to Heimdall's publisher address:
 ```
 
 ```ts
-import { heimdallScore } from "@heimdall/sdk";
+import { heimdallScore } from "@heimdallfund/sdk";
 const { score } = await heimdallScore(publicClient, agentId, HEIMDALL_PUBLISHER);
 ```
 
 ## API, SDK and tools
 
 ```ts
-import { HeimdallShield } from "@heimdall/sdk";
+import { HeimdallShield } from "@heimdallfund/sdk";
 
 const shield = new HeimdallShield();
 const p = await shield.passport("0xAgent");   // or an agentId: shield.passport(42n)

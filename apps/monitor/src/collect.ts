@@ -1,5 +1,5 @@
 import { parseAbi, parseAbiItem, type Address, type PublicClient } from "viem";
-import { heimdallVaultAbi, heimdallVaultFactoryAbi } from "@heimdall/sdk";
+import { heimdallVaultAbi, heimdallVaultFactoryAbi } from "@heimdallfund/sdk";
 import type { Snapshot, VaultSnapshot } from "./rules.js";
 
 const ERC20 = parseAbi(["function balanceOf(address) view returns (uint256)", "function symbol() view returns (string)"]);

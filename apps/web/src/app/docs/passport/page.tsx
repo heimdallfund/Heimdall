@@ -30,9 +30,9 @@ export default function Page() {
       <p>Once a day, Heimdall publishes each linked agent&apos;s score to the ERC-8004 Reputation Registry when it moved by 5 points or more, and at least weekly. Each rating is <C>{"giveFeedback(agentId, score, 0, \"heimdall\", tier, endpoint, feedbackURI, feedbackHash)"}</C>; the feedback file is served at the <C>{"feedbackURI"}</C> and its hash is the <C>{"feedbackHash"}</C>.</p>
       <p>Read it from any contract or client, filtered to Heimdall&apos;s publisher address:</p>
       <Code lang="solidity">{"(uint64 count, int128 score, uint8 decimals) = IReputationRegistry(REPUTATION).getSummary(agentId, heimdallOnly, \"heimdall\", \"\");"}</Code>
-      <Code lang="ts">{"import { heimdallScore } from \"@heimdall/sdk\";\nconst { score } = await heimdallScore(publicClient, agentId, HEIMDALL_PUBLISHER);"}</Code>
+      <Code lang="ts">{"import { heimdallScore } from \"@heimdallfund/sdk\";\nconst { score } = await heimdallScore(publicClient, agentId, HEIMDALL_PUBLISHER);"}</Code>
       <H2 id="api-sdk-and-tools">API, SDK and tools</H2>
-      <Code lang="ts">{"import { HeimdallShield } from \"@heimdall/sdk\";\n\nconst shield = new HeimdallShield();\nconst p = await shield.passport(\"0xAgent\");   // or an agentId: shield.passport(42n)\nawait shield.linkPassport(\"0xAgent\", 42n);    // succeeds only with onchain proof"}</Code>
+      <Code lang="ts">{"import { HeimdallShield } from \"@heimdallfund/sdk\";\n\nconst shield = new HeimdallShield();\nconst p = await shield.passport(\"0xAgent\");   // or an agentId: shield.passport(42n)\nawait shield.linkPassport(\"0xAgent\", 42n);    // succeeds only with onchain proof"}</Code>
       <Table head={["Endpoint", "What it returns"]} rows={[
         [<><C>{"GET /v1/passport/:addressOrAgentId"}</C></>, <>Score, tier, components, identity, onchain reputation</>],
         [<><C>{"POST /v1/passport/link"}</C></>, <>Links <C>{"{ address, agentId }"}</C> after checking the registry</>],

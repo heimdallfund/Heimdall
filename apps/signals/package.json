@@ -1,5 +1,5 @@
 {
-  "name": "@heimdall/signals-server",
+  "name": "@heimdallfund/signals-server",
   "version": "0.1.0",
   "description": "Official Heimdall signals: token risk, address intel, stock token premium — pay per call with vouchers",
   "directories": {
@@ -12,7 +12,7 @@
     "redeem": "tsx scripts/redeem.ts"
   },
   "dependencies": {
-    "@heimdall/sdk": "file:../../packages/sdk",
+    "@heimdallfund/sdk": "file:../../packages/sdk",
     "@hono/node-server": "^2.1.11",
     "hono": "^4.13.20",
     "viem": "^2.58.4",

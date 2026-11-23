@@ -4,17 +4,17 @@ description: Heimdall tools for the Vercel AI SDK, LangChain and ElizaOS, with n
 
 # Agent frameworks
 
-`@heimdall/agent-kit` gives agents built on the **Vercel AI SDK**, **LangChain** or **ElizaOS** native Heimdall tools. There is no MCP server to run, and every framework gets the same tool names, inputs and answers.
+`@heimdallfund/agent-kit` gives agents built on the **Vercel AI SDK**, **LangChain** or **ElizaOS** native Heimdall tools. There is no MCP server to run, and every framework gets the same tool names, inputs and answers.
 
 ```bash
-npm i @heimdall/agent-kit
+npm i @heimdallfund/agent-kit
 ```
 
 ## Vercel AI SDK
 
 ```ts
 import { generateText } from "ai";
-import { heimdallAiTools } from "@heimdall/agent-kit/ai-sdk";
+import { heimdallAiTools } from "@heimdallfund/agent-kit/ai-sdk";
 
 const { text } = await generateText({ model, tools: heimdallAiTools({ wallet }), prompt: "Swap 50 USDG for NVDA" });
 ```
@@ -25,7 +25,7 @@ const { text } = await generateText({ model, tools: heimdallAiTools({ wallet }),
 
 ```ts
 import { createReactAgent } from "@langchain/langgraph/prebuilt";
-import { heimdallLangChainTools } from "@heimdall/agent-kit/langchain";
+import { heimdallLangChainTools } from "@heimdallfund/agent-kit/langchain";
 
 const agent = createReactAgent({ llm, tools: heimdallLangChainTools({ wallet }) });
 ```
@@ -33,7 +33,7 @@ const agent = createReactAgent({ llm, tools: heimdallLangChainTools({ wallet }) 
 ## ElizaOS
 
 ```ts
-import { heimdallPlugin } from "@heimdall/agent-kit/eliza";
+import { heimdallPlugin } from "@heimdallfund/agent-kit/eliza";
 
 export const character = { name: "Trader", plugins: [heimdallPlugin()] };
 ```

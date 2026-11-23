@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 /**
  * Builds, tests, stages and packs the public Heimdall packages, in dependency order:
- *   @heimdall/sdk → @heimdall/agent-kit → @heimdall/mcp → @heimdall/plugin-heimdall
+ *   @heimdallfund/sdk → @heimdallfund/agent-kit → @heimdallfund/mcp → @heimdallfund/plugin-heimdall
  * Local `file:` dependencies become semver ranges, and a smoke test installs the tarballs into an empty project,
  * imports every entry point and talks to the MCP server over stdio. Nothing is published without --publish.
  *
  *   node packages/release.mjs                         # dry run: tarballs in /tmp/heimdall-release
- *   node packages/release.mjs --scope @heimdallfund   # if the @heimdall npm scope is taken
+ *   node packages/release.mjs --scope @other          # only if you publish under another npm scope
  *   node packages/release.mjs --publish [--otp 123456]
  */
 import { execFileSync, spawn } from "node:child_process";
@@ -16,16 +16,17 @@ import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const arg = (k) => { const i = process.argv.indexOf(k); return i > 0 ? process.argv[i + 1] : undefined; };
-const SCOPE = arg("--scope") ?? "@heimdall";
+const BASE = "@heimdallfund"; // the npm organization the packages are named for (@heimdall is taken on npm)
+const SCOPE = arg("--scope") ?? BASE;
 const PUBLISH = process.argv.includes("--publish");
 const OTP = arg("--otp");
 const OUT = "/tmp/heimdall-release";
 const ORDER = ["sdk", "agent-kit", "mcp", "plugin-heimdall"];
 const run = (cmd, args, cwd, quiet = true) => execFileSync(cmd, args, { cwd, stdio: quiet ? "pipe" : "inherit", encoding: "utf8" });
-const rescope = (s) => (SCOPE === "@heimdall" ? s : s.replaceAll("@heimdall/", `${SCOPE}/`));
+const rescope = (s) => (SCOPE === BASE ? s : s.replaceAll(`${BASE}/`, `${SCOPE}/`));
 
 rmSync(OUT, { recursive: true, force: true }); mkdirSync(OUT, { recursive: true });
-const versions = Object.fromEntries(ORDER.map((p) => [`@heimdall/${p}`, JSON.parse(readFileSync(join(here, p, "package.json"), "utf8")).version]));
+const versions = Object.fromEntries(ORDER.map((p) => [`${BASE}/${p}`, JSON.parse(readFileSync(join(here, p, "package.json"), "utf8")).version]));
 const tarballs = {};
 
 function walk(dir, fn) { for (const f of readdirSync(dir)) { const p = join(dir, f); statSync(p).isDirectory() ? walk(p, fn) : fn(p); } }
@@ -45,7 +46,7 @@ for (const pkg of ORDER) {
   const out = { ...json, name: rescope(json.name), dependencies: deps };
   delete out.devDependencies; if (pkg === "plugin-heimdall") out.devDependencies = json.devDependencies;
   writeFileSync(join(stage, "package.json"), JSON.stringify(out, null, 2) + "\n");
-  if (SCOPE !== "@heimdall") walk(stage, (p) => { if (/\.(js|ts|md|json)$/.test(p) && !p.endsWith("package.json")) writeFileSync(p, rescope(readFileSync(p, "utf8"))); });
+  if (SCOPE !== BASE) walk(stage, (p) => { if (/\.(js|ts|md|json)$/.test(p) && !p.endsWith("package.json")) writeFileSync(p, rescope(readFileSync(p, "utf8"))); });
   if (pkg === "plugin-heimdall") {
     // build the plugin against the staged agent-kit tarball, exactly as a user would install it
     run("npm", ["install", "--no-audit", "--no-fund", ...Object.values(tarballs), "@elizaos/core@^2", "typescript@^7", "@types/node"], stage);
@@ -62,7 +63,7 @@ for (const pkg of ORDER) {
 
 if (existsSync(join(here, "mcp", "server.json"))) {
   const sj = JSON.parse(readFileSync(join(here, "mcp", "server.json"), "utf8"));
-  sj.version = versions["@heimdall/mcp"]; sj.packages[0].version = sj.version; sj.packages[0].identifier = rescope("@heimdall/mcp");
+  sj.version = versions[`${BASE}/mcp`]; sj.packages[0].version = sj.version; sj.packages[0].identifier = rescope(`${BASE}/mcp`);
   writeFileSync(join(OUT, "server.json"), JSON.stringify(sj, null, 2) + "\n");
 }
 
@@ -93,7 +94,7 @@ const tools = await new Promise((resolve, reject) => {
 console.log(`   MCP over stdio: ${tools} tools`);
 
 if (!PUBLISH) {
-  console.log(`\nDry run done. Tarballs and server.json in ${OUT}.\nPublish: npm login, then node packages/release.mjs --publish${SCOPE !== "@heimdall" ? ` --scope ${SCOPE}` : ""}`);
+  console.log(`\nDry run done. Tarballs and server.json in ${OUT}.\nPublish: npm login, then node packages/release.mjs --publish${SCOPE !== BASE ? ` --scope ${SCOPE}` : ""}`);
 } else {
   for (const pkg of ORDER) {
     console.log(`publishing ${tarballs[pkg]}`);

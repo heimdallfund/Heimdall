@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   description: "Give an AI agent a Safe wallet it can spend from, but only through Heimdall Shield and within daily limits you set. Your owners keep full control.",
 };
 
-const AGENT = `import { executeThroughGuard, HeimdallShield } from "@heimdall/sdk";
+const AGENT = `import { executeThroughGuard, HeimdallShield } from "@heimdallfund/sdk";
 
 // Shield checks the call as the Safe, the module enforces your limits
 const { hash } = await executeThroughGuard(agentWallet, {
@@ -19,7 +19,7 @@ const { hash } = await executeThroughGuard(agentWallet, {
   data: transferCalldata,
 }, { shield: new HeimdallShield() });`;
 
-const SETUP = `import { guardSetupCalls, safeBatch } from "@heimdall/sdk";
+const SETUP = `import { guardSetupCalls, safeBatch } from "@heimdallfund/sdk";
 
 const calls = guardSetupCalls(safe, {
   module: GUARD_MODULE,

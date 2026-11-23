@@ -12,8 +12,9 @@ export const PHASES: Phase[] = [
       { id: "upstash", title: "Upstash Redis for the Shield API", detail: "Set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN on the heimdall-shield Vercel project." },
       { id: "rpc", title: "Paid RPC and a backup", detail: "Alchemy plus a second provider: RPC_URL_MAINNET / _BACKUP on Shield, RPC_URL / RPC_URL_BACKUP on the monitor." },
       { id: "hot-keys", title: "Hot keys funded with a little ETH", detail: "Deployer (used once), monitor reporter (RISK_REPORTER_KEY), passport publisher (PASSPORT_KEY), x402 facilitator (X402_FACILITATOR_KEY), keeper (KEEPER_KEY). None of them ever holds user funds." },
-      { id: "blocklist", title: "Seed Shield's blocklist", detail: "Known drainers and phishing contracts on Robinhood Chain go in apps/shield/data/blocklist.json (address, label, source). The Risk Oracle starts from this list, and today it is empty." },
+      { id: "blocklist", title: "Bring Shield's blocklist up to date", detail: "apps/shield/data/blocklist.json holds 5 publicly reported scam tokens and wallets (RIALTO, World, SCAMCOIN, VLAD), each with its source. Add any newer reports before launch: the Risk Oracle starts from this list." },
       { id: "config", title: "Deploy config filled", detail: "contracts/deploy/robinhood.config.json from the example: adminSafe, treasury, shieldSigner, riskReporter." },
+      { id: "npm-org", title: "npm organization heimdallfund", detail: "Free organization on npmjs.com named heimdallfund (the @heimdall scope is taken), npm login with two-factor on. Dry run must pass.", code: "node packages/release.mjs" },
       { id: "rehearsal", title: "Rehearsal passes on a fresh fork", detail: "Deploys everything, runs both Safe batches and real money through every product. Expect 32/32.", code: "cd contracts && bash scripts/rehearsal.sh" },
     ],
   },
@@ -42,7 +43,7 @@ export const PHASES: Phase[] = [
     id: "smoke", title: "Smoke test with small money", when: "T+1 h",
     steps: [
       { id: "risk-sync", title: "First Risk Oracle sync", detail: "The monitor log shows a sync; GET /v1/risk/<a blocklisted address> shows it onchain." },
-      { id: "shield-check", title: "A Shield check signs a receipt", detail: "From Claude or Cursor with the MCP server, check a transaction: the answer carries a receipt from the KMS signer.", code: "claude mcp add heimdall -- npx -y @heimdall/mcp" },
+      { id: "shield-check", title: "A Shield check signs a receipt", detail: "From Claude or Cursor with the MCP server, check a transaction: the answer carries a receipt from the KMS signer.", code: "claude mcp add heimdall -- npx -y @heimdallfund/mcp" },
       { id: "vault-cycle", title: "Vault round trip", detail: "Create a vault, deposit 10 USDG, let the reference agent run one real cycle, then redeemInKind." },
       { id: "pay-job", title: "One Pay job end to end", detail: "1 USDG job: create, submit, release. The provider receives 0.99 USDG and the splitter 0.01." },
       { id: "guard-safe", title: "Guard on a real Safe", detail: "Use the /guard builder on a test Safe with a 5 USDG daily limit; one agent payment goes through, a second over the limit is refused." },
@@ -53,6 +54,7 @@ export const PHASES: Phase[] = [
     steps: [
       { id: "unlock", title: "Unlock the site", detail: "Turn off Vercel deployment protection for production on heimdall-web." },
       { id: "addresses", title: "Publish the addresses", detail: "docs/build/contracts.md and the security page list every deployed contract with its explorer link." },
+      { id: "npm-publish", title: "Publish the SDK, MCP server and agent kit", detail: "@heimdallfund/sdk, agent-kit, mcp and plugin-heimdall, in that order. Then the MCP Registry and the ElizaOS plugin (packages/PUBLISHING.md).", code: "node packages/release.mjs --publish --otp <code>" },
       { id: "gitbook", title: "Docs live on GitBook", detail: "Sync from the docs/ folder; check the Integrate pages render." },
       { id: "status-green", title: "Status page green for an hour", detail: "Shield, RPC, monitor and keeper all up with no incident." },
       { id: "announce", title: "Launch post on X", detail: "Posted and pinned." },

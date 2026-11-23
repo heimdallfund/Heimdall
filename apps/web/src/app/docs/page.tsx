@@ -22,9 +22,9 @@ export default function DocsHome() {
 
       <H2 id="quickstart">Quickstart: protect an agent in 2 minutes</H2>
       <p>1. Install the SDK.</p>
-      <Code lang="bash">{`npm install @heimdall/sdk viem`}</Code>
+      <Code lang="bash">{`npm install @heimdallfund/sdk viem`}</Code>
       <p>2. Replace your agent&apos;s <C>sendTransaction</C> with <C>guardedSend</C>. It asks Shield first and only sends on ALLOW.</p>
-      <Code lang="ts">{`import { HeimdallShield, guardedSend, HeimdallDenied } from "@heimdall/sdk";
+      <Code lang="ts">{`import { HeimdallShield, guardedSend, HeimdallDenied } from "@heimdallfund/sdk";
 
 const shield = new HeimdallShield({ apiKey: process.env.HEIMDALL_API_KEY }); // key optional on the free plan
 

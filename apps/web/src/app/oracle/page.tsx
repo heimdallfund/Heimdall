@@ -27,7 +27,7 @@ IHeimdallRisk(oracle).isBlocked(recipient);            // true / false
 IHeimdallRisk(oracle).riskOf(addr);                    // (level, flags, updatedAt)
 IHeimdallRisk(oracle).anyBlocked([from, to, spender]); // one call for a whole route`;
 
-const TS = `import { readRisk } from "@heimdall/sdk";
+const TS = `import { readRisk } from "@heimdallfund/sdk";
 
 const r = await readRisk(publicClient, ORACLE, "0x…");
 if (r.blocked) throw new Error(\`refusing: \${r.flags.join(", ")}\`);`;

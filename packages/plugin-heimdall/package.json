@@ -1,5 +1,5 @@
 {
-  "name": "@heimdall/plugin-heimdall",
+  "name": "@heimdallfund/plugin-heimdall",
   "version": "0.1.0",
   "description": "ElizaOS plugin: Heimdall Shield checks every Robinhood Chain transaction and signature before your agent signs, plus Heimdall Pay escrow lookups",
   "keywords": ["elizaos", "eliza", "plugin", "elizaos-plugins", "robinhood-chain", "firewall", "wallet-security", "ai-agents"],
@@ -14,7 +14,7 @@
   "exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" } },
   "files": ["dist", "README.md", "LICENSE", "elizaos.plugin.json"],
   "scripts": { "build": "tsc -p tsconfig.json", "prepublishOnly": "npm run build" },
-  "dependencies": { "@heimdall/agent-kit": "^0.1.0" },
+  "dependencies": { "@heimdallfund/agent-kit": "^0.1.0" },
   "peerDependencies": { "@elizaos/core": ">=2" },
   "devDependencies": { "@elizaos/core": "^2.0.5", "@types/node": "^26.6.6", "typescript": "^7.0.2" },
   "agentConfig": {

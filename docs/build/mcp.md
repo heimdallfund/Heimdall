@@ -19,7 +19,7 @@ File: `claude_desktop_config.json`
   "mcpServers": {
     "heimdall": {
       "command": "npx",
-      "args": ["-y", "@heimdall/mcp"],
+      "args": ["-y", "@heimdallfund/mcp"],
       "env": { "HEIMDALL_API_KEY": "hd_live_…" }
     }
   }
@@ -29,7 +29,7 @@ File: `claude_desktop_config.json`
 ### Claude Code
 
 ```bash
-claude mcp add heimdall -e HEIMDALL_API_KEY=hd_live_… -- npx -y @heimdall/mcp
+claude mcp add heimdall -e HEIMDALL_API_KEY=hd_live_… -- npx -y @heimdallfund/mcp
 ```
 
 ### Cursor
@@ -41,7 +41,7 @@ File: `.cursor/mcp.json`
   "mcpServers": {
     "heimdall": {
       "command": "npx",
-      "args": ["-y", "@heimdall/mcp"],
+      "args": ["-y", "@heimdallfund/mcp"],
       "env": { "HEIMDALL_API_KEY": "hd_live_…" }
     }
   }
@@ -58,7 +58,7 @@ File: `.vscode/mcp.json`
     "heimdall": {
       "type": "stdio",
       "command": "npx",
-      "args": ["-y", "@heimdall/mcp"],
+      "args": ["-y", "@heimdallfund/mcp"],
       "env": { "HEIMDALL_API_KEY": "hd_live_…" }
     }
   }
@@ -69,7 +69,7 @@ File: `.vscode/mcp.json`
 
 ```bash
 # Run your own remote MCP endpoint (Streamable HTTP, stateless)
-HEIMDALL_API_KEY=hd_live_… npx -y @heimdall/mcp --http 3333
+HEIMDALL_API_KEY=hd_live_… npx -y @heimdallfund/mcp --http 3333
 # → point any MCP client at http://your-host:3333/mcp
 ```
 
@@ -80,7 +80,7 @@ import { experimental_createMCPClient as createMCPClient, generateText } from "a
 import { Experimental_StdioMCPTransport as Stdio } from "ai/mcp-stdio";
 
 const heimdall = await createMCPClient({
-  transport: new Stdio({ command: "npx", args: ["-y", "@heimdall/mcp"], env: { HEIMDALL_API_KEY: process.env.HEIMDALL_API_KEY! } }),
+  transport: new Stdio({ command: "npx", args: ["-y", "@heimdallfund/mcp"], env: { HEIMDALL_API_KEY: process.env.HEIMDALL_API_KEY! } }),
 });
 const { text } = await generateText({
   model,
@@ -96,7 +96,7 @@ const { text } = await generateText({
 import { MultiServerMCPClient } from "@langchain/mcp-adapters";
 
 const mcp = new MultiServerMCPClient({
-  heimdall: { transport: "stdio", command: "npx", args: ["-y", "@heimdall/mcp"], env: { HEIMDALL_API_KEY: process.env.HEIMDALL_API_KEY! } },
+  heimdall: { transport: "stdio", command: "npx", args: ["-y", "@heimdallfund/mcp"], env: { HEIMDALL_API_KEY: process.env.HEIMDALL_API_KEY! } },
 });
 const tools = await mcp.getTools(); // pass to createReactAgent({ llm, tools })
 ```
@@ -111,7 +111,7 @@ File: `character.json`
   "settings": {
     "mcp": {
       "servers": {
-        "heimdall": { "type": "stdio", "command": "npx", "args": ["-y", "@heimdall/mcp"] }
+        "heimdall": { "type": "stdio", "command": "npx", "args": ["-y", "@heimdallfund/mcp"] }
       }
     }
   }

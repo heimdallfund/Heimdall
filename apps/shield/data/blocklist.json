@@ -1,1 +1,32 @@
-[]
+[
+  {
+    "address": "0xefd3db0271aa579b8f9f1e4ab91a9d17fea1faa9",
+    "label": "RIALTO honeypot token: hidden mapping bypasses transferFrom allowance checks",
+    "source": "https://ourcryptotalk.com/news/robinhood-chain-scam-tokens",
+    "addedAt": "2026-11-24"
+  },
+  {
+    "address": "0x281FF81dF0Eca1F3F7Ba2A48499c7A83D216a2A8",
+    "label": "RIALTO honeypot: privileged attacker wallet behind the hidden mapping",
+    "source": "https://ourcryptotalk.com/news/robinhood-chain-scam-tokens",
+    "addedAt": "2026-11-24"
+  },
+  {
+    "address": "0x022572025F94d5631910b35340505C2714Db37AF",
+    "label": "world.xyz (World) honeypot token: tokens vanish from the buyer's wallet after purchase",
+    "source": "https://ourcryptotalk.com/news/robinhood-chain-scam-tokens",
+    "addedAt": "2026-11-24"
+  },
+  {
+    "address": "0x026000eFC70Fe94a5ee7Bd7C874Bba66D43fAc5F",
+    "label": "SCAMCOIN scam token, mass-spammed to wallets",
+    "source": "https://ourcryptotalk.com/news/robinhood-chain-scam-tokens",
+    "addedAt": "2026-11-24"
+  },
+  {
+    "address": "0x92D176ccBeEffeCd8089e841D09ea17b6C22D969",
+    "label": "Vladhood (VLAD) fake token promoted from the hacked X account of Robinhood's CEO; flagged as a scam on Blockscout",
+    "source": "https://thedefiant.io/news/defi/hacker-behind-fake-vladhood-token-still-collecting-fees-after-robinhood-ceo-s-x-account-hack",
+    "addedAt": "2026-11-24"
+  }
+]

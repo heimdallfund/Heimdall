@@ -7,8 +7,8 @@ The guardian layer for onchain agents on Robinhood Chain.
 | `apps/shield` | Shield API: transactions + offchain signatures (Permit/Permit2/Seaport), batches, honeypots, blocklist, API keys, limits, KMS signer | 34 tests, live-tested on mainnet RPC |
 | `apps/web` | Next.js 16 website + app (Home, Shield console, Signals, Vaults, Agents, Docs, $HEIM, Security, Legal) | builds, verified against a local chain |
 | `contracts` | HeimdallVault (ERC-4626, deposit cap) + ShieldGuarded + VaultFactory + VaultDeployer + HeimdallSignals (Hardhat 3) | 21 tests |
-| `packages/sdk` | `@heimdall/sdk`: Shield client, guardedSend, executeThroughVault, signal vouchers | 4 tests |
-| `packages/mcp` | `@heimdall/mcp`: MCP server (check_transaction, list_signals, vault_info, list_vaults) | smoke-tested end to end |
+| `packages/sdk` | `@heimdallfund/sdk`: Shield client, guardedSend, executeThroughVault, signal vouchers | 4 tests |
+| `packages/mcp` | `@heimdallfund/mcp`: MCP server (check_transaction, list_signals, vault_info, list_vaults) | smoke-tested end to end |
 | `apps/signals` | Official signals (token risk, address intel, stock premium), x402-style voucher gate, redeemer | 6 tests, live-checked on mainnet |
 | `apps/agent` | Reference manager agent ("Guardian Balanced"): signals → plan → Shield receipt → vault.execute | 5 tests + local end-to-end |
 

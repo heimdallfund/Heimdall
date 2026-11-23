@@ -1,9 +1,9 @@
-/** Snippets for @heimdall/agent-kit, shared by /shield and /docs/frameworks. */
+/** Snippets for @heimdallfund/agent-kit, shared by /shield and /docs/frameworks. */
 export const FRAMEWORKS: { id: string; label: string; lang: string; code: string }[] = [
   {
     id: "ai-sdk", label: "Vercel AI SDK", lang: "ts",
     code: `import { generateText } from "ai";
-import { heimdallAiTools } from "@heimdall/agent-kit/ai-sdk";
+import { heimdallAiTools } from "@heimdallfund/agent-kit/ai-sdk";
 
 const { text } = await generateText({
   model,
@@ -14,7 +14,7 @@ const { text } = await generateText({
   {
     id: "langchain", label: "LangChain", lang: "ts",
     code: `import { createReactAgent } from "@langchain/langgraph/prebuilt";
-import { heimdallLangChainTools } from "@heimdall/agent-kit/langchain";
+import { heimdallLangChainTools } from "@heimdallfund/agent-kit/langchain";
 
 const agent = createReactAgent({
   llm,
@@ -23,7 +23,7 @@ const agent = createReactAgent({
   },
   {
     id: "eliza", label: "ElizaOS", lang: "ts",
-    code: `import { heimdallPlugin } from "@heimdall/agent-kit/eliza";
+    code: `import { heimdallPlugin } from "@heimdallfund/agent-kit/eliza";
 
 export const character = {
   name: "Trader",

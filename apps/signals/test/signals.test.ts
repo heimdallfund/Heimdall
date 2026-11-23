@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createWalletClient, http, type Address, type PublicClient } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
-import { encodeVoucherHeader, MemoryLedger, robinhoodChain, signVoucher } from "@heimdall/sdk";
+import { encodeVoucherHeader, MemoryLedger, robinhoodChain, signVoucher } from "@heimdallfund/sdk";
 import { buildApp, type SignalsConfig } from "../src/server.js";
 import { tokenRisk } from "../src/analyzers.js";
 
