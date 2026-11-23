@@ -5,7 +5,14 @@
  */
 import { readFileSync, writeFileSync } from "node:fs";
 import { network } from "hardhat";
-import { erc20Abi, getAddress, parseAbi, type Address, type Hex } from "viem";
+import { createHash } from "node:crypto";
+import { encodeFunctionData, erc20Abi, getAddress, keccak256, parseAbi, parseEventLogs, toHex, zeroAddress, type Address, type Hex } from "viem";
+import { addCommunityBlock } from "../../apps/shield/src/blocklist.ts";
+import { buildApp } from "../../apps/shield/src/server.ts";
+import { MemoryStore } from "../../apps/shield/src/store.ts";
+import { ROBINHOOD_USDG, requirementsFor, settlePayment, type PaymentPayload } from "../../apps/shield/src/x402.ts";
+import { publishPassports, riskSync } from "../../apps/monitor/src/jobs.ts";
+import { executeThroughGuard, guardRemaining, guardSetupCalls, HeimdallShield } from "../../packages/sdk/src/index.ts";
 
 const { viem, networkName } = await network.connect();
 if (networkName !== "localhost") throw new Error("rehearsal runs on a local fork only");
@@ -34,7 +41,7 @@ for (const file of ["safe-accept-ownership", "safe-route-fees"]) {
 }
 
 const OWN = parseAbi(["function owner() view returns (address)"]);
-for (const name of ["HeimdallVaultFactory", "HeimdallSignals", "HeimdallPay", "HeimdallAutoInvest", "HeimdallFeeSplitter"]) {
+for (const name of ["HeimdallVaultFactory", "HeimdallSignals", "HeimdallPay", "HeimdallAutoInvest", "HeimdallFeeSplitter", "HeimdallRiskOracle", "HeimdallGuardModule"]) {
   const o = await pc.readContract({ address: C[name]!, abi: OWN, functionName: "owner" });
   check(`${name} owned by the Safe`, getAddress(o) === getAddress(safe.account.address), o);
 }
@@ -124,6 +131,115 @@ await wait(provider.writeContract({ address: C.HeimdallVaultFactory!, abi: FAC, 
 const vault = await pc.readContract({ address: C.HeimdallVaultFactory!, abi: FAC, functionName: "allVaults", args: [(await pc.readContract({ address: C.HeimdallVaultFactory!, abi: FAC, functionName: "vaultCount" })) - 1n] });
 check("New vault reads the $HEIM holder terms", getAddress(await r(vault, "function heimToken() view returns (address)") as Address) === holderBalance);
 check("A wallet that staked all its $HEIM is still a holder (Signals fee 5%)", (await r(C.HeimdallSignals!, "function feeFor(address) view returns (uint256)", [staker.account.address]) as bigint) === 500n);
+
+// 9. Integrations, against the live contracts on the fork: Safe 1.4.1, USDG (EIP-3009) and the ERC-8004 registries
+const ORACLE = getAddress(C.HeimdallRiskOracle!), GUARD = getAddress(C.HeimdallGuardModule!);
+const ADMIN_KEY = "rehearsal-admin-key";
+const store = new MemoryStore();
+const shieldApp = buildApp({
+  store, getClient: () => pc as never, log: () => {},
+  env: { NODE_ENV: "test", HEIMDALL_PAY_ADDRESS: C.HeimdallPay!, RISK_ORACLE_ADDRESS: ORACLE, PASSPORT_PUBLISHER_ADDRESS: keeper.account.address,
+    SHIELD_ADMIN_KEY_SHA256: createHash("sha256").update(ADMIN_KEY).digest("hex"), SHIELD_PUBLIC_URL: "https://api.heimdall.fund" },
+});
+const appFetch = ((url: string, init?: RequestInit) => shieldApp.request(new URL(url).pathname + new URL(url).search, init)) as typeof fetch;
+const step = async (name: string, fn: () => Promise<string | void>) => { try { check(name, true, (await fn()) ?? ""); } catch (e) { check(name, false, (e as Error).message.split("\n")[0]!); } };
+
+// 9a. Risk Oracle: the Safe appoints the reporter, the monitor's job writes Shield's list, a pin beats the reporter
+const RISK = parseAbi(["function setReporter(address,bool)", "function pin(address,uint8,uint32,bool)", "function levelOf(address) view returns (uint8)", "function blockedCount() view returns (uint256)", "function report(address[],uint8[],uint32[])"]);
+await step("Risk Oracle: Safe appoints the monitor as reporter", async () => { await wait(safe.writeContract({ address: ORACLE, abi: RISK, functionName: "setReporter", args: [keeper.account.address, true] })); });
+const drainer = getAddress("0x000000000000000000000000000000000000dEaD");
+// two stand-in drainers on Shield's blocklist (the community list the admin panel adds to), so the sync has something to write
+for (const a of [drainer, "0x00000000000000000000000000000000DeaDBeef"]) addCommunityBlock(a);
+await step("Risk Oracle: monitor syncs Shield's list onchain", async () => {
+  const fromBlock = await pc.getBlockNumber();
+  const r = await riskSync(keeper as never, pc as never, ORACLE, "http://shield", fromBlock, appFetch);
+  const blocked = await pc.readContract({ address: ORACLE, abi: RISK, functionName: "blockedCount" });
+  if (r.listed < 2 || blocked !== 2n) throw new Error(`Shield listed ${r.listed}, oracle has ${blocked} blocked`);
+  return `${r.listed} listed by Shield, ${r.changed} written in ${r.txs.length} tx, ${blocked} blocked onchain`;
+});
+await step("Risk Oracle: a pinned entry ignores the reporter", async () => {
+  await wait(safe.writeContract({ address: ORACLE, abi: RISK, functionName: "pin", args: [drainer, 3, 1, true] }));
+  await wait(keeper.writeContract({ address: ORACLE, abi: RISK, functionName: "report", args: [[drainer], [0], [0]] }));
+  const lvl = await pc.readContract({ address: ORACLE, abi: RISK, functionName: "levelOf", args: [drainer] });
+  if (lvl !== 3) throw new Error(`level ${lvl}, expected 3`);
+  return "level stays 3";
+});
+
+// 9b. Guard for Safe: a real Safe 1.4.1 from the canonical factory, set up with the SDK, an agent spending real USDG
+const SAFE_FACTORY = getAddress("0x4e1DCf7AD4e460CfD30791CCC4F9c8a4f820ec67"), SAFE_L2 = getAddress("0x29fcB43b46531BcA003ddC8FCB67FFE91900C762");
+const SAFE_ABI = parseAbi(["function setup(address[],uint256,address,bytes,address,address,uint256,address)", "function execTransaction(address,uint256,bytes,uint8,uint256,uint256,uint256,address,address,bytes) payable returns (bool)", "function isModuleEnabled(address) view returns (bool)"]);
+const FACTORY_ABI = parseAbi(["function createProxyWithNonce(address,bytes,uint256) returns (address)", "event ProxyCreation(address indexed proxy, address singleton)"]);
+let userSafe: Address = zeroAddress;
+await step("Guard: user Safe 1.4.1 created and set up with the SDK (enable module, agent, 20 USDG/day)", async () => {
+  const init = encodeFunctionData({ abi: SAFE_ABI, functionName: "setup", args: [[client.account.address], 1n, zeroAddress, "0x", zeroAddress, zeroAddress, 0n, zeroAddress] });
+  const rc = await wait(client.writeContract({ address: SAFE_FACTORY, abi: FACTORY_ABI, functionName: "createProxyWithNonce", args: [SAFE_L2, init, BigInt(Date.now())] }));
+  const log = rc.logs.find((l) => getAddress(l.address) === SAFE_FACTORY)!;
+  userSafe = getAddress(`0x${log.topics[1]!.slice(26)}`);
+  await wait(client.writeContract({ address: usdg, abi: erc20Abi, functionName: "transfer", args: [userSafe, 50_000000n] }));
+  const sig = `0x${client.account.address.slice(2).padStart(64, "0")}${"0".repeat(64)}01` as Hex;
+  for (const c of guardSetupCalls(userSafe, { module: GUARD, agent: provider.account.address, strictTokens: true, tokens: [{ token: usdg, perDay: 20_000000n }] })) {
+    await wait(client.writeContract({ address: userSafe, abi: SAFE_ABI, functionName: "execTransaction", args: [c.to, BigInt(c.value), c.data, 0, 0n, 0n, 0n, zeroAddress, zeroAddress, sig] }));
+  }
+  if (!(await pc.readContract({ address: userSafe, abi: SAFE_ABI, functionName: "isModuleEnabled", args: [GUARD] }))) throw new Error("module not enabled");
+  return userSafe;
+});
+// Shield stand-in: signs receipts with the dry-run Shield signer (wallet #1), exactly like apps/shield/src/receipt.ts
+let n = 0;
+const shieldFetch = (async (_u: string, init: RequestInit) => {
+  const tx = JSON.parse(String(init.body));
+  const expiresAt = BigInt((await pc.getBlock()).timestamp) + 120n;
+  const message = { agent: getAddress(tx.from), target: getAddress(tx.to), dataHash: keccak256(tx.data), value: BigInt(tx.value), verdict: 0, expiresAt, checkId: keccak256(toHex(`rehearsal${++n}`)) };
+  const signature = await safe.signTypedData({ account: safe.account, domain: { name: "Heimdall Shield", version: "1", chainId: 4663 },
+    types: { Receipt: [{ name: "agent", type: "address" }, { name: "target", type: "address" }, { name: "dataHash", type: "bytes32" }, { name: "value", type: "uint256" }, { name: "verdict", type: "uint8" }, { name: "expiresAt", type: "uint64" }, { name: "checkId", type: "bytes32" }] },
+    primaryType: "Receipt", message });
+  return new Response(JSON.stringify({ verdict: "ALLOW", riskScore: 0, findings: [], summary: ["ok"], simulation: null, receipt: { signer: safe.account.address, signature, expiresAt: Number(expiresAt), message: { ...message, value: message.value.toString(), expiresAt: String(expiresAt) } } }));
+}) as unknown as typeof fetch;
+const shield = new HeimdallShield({ baseUrl: "http://shield", fetch: shieldFetch });
+const pay15 = encodeFunctionData({ abi: erc20Abi, functionName: "transfer", args: [staker.account.address, 15_000000n] });
+await step("Guard: agent sends 15 USDG from the Safe with a Shield receipt", async () => {
+  await executeThroughGuard(provider as never, { module: GUARD, safe: userSafe, to: usdg, data: pay15 }, { shield });
+  return `${Number(await guardRemaining(pc as never, GUARD, userSafe, usdg)) / 1e6} USDG left today`;
+});
+await step("Guard: a second 15 USDG is refused (over the 20 USDG daily limit)", async () => {
+  try { await executeThroughGuard(provider as never, { module: GUARD, safe: userSafe, to: usdg, data: pay15 }, { shield }); } catch { return "LimitExceeded"; }
+  throw new Error("went through");
+});
+
+// 9c. x402: an agent pays 0.001 USDG for a Shield call with a signature; the facilitator settles it with real USDG
+await step("x402: real USDG transferWithAuthorization settled by the facilitator", async () => {
+  const req = requirementsFor(ROBINHOOD_USDG, 1000n, keeper.account.address);
+  const now = BigInt((await pc.getBlock()).timestamp);
+  const authorization = { from: client.account.address, to: keeper.account.address, value: 1000n, validAfter: 0n, validBefore: now + 600n, nonce: keccak256(toHex(`x402-${Date.now()}`)) };
+  const signature = await client.signTypedData({ account: client.account,
+    domain: { name: ROBINHOOD_USDG.name, version: ROBINHOOD_USDG.version, chainId: 4663, verifyingContract: usdg },
+    types: { TransferWithAuthorization: [{ name: "from", type: "address" }, { name: "to", type: "address" }, { name: "value", type: "uint256" }, { name: "validAfter", type: "uint256" }, { name: "validBefore", type: "uint256" }, { name: "nonce", type: "bytes32" }] },
+    primaryType: "TransferWithAuthorization", message: authorization });
+  const p: PaymentPayload = { x402Version: 2, resource: { url: "https://api.heimdall.fund/v1/check/transaction" }, accepted: { ...req, payTo: keeper.account.address, amount: "1000" },
+    payload: { signature, authorization: { ...authorization, value: "1000", validAfter: "0", validBefore: String(authorization.validBefore) } } };
+  const before = await pc.readContract({ address: usdg, abi: erc20Abi, functionName: "balanceOf", args: [keeper.account.address] });
+  const r = await settlePayment(keeper as never, pc as never, p, req, { nowSec: Number(now) });
+  if (!r.success) throw new Error(r.errorReason ?? "not settled");
+  const after = await pc.readContract({ address: usdg, abi: erc20Abi, functionName: "balanceOf", args: [keeper.account.address] });
+  if (after - before !== 1000n) throw new Error(`received ${after - before}`);
+  return r.transaction;
+});
+
+// 9d. Agent Passport: register on the live ERC-8004 Identity Registry, link, publish the score to the live Reputation Registry
+const IDENTITY = parseAbi(["function register(string) returns (uint256)", "event Registered(uint256 indexed agentId, string agentURI, address indexed owner)"]);
+const REPUTATION = parseAbi(["function getSummary(uint256,address[],string,string) view returns (uint64,int128,uint8)"]);
+await step("Passport: agent registered on ERC-8004, linked, score published by the monitor", async () => {
+  const reg = { name: "Rehearsal agent", description: "Launch rehearsal", services: [], x402Support: true, active: true };
+  const rc = await wait(provider.writeContract({ address: getAddress("0x8004A169FB4a3325136EB29fA0ceB6D2e539a432"), abi: IDENTITY, functionName: "register", args: [`data:application/json;base64,${Buffer.from(JSON.stringify(reg)).toString("base64")}`] }));
+  const [ev] = parseEventLogs({ abi: IDENTITY, logs: rc.logs, eventName: "Registered" });
+  if (!ev) throw new Error("no Registered event");
+  const agentId = ev.args.agentId;
+  const link = await shieldApp.request("/v1/passport/link", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ address: provider.account.address, agentId: agentId.toString() }) });
+  if (link.status !== 200) throw new Error(`link ${link.status}: ${await link.text()}`);
+  await publishPassports(keeper as never, pc as never, "http://shield", ADMIN_KEY, undefined, appFetch);
+  const [count, value] = await pc.readContract({ address: getAddress("0x8004BAa17C55a88189AE136b182e5fdA19dE9b63"), abi: REPUTATION, functionName: "getSummary", args: [agentId, [keeper.account.address], "heimdall", ""] });
+  if (count !== 1n) throw new Error(`feedback count ${count}`);
+  return `agent #${agentId}, score ${value} onchain`;
+});
 
 const failed = results.filter((x) => !x[1]).length;
 writeFileSync(`deployments/${networkName}.rehearsal.md`, `# Launch rehearsal (local mainnet fork)\n\n${new Date().toISOString()}\n\n| Check | Result | Detail |\n| --- | --- | --- |\n${results.map(([n, ok, d]) => `| ${n} | ${ok ? "PASS" : "**FAIL**"} | ${d} |`).join("\n")}\n\n${failed ? `${failed} check(s) failed.` : "All checks passed."}\n`);

@@ -1,7 +1,7 @@
 import { describe, expect, it, beforeEach } from "vitest";
 import { secp256k1 } from "@noble/curves/secp256k1";
 import { bytesToHex, encodeFunctionData, hexToBytes, maxUint256, parseAbi, verifyTypedData, keccak256, type PublicClient } from "viem";
-import { addressFromSpki, kmsSigner, parseDerSignature, getSigner, resetSigner, type KmsLike } from "../src/signer.js";
+import { addressFromSpki, kmsSigner, parseDerSignature, getSigner, prelaunch, resetSigner, type KmsLike } from "../src/signer.js";
 import { MemoryStore } from "../src/store.js";
 import { limitsFromEnv, sha256 } from "../src/limits.js";
 import { buildApp } from "../src/server.js";
@@ -59,6 +59,20 @@ describe("KMS receipt signer", () => {
     resetSigner();
     await expect(getSigner({ NODE_ENV: "production" } as NodeJS.ProcessEnv)).rejects.toThrow(/No receipt signer/);
     resetSigner();
+  });
+
+  it("pre-launch mode: answers checks and health, signs nothing, and ends once a key is set", async () => {
+    const env = { NODE_ENV: "production", SHIELD_PRELAUNCH: "1" } as NodeJS.ProcessEnv;
+    expect(prelaunch(env)).toBe(true);
+    expect(prelaunch({ ...env, SHIELD_KMS_KEY_ID: "key-1" })).toBe(false);
+    resetSigner();
+    await expect(getSigner(env)).rejects.toThrow(/Pre-launch mode/);
+    resetSigner();
+    const app = buildApp({ env, store: new MemoryStore(), getClient: () => ({ getBlockNumber: async () => 7n }) as never, log: () => {} });
+    const h = await (await app.request("/health")).json() as { ok: boolean; mode: string };
+    expect([h.ok, h.mode]).toEqual([true, "prelaunch"]);
+    const s = await (await app.request("/v1/signer")).json() as { signer: string | null; kind: string };
+    expect([s.signer, s.kind]).toEqual([null, "prelaunch"]);
   });
 });
 

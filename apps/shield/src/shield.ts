@@ -7,6 +7,7 @@ import { approvalsFromCall, decodeCall, expandBatch } from "./decode.js";
 import { isBlocklisted } from "./blocklist.js";
 import { inList, lc, type Policy, PolicySchema } from "./policy.js";
 import { signReceipt } from "./receipt.js";
+import { prelaunch } from "./signer.js";
 import { probeTransferability, simulate, type SimResult } from "./simulate.js";
 import { fmt, tokenMeta } from "./tokens.js";
 import type { ApprovalInfo, AssetChange, CheckResult, Finding, TxIntent, Verdict } from "./types.js";
@@ -257,7 +258,7 @@ export async function checkTransaction(rawTx: TxIntent, rawPolicy: unknown, deps
     assetChanges: changes,
     simulation: { ok: sim.ok, available: sim.available, gasUsed: sim.gasUsed, revertReason: sim.revertReason },
   };
-  if (deps.sign !== false) result.receipt = await signReceipt(tx, verdict, checkId);
+  if (deps.sign !== false && !prelaunch()) result.receipt = await signReceipt(tx, verdict, checkId);
   return result;
 }
 

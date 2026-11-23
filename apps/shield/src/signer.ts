@@ -93,6 +93,14 @@ export async function kmsSigner(keyId: string, kms: KmsLike = new KMSClient({}))
 let cached: Promise<ReceiptSigner> | undefined;
 
 /**
+ * Pre-launch mode (SHIELD_PRELAUNCH=1, no signer configured): the API runs in production and answers every check,
+ * but signs no receipts, because no contract trusts a signer yet. Setting the KMS key ends it.
+ */
+export function prelaunch(env: NodeJS.ProcessEnv = process.env): boolean {
+  return env.SHIELD_PRELAUNCH === "1" && !env.SHIELD_KMS_KEY_ID && !env.SHIELD_SIGNER_KEY;
+}
+
+/**
  * SHIELD_KMS_KEY_ID → AWS KMS (production) · SHIELD_SIGNER_KEY → local key (dev/staging) ·
  * neither → ephemeral key, refused when NODE_ENV=production.
  */
@@ -101,6 +109,7 @@ export function getSigner(env: NodeJS.ProcessEnv = process.env): Promise<Receipt
     cached = (async () => {
       if (env.SHIELD_KMS_KEY_ID) return kmsSigner(env.SHIELD_KMS_KEY_ID);
       if (env.SHIELD_SIGNER_KEY) return localSigner(env.SHIELD_SIGNER_KEY as Hex);
+      if (prelaunch(env)) throw new Error("Pre-launch mode: receipts are not signed until SHIELD_KMS_KEY_ID is set");
       if (env.NODE_ENV === "production") throw new Error("No receipt signer configured: set SHIELD_KMS_KEY_ID or SHIELD_SIGNER_KEY");
       return localSigner(generatePrivateKey(), "ephemeral");
     })();

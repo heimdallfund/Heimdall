@@ -24,7 +24,7 @@ import { z } from "zod";
 import { SUPPORTED_CHAINS, type SupportedChainId } from "./chains.js";
 import { PolicySchema } from "./policy.js";
 import { receiptDomain, RECEIPT_TYPES } from "./receipt.js";
-import { getSigner } from "./signer.js";
+import { getSigner, prelaunch } from "./signer.js";
 import { checkTransaction, toJSON } from "./shield.js";
 import { checkPersonalMessage, checkTypedData } from "./typed.js";
 import { keysRoutes, lookupStoredKey } from "./keys.js";
@@ -147,7 +147,7 @@ export function buildApp(opts: AppOptions = {}) {
     const t = Date.now();
     try {
       const block = await getClient(4663).getBlockNumber();
-      return c.json({ ok: true, service: "heimdall-shield", version: "0.2.0", block: block.toString(), rpcMs: Date.now() - t });
+      return c.json({ ok: true, service: "heimdall-shield", version: "0.2.0", mode: prelaunch(env) ? "prelaunch" : "live", block: block.toString(), rpcMs: Date.now() - t });
     } catch {
       return c.json({ ok: false, service: "heimdall-shield", version: "0.2.0", error: "rpc_unreachable" }, 503);
     }
@@ -159,6 +159,7 @@ export function buildApp(opts: AppOptions = {}) {
   });
 
   app.get("/v1/signer", async (c) => {
+    if (prelaunch(env)) return c.json({ signer: null, kind: "prelaunch", domain: receiptDomain(4663), types: RECEIPT_TYPES });
     const s = await getSigner(env);
     return c.json({ signer: s.address, kind: s.kind, domain: receiptDomain(4663), types: RECEIPT_TYPES });
   });
@@ -837,8 +838,9 @@ export function buildApp(opts: AppOptions = {}) {
 
 if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split("/").pop()!)) {
   const port = Number(process.env.PORT ?? 8787);
-  getSigner().then((s) => {
-    if (s.kind === "ephemeral") console.warn("[shield] no signer configured — using an EPHEMERAL key (dev only)", s.address);
+  (prelaunch() ? Promise.resolve({ kind: "prelaunch", address: "none" }) : getSigner()).then((s) => {
+    if (s.kind === "prelaunch") console.log("[shield] pre-launch mode: checks run, no receipts are signed");
+    else if (s.kind === "ephemeral") console.warn("[shield] no signer configured — using an EPHEMERAL key (dev only)", s.address);
     else console.log(`[shield] receipt signer (${s.kind})`, s.address);
     serve({ fetch: buildApp().fetch, port });
     console.log(`[shield] listening on :${port}`);

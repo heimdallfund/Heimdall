@@ -5,6 +5,9 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 RPC="${RPC_URL_MAINNET:-https://rpc.mainnet.chain.robinhood.com}"
 rm -f deployments/localhost*.json deployments/localhost.rehearsal.md
+if curl -s -o /dev/null -X POST -H 'content-type: application/json' --data '{"jsonrpc":"2.0","id":1,"method":"eth_chainId","params":[]}' http://127.0.0.1:8545; then
+  echo "Something is already listening on :8545 (an old fork node?). Stop it first: pkill -f 'hardhat node'"; exit 1
+fi
 # chain id 4663 like mainnet, so wallets and the web app see the chain they expect
 RPC_URL_MAINNET="$RPC" npx hardhat node --network robinhoodFork > /tmp/heimdall-fork.log 2>&1 &
 NODE=$!; trap 'kill $NODE 2>/dev/null' EXIT
@@ -13,5 +16,5 @@ echo "── 1. core contracts (deploy.ts)";      DRY_RUN=1 npx hardhat run scri
 echo "── 2. stand-in \$HEIM";                  npx hardhat run scripts/rehearsal-token.ts --network localhost
 HEIM=$(node -e 'console.log(require("./deployments/localhost.heim.json").HEIM)')
 echo "── 3. staking + splitter";              HEIM=$HEIM STAKER_BPS=5000 npx hardhat run scripts/deploy-staking.ts --network localhost
-echo "── 4. Safe batches + money through every fee path"; npx hardhat run scripts/rehearsal.ts --network localhost
+echo "── 4. Safe batches, money through every fee path, then Risk Oracle, Guard, x402 and Passport"; npx hardhat run scripts/rehearsal.ts --network localhost
 if [ "${KEEP_NODE:-0}" = "1" ]; then trap - EXIT; echo "fork node left running (pid $NODE)"; fi
