@@ -131,6 +131,8 @@ The server ships instructions that tell the model to check before every send and
 | `heimdall_check_tx_hash` | Looks up a pending or mined transaction by hash and judges it. |
 | `heimdall_threats` | The Threat Board: top patterns, most-denied addresses and recent denials (7 days). |
 | `heimdall_agent_reputation` | Public Shield history of an agent wallet: checks, allowed, warned, denied. |
+| `heimdall_passport` | Agent Passport: Heimdall Score (0-100), tier, ERC-8004 identity and onchain reputation. |
+| `heimdall_risk` | Risk level of an address (none, low, warn, blocked) with reasons, and the onchain Risk Oracle entry. |
 | `heimdall_get_verdict` | Opens a shared verdict by id. |
 | `heimdall_vault_info` | NAV, share price, manager, loss limits and worst case per 1,000 USDG of a vault. |
 | `heimdall_list_vaults` | Vaults created through the factory. |
@@ -153,3 +155,7 @@ The server ships instructions that tell the model to check before every send and
 | `HEIMDALL_CHAIN` | `mainnet` (default) or `testnet`. |
 | `RPC_URL` | Robinhood Chain RPC for reads. |
 | `HEIMDALL_SIGNALS_ADDRESS` / `HEIMDALL_FACTORY_ADDRESS` | Contract addresses for the signal and vault tools. |
+
+## Pay per call (x402)
+
+Without an API key, the server uses the free tier. Set `HEIMDALL_X402_PRIVATE_KEY` to a wallet holding USDG on Robinhood Chain and it pays per call once the free tier is used up (0.001 USDG per check), never more than `HEIMDALL_X402_MAX` raw units per call (default 5000 = 0.005 USDG). The wallet needs no ETH. See [x402 payments](../integrate/x402.md).

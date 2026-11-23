@@ -48,6 +48,8 @@ The plugin reads `HEIMDALL_API_URL`, `HEIMDALL_API_KEY` and `HEIMDALL_PAY_ADDRES
 | `heimdall_check_signature` | Judge EIP-712 and personal_sign requests: Permit, Permit2, Seaport, hidden approvals |
 | `heimdall_wallet_check` | Risky approvals a wallet has given, with the USD each spender could take |
 | `heimdall_agent_reputation` | How another agent has behaved under Shield |
+| `heimdall_passport` | Heimdall Score, tier and ERC-8004 identity of another agent |
+| `heimdall_risk` | Risk level of any address, from Heimdall's list and the onchain oracle |
 | `heimdall_threats` | Known drainers, most-denied contracts and the community blocklist |
 | `heimdall_pay_job` | Read a Heimdall Pay escrow job |
 | `heimdall_pay_record` | A provider's jobs completed, disputed and USDG earned |

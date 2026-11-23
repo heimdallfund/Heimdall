@@ -80,3 +80,29 @@ export async function fetchLeaderboard() { "use cache"; cacheLife("minutes"); re
 export interface ArenaSeason { id: number; name: string; start: number; end: number; minTvl: number; minDepositors: number; prize?: string }
 export interface ArenaStanding { vault: string; name: string; manager: string; returnPct: number; maxDrawdownPct: number; tvl: number; depositors: number; eligible: boolean; reason?: string; spark: number[]; rank?: number }
 export async function fetchArena() { "use cache"; cacheLife("minutes"); return get<{ season: ArenaSeason | null; standings: ArenaStanding[] }>("/v1/arena"); }
+
+export interface PassportComponent { name: "shield" | "pay" | "history"; score: number; weight: number; detail: string }
+export interface Passport {
+  address: string;
+  agentId: string | null;
+  linked: boolean;
+  score: number | null;
+  tier: "A" | "B" | "C" | "D" | "new" | "blocked";
+  capped?: string;
+  components: PassportComponent[];
+  identity: { agentId: string; owner: string; wallet: string | null; uri: string | null; registry: string; registration: { name?: string; description?: string; image?: string; services?: { name: string; endpoint: string }[]; x402Support?: boolean; active?: boolean } | null } | null;
+  shield: AgentStats;
+  pay: { completed: number; disputed: number; earnedUsdg: number } | null;
+  risk: { level: number; levelName: string; flagNames: string[]; label: string | null; blocked: boolean };
+  reputation: { count: number; average: number | null; publisher: string } | null;
+  publisher: string | null;
+  updatedAt: string;
+}
+export interface PassportRow { address: string; agentId: string | null; name: string | null; score: number | null; tier: string }
+export interface X402Stats { enabled: boolean; network: string; asset: string; settled: number; volumeUsdg: number; paidShieldCalls: number; prices: { check: string; wallet: string } }
+export interface RiskList { chainId: number; oracle: string | null; count: number; entries: { address: string; level: number; levelName: string; flagNames: string[]; label?: string; source: string }[] }
+
+export async function fetchPassport(id: string, agentId?: string) { "use cache"; cacheLife("minutes"); return get<Passport>(`/v1/passport/${id}${agentId && /^\d{1,30}$/.test(agentId) ? `?agentId=${agentId}` : ""}`, 6000); }
+export async function fetchPassportDirectory() { "use cache"; cacheLife("minutes"); return get<PassportRow[]>("/v1/passport", 6000); }
+export async function fetchX402Stats() { "use cache"; cacheLife("minutes"); return get<X402Stats>("/x402/stats"); }
+export async function fetchRiskList() { "use cache"; cacheLife("minutes"); return get<RiskList>("/v1/risk"); }

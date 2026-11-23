@@ -48,7 +48,7 @@ const textOf = (r: any) => r.content.map((x: any) => x.text).join("\n");
 test("lists all tools, the safe_send prompt and server instructions", async () => {
   const c = await connect();
   const names = (await c.listTools()).tools.map((t) => t.name).sort();
-  assert.deepEqual(names, ["heimdall_agent_reputation", "heimdall_arena", "heimdall_check_address", "heimdall_check_signature", "heimdall_check_transaction", "heimdall_check_tx_hash", "heimdall_get_verdict", "heimdall_list_signals", "heimdall_list_vaults", "heimdall_pay_job", "heimdall_pay_jobs", "heimdall_threats", "heimdall_vault_info", "heimdall_wallet_check"]);
+  assert.deepEqual(names, ["heimdall_agent_reputation", "heimdall_arena", "heimdall_check_address", "heimdall_check_signature", "heimdall_check_transaction", "heimdall_check_tx_hash", "heimdall_get_verdict", "heimdall_list_signals", "heimdall_list_vaults", "heimdall_passport", "heimdall_pay_job", "heimdall_pay_jobs", "heimdall_risk", "heimdall_threats", "heimdall_vault_info", "heimdall_wallet_check"]);
   assert.equal((await c.listPrompts()).prompts[0].name, "safe_send");
   assert.match(c.getInstructions() ?? "", /heimdall_check_signature/);
 });
@@ -135,7 +135,7 @@ test("remote mode answers MCP over Streamable HTTP", async () => {
   assert.equal(init.status, 200);
   assert.equal((await init.json()).result.serverInfo.name, "heimdall");
   const list = await fetch(`http://127.0.0.1:${port}/mcp`, { method: "POST", headers: h, body: JSON.stringify({ jsonrpc: "2.0", id: 2, method: "tools/list" }) });
-  assert.equal((await list.json()).result.tools.length, 14);
+  assert.equal((await list.json()).result.tools.length, 16);
   assert.equal((await fetch(`http://127.0.0.1:${port}/health`)).status, 200);
   srv.close();
 });

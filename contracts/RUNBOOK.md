@@ -11,6 +11,10 @@ All times UTC. All admin power lives in the **Safe** (`adminSafe`). The deployer
 | Shield signer | AWS KMS key | Signs receipts. Cannot move funds. Rotated by the Safe. |
 | Treasury | Address in config | Receives platform fees (vault 5%, Signals 10%). |
 | Manager | Agent wallet per vault | `execute()` with a valid receipt. Nothing else. |
+| Risk reporter | Monitor key (`RISK_REPORTER_KEY`), a little ETH for gas | Writes Shield's risk list to `HeimdallRiskOracle` (max 200 entries per call). Cannot touch pinned entries. Replaced by the Safe with `setReporter`. |
+| Passport publisher | Monitor key (`PASSPORT_KEY`), a little ETH for gas | Publishes the daily Heimdall Score of linked agents to the ERC-8004 Reputation Registry. Must not own any agent identity (no self-feedback). Holds no funds. |
+| x402 facilitator | Shield key (`X402_FACILITATOR_KEY`), a little ETH for gas | Submits agents' signed USDG payments (`transferWithAuthorization`). Can only settle what the payer signed, to the recipient they signed. Holds no USDG. |
+| Guard module owner | The Safe | Only sets the default Shield signer of `HeimdallGuardModule`. Each user's Safe controls its own agents, limits and pause. |
 
 ## Before deploy
 
@@ -52,9 +56,12 @@ The script:
 3. Set the web env vars and redeploy the web:
    - `NEXT_PUBLIC_FACTORY_ADDRESS`
    - `NEXT_PUBLIC_SIGNALS_ADDRESS`
-4. Point Shield, Signals and the monitor at the same addresses.
-5. Run the reference agent with `npm run dry-run`, then with one small real cycle.
-6. Post the addresses publicly and update `docs/build/contracts.md`.
+   - `NEXT_PUBLIC_RISK_ORACLE_ADDRESS`
+   - `NEXT_PUBLIC_GUARD_MODULE_ADDRESS`
+4. Integrations: Shield `RISK_ORACLE_ADDRESS`, `PASSPORT_PUBLISHER_ADDRESS`, `SHIELD_PUBLIC_URL`, `X402_PAY_TO` (treasury) and `X402_FACILITATOR_KEY` (fund with a little ETH; x402 turns on when both are set); monitor `RISK_ORACLE`, `RISK_REPORTER_KEY`, `PASSPORT_KEY` (fund both with a little ETH). If `riskReporter` was not set in the deploy config, call `setReporter(<reporter>, true)` from the Safe. Check the first sync on the monitor log and `GET /v1/risk/<address>`.
+5. Point Shield, Signals and the monitor at the same addresses.
+6. Run the reference agent with `npm run dry-run`, then with one small real cycle.
+7. Post the addresses publicly and update `docs/build/contracts.md`.
 
 ## $HEIM launch day
 
@@ -91,6 +98,9 @@ New vaults pick up factory defaults. Existing vaults need per-vault calls, which
 | Router compromised | Disable its calls, revoke allowances, then pause if funds moved | `OP=disable-call TARGET=… SIGNATURE=…` then `OP=revoke TOKEN=… SPENDER=…` |
 | Price feed stale or retired | Point the asset at a replacement feed | `OP=set-feed TOKEN=… FEED=… HEARTBEAT=…` |
 | Manager misbehaving | Pause the vault, then `setManager` to a new agent | `OP=pause VAULTS=0x…` |
+| Risk reporter key exposed or writing wrong entries | Remove it, add a new one, pin any address that must not change | `setReporter(old, false)`, `setReporter(new, true)`, `pin(…)` |
+| Shield signer exposed (Guard module) | `setShieldSigner` on the module; Safes that use their own signer are not affected | Safe Transaction Builder |
+| x402 facilitator key exposed | Clear `X402_FACILITATOR_KEY` (x402 turns off, free tier keeps working), then set a new key. It never holds USDG, only gas | Shield env |
 | Vault growing faster than its record | Lower its deposit cap | `OP=deposit-cap CAP=… VAULTS=0x…` |
 
 After any emergency action:

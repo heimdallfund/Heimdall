@@ -9,6 +9,9 @@ export { heimdallPayAbi, heimdallStakingAbi, heimdallFeeSplitterAbi, heimdallAut
 export { HeimdallAutoInvest, type Plan } from "./invest.js";
 export { HeimdallPay, hashOf, JOB_STATUS, type Job, type JobStatus, type CreateJobInput } from "./pay.js";
 export { verifyWebhook, parseWebhook, type WebhookEvent, type WebhookEventType } from "./webhooks.js";
+export { heimdallRiskOracleAbi, heimdallGuardModuleAbi } from "./abi.js";
+export { payX402, readPaymentRequired, X402_ROBINHOOD_USDG, X402Error, type PayX402Options, type X402Asset } from "./x402.js";
+export { ERC8004_REGISTRIES, heimdallScore, executeThroughGuard, guardRemaining, guardSetupCalls, readRisk, RISK_FLAGS, RISK_LEVEL, safeBatch, type GuardSetup, type OnchainRisk, type SafeCall } from "./guard.js";
 
 // ───────────────────────────── Chains ─────────────────────────────
 
@@ -220,6 +223,50 @@ export class HeimdallShield {
   signer(): Promise<{ signer: Address; ephemeral: boolean }> {
     return this.request("/v1/signer");
   }
+
+  /** Agent Passport: Heimdall Score (0–100), tier, ERC-8004 identity and onchain reputation. By address or agentId. */
+  passport(id: Address | bigint | number): Promise<Passport> {
+    return this.request<Passport>(`/v1/passport/${id.toString()}`);
+  }
+
+  /** Link an ERC-8004 agentId to a wallet. Succeeds only when the chain shows the wallet owns or operates the agent. */
+  linkPassport(address: Address, agentId: bigint | number): Promise<{ ok: true; agentId: string }> {
+    return this.request("/v1/passport/link", { method: "POST", body: JSON.stringify({ address, agentId: agentId.toString() }) });
+  }
+
+  /** Risk data for an address: what Shield knows, and what the onchain Risk Oracle holds right now. */
+  risk(address: Address): Promise<RiskReport> {
+    return this.request<RiskReport>(`/v1/risk/${address}`);
+  }
+}
+
+export interface Passport {
+  address: Address;
+  agentId: string | null;
+  linked: boolean;
+  score: number | null;
+  tier: "A" | "B" | "C" | "D" | "new" | "blocked";
+  capped?: string;
+  components: { name: "shield" | "pay" | "history"; score: number; weight: number; detail: string }[];
+  identity: { agentId: string; owner: Address; wallet: Address | null; uri: string | null; registry: string; registration: { name?: string; description?: string; image?: string; services?: { name: string; endpoint: string }[]; x402Support?: boolean; active?: boolean } | null } | null;
+  shield: AgentStats;
+  pay: { completed: number; disputed: number; earnedUsdg: number } | null;
+  risk: Omit<RiskReport, "oracle" | "onchain">;
+  reputation: { count: number; average: number | null; publisher: Address; registry: Address } | null;
+  updatedAt: string;
+}
+
+export interface RiskReport {
+  address: Address;
+  level: number;
+  levelName: "none" | "low" | "warn" | "blocked";
+  flags: number;
+  flagNames: string[];
+  label: string | null;
+  source: string | null;
+  blocked: boolean;
+  oracle: Address | null;
+  onchain: { level: number; flags: number; flagNames: string[]; updatedAt: string | null } | null;
 }
 
 /**

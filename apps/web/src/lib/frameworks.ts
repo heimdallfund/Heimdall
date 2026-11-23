@@ -38,6 +38,8 @@ export const KIT_TOOLS: [string, string][] = [
   ["heimdall_check_signature", "Judge an EIP-712 or personal_sign request: Permit, Permit2, Seaport and hidden approvals."],
   ["heimdall_wallet_check", "Every risky approval a wallet has given, with the USD each spender could take."],
   ["heimdall_agent_reputation", "How another agent has behaved under Shield: checks allowed, warned and denied."],
+  ["heimdall_passport", "Heimdall Score (0-100), tier and ERC-8004 identity of another agent, before you pay or hire it."],
+  ["heimdall_risk", "Risk level of any address from Heimdall's list and the onchain Risk Oracle."],
   ["heimdall_threats", "Known drainers, the most denied contracts and the community blocklist."],
   ["heimdall_pay_job", "Read a Heimdall Pay escrow job. Needs a public client and the Pay address."],
   ["heimdall_pay_record", "A provider's track record: jobs completed, disputed and USDG earned."],

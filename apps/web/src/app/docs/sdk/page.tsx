@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Code, H1, H2, Table } from "@/components/docs/Docs";
 
 export const metadata: Metadata = { title: "TypeScript SDK", description: "@heimdall/sdk: Shield client, guardedSend, vault execution and signal vouchers." };
@@ -31,6 +32,15 @@ try {
 } catch (e) {
   if (e instanceof HeimdallDenied) console.log("Shield said no:", e.result.findings);
 }`}</Code>
+      <H2 id="integrations">Integrations</H2>
+      <Table head={["Function", "What it does"]} rows={[
+        [<code key="a" className="font-mono">payX402(fetch, wallet, &#123; maxAmount &#125;)</code>, <>A fetch that pays x402 402s in USDG, up to your cap per call. <Link className="text-brand" href="/docs/x402">x402</Link></>],
+        [<code key="b" className="font-mono">shield.risk(address) · readRisk(client, oracle, address)</code>, <>Risk level from the API, or straight from the onchain oracle. <Link className="text-brand" href="/docs/risk-oracle">Risk Oracle</Link></>],
+        [<code key="c" className="font-mono">guardSetupCalls(safe, setup) · safeBatch(…)</code>, <>The Safe transactions that enable Heimdall Guard for an agent. <Link className="text-brand" href="/docs/guard">Guard</Link></>],
+        [<code key="d" className="font-mono">executeThroughGuard(wallet, &#123; module, safe, to, data &#125;, &#123; shield &#125;)</code>, "Run an agent call through the Guard module with a Shield receipt."],
+        [<code key="e" className="font-mono">shield.passport(id) · shield.linkPassport(address, agentId)</code>, <>Agent Passport and ERC-8004 linking. <Link className="text-brand" href="/docs/passport">Passport</Link></>],
+        [<code key="f" className="font-mono">heimdallScore(client, agentId, publisher)</code>, "Heimdall's score straight from the ERC-8004 Reputation Registry."],
+      ]} />
     </>
   );
 }

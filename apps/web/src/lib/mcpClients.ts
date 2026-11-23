@@ -94,6 +94,8 @@ export const MCP_TOOLS: [string, string][] = [
   ["heimdall_check_tx_hash", "Looks up a pending or mined transaction by hash and judges it."],
   ["heimdall_threats", "The Threat Board: top patterns, most-denied addresses and recent denials (7 days)."],
   ["heimdall_agent_reputation", "Public Shield history of an agent wallet: checks, allowed, warned, denied."],
+  ["heimdall_passport", "Agent Passport: Heimdall Score (0-100), tier, ERC-8004 identity and onchain reputation."],
+  ["heimdall_risk", "Risk level of an address (none, low, warn, blocked) with reasons, and the onchain Risk Oracle entry."],
   ["heimdall_get_verdict", "Opens a shared verdict by id."],
   ["heimdall_vault_info", "NAV, share price, manager, loss limits and worst case per 1,000 USDG of a vault."],
   ["heimdall_list_vaults", "Vaults created through the factory."],

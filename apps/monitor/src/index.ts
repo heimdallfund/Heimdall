@@ -3,7 +3,7 @@ import { robinhoodChain } from "@heimdall/sdk";
 import { collect } from "./collect.js";
 import { DEFAULTS, diff, evaluate, format } from "./rules.js";
 import { webhook } from "./notify.js";
-import { arenaRows, corporateActions, heartbeat, watchAll, depositSnapshot, distributeFees, formatCorporateAction, postArena, postSnapshot, runAutoInvest, sweepAutoInvestFees } from "./jobs.js";
+import { arenaRows, corporateActions, heartbeat, watchAll, depositSnapshot, distributeFees, formatCorporateAction, postArena, postSnapshot, publishPassports, riskSync, runAutoInvest, sweepAutoInvestFees } from "./jobs.js";
 import { createWalletClient } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 
@@ -100,6 +100,29 @@ async function keeper() {
   for (const s of r.skipped) if (!/NotDue|Inactive/.test(s.reason)) console.log(`auto-invest: plan ${s.id} skipped: ${s.reason}`);
 }
 
+/** Every RISK_EVERY_MIN minutes (10): write Shield's risk list to the onchain Risk Oracle (RISK_ORACLE + RISK_REPORTER_KEY). */
+let lastRisk = 0;
+async function riskOracle() {
+  if (!env.RISK_ORACLE || !env.RISK_REPORTER_KEY || !env.SHIELD_API_URL) return;
+  if (Date.now() - lastRisk < Number(env.RISK_EVERY_MIN ?? 10) * 60_000) return;
+  lastRisk = Date.now();
+  const wallet = createWalletClient({ chain: robinhoodChain, transport: rpc(), account: privateKeyToAccount(env.RISK_REPORTER_KEY as `0x${string}`) });
+  const r = await riskSync(wallet, client as never, getAddress(env.RISK_ORACLE), env.SHIELD_API_URL, BigInt(env.DEPLOY_BLOCK ?? env.FROM_BLOCK ?? 0));
+  if (r.changed) await send(`🛡 Risk Oracle updated\n${r.changed} address(es) written onchain (${r.listed} on Shield's list)`);
+}
+
+/** Once a day: publish changed Heimdall Scores to the ERC-8004 Reputation Registry (PASSPORT_KEY = PASSPORT_PUBLISHER_ADDRESS on Shield). */
+let lastPassportDay = "";
+async function passports() {
+  if (!env.PASSPORT_KEY || !env.SHIELD_API_URL || !env.SHIELD_ADMIN_KEY) return;
+  const day = new Date().toISOString().slice(0, 10);
+  if (day === lastPassportDay) return;
+  lastPassportDay = day;
+  const wallet = createWalletClient({ chain: robinhoodChain, transport: rpc(), account: privateKeyToAccount(env.PASSPORT_KEY as `0x${string}`) });
+  const r = await publishPassports(wallet, client as never, env.SHIELD_API_URL, env.SHIELD_ADMIN_KEY);
+  if (r.published.length) await send(`🪪 Heimdall Scores published\n${r.published.length} agent(s) updated on the ERC-8004 Reputation Registry`);
+}
+
 if (process.argv.includes("--once")) {
   await tick();
 } else {
@@ -114,6 +137,8 @@ if (process.argv.includes("--once")) {
     if (env.SHIELD_API_URL && env.SHIELD_ADMIN_KEY) await heartbeat(env.SHIELD_API_URL, env.SHIELD_ADMIN_KEY, "monitor", client as never).catch(() => {});
     try { await arena(); } catch (e) { console.error("arena snapshot failed", e); }
     try { await walletWatch(); } catch (e) { console.error("wallet watch failed", e); }
+    try { await passports(); } catch (e) { await send(`🟠 Passport publishing failed\n${(e as Error).message.split("\n")[0]}`); }
+    try { await riskOracle(); } catch (e) { await send(`🟠 Risk Oracle sync failed\n${(e as Error).message.split("\n")[0]}`); }
     await new Promise((r) => setTimeout(r, intervalMs));
   }
 }

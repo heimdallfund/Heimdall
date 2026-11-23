@@ -66,3 +66,22 @@ Each line is a property that must hold in every reachable state. "Fuzz" means a 
 | F-1 | Returns stale (`updatedAt = 0`) while the token's oracle is paused, the quote is older than its max age, or USDG/USD is outside 0.90–1.10 | `stockfeed.test.ts` |
 | F-2 | Fails closed: if `oraclePaused()` cannot be read, the price is stale | `stockfeed-vault.poc.test.ts` I-05 |
 | F-3 | A price published before the token's multiplier took effect (`effectiveAt` in (`updatedAt`, now]) is reported stale; the multiplier is never applied twice | `stockfeed.test.ts` |
+
+## HeimdallRiskOracle and HeimdallRiskAware
+
+| ID | Invariant | Checked by |
+| --- | --- | --- |
+| R-1 | Only the reporter writes entries, at most 200 per call, levels 0 to 3 | `test_onlyReporter`, `test_validation` |
+| R-2 | A pinned entry never changes until the owner unpins it | `test_pinBeatsReporter`, `sync.test.ts` |
+| R-3 | `blockedCount` always equals the number of addresses at level 3 | Fuzz `testFuzz_blockedCountMatches` |
+| R-4 | `notBlocked` refuses blocked addresses; a failing or hostile oracle costs at most 30,000 gas and follows `failClosed` | `test_riskAwareGate`, `test_riskAwareFailModes` |
+
+## HeimdallGuardModule
+
+| ID | Invariant | Checked by |
+| --- | --- | --- |
+| M-1 | Within any 24 h window, the Safe loses at most the ETH and per-token limits its owners set, whatever the agent sends | Invariants `invariant_lossBoundedByLimits`, `invariant_spentWithinLimit`; fuzz `testFuzz_windowNeverExceedsLimit` |
+| M-2 | The agent can never call the Safe or the module, so it can never change owners, modules, limits or its own rights | `test_agentCannotAdministerSafeOrModule` |
+| M-3 | Every call needs a fresh Shield ALLOW receipt for that Safe, target, calldata and value, used once | `test_receiptChecks`, `test_signerOverride` |
+| M-4 | A limited token only takes calls the limit counts; an unlimited approval of a limited token is impossible | `test_limitedTokenOnlyTakesCountableCalls`, `test_approvalsCount_unlimitedImpossible_revokeAlwaysOk` |
+| M-5 | A failed inner call reverts the whole execution and records no spend | `test_failedInnerCallReverts_noSpendRecorded` |

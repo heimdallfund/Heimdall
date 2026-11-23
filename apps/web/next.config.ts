@@ -9,6 +9,7 @@ const DOCS_MAP: Record<string, string> = {
   "/docs/sdk": "/build/sdk", "/docs/mcp": "/build/mcp", "/docs/frameworks": "/build/agent-frameworks", "/docs/contracts": "/build/contracts",
   "/docs/webhooks": "/shield/webhooks", "/docs/wallet-check": "/products/wallet-check", "/docs/pay": "/products/pay", "/docs/auto-invest": "/products/auto-invest",
   "/docs/arena": "/products/arena", "/docs/points": "/products/points", "/docs/staking": "/products/staking",
+  "/docs/risk-oracle": "/integrate/risk-oracle", "/docs/guard": "/integrate/guard", "/docs/x402": "/integrate/x402", "/docs/passport": "/integrate/passport",
 };
 
 const nextConfig: NextConfig = {

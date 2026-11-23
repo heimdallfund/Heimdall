@@ -32,6 +32,14 @@ export const ADDRESSES = {
   splitter: addr(process.env.NEXT_PUBLIC_SPLITTER_ADDRESS),
   pay: addr(process.env.NEXT_PUBLIC_PAY_ADDRESS),
   autoInvest: addr(process.env.NEXT_PUBLIC_AUTOINVEST_ADDRESS),
+  riskOracle: addr(process.env.NEXT_PUBLIC_RISK_ORACLE_ADDRESS),
+  guardModule: addr(process.env.NEXT_PUBLIC_GUARD_MODULE_ADDRESS),
+};
+
+/** Official ERC-8004 registries on Robinhood Chain (same address on every chain). */
+export const ERC8004 = {
+  identity: "0x8004A169FB4a3325136EB29fA0ceB6D2e539a432" as Address,
+  reputation: "0x8004BAa17C55a88189AE136b182e5fdA19dE9b63" as Address,
 };
 
 export const SHIELD_API_URL = process.env.SHIELD_API_URL ?? "http://127.0.0.1:8787";

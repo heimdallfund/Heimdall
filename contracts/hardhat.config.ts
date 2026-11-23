@@ -3,7 +3,7 @@ import hardhatToolboxViemPlugin from "@nomicfoundation/hardhat-toolbox-viem";
 
 const COMPILER = { version: "0.8.28", settings: { optimizer: { enabled: true, runs: 200 }, evmVersion: "cancun" } };
 const SIZE = { version: "0.8.28", settings: { viaIR: true, optimizer: { enabled: true, runs: 1 }, evmVersion: "cancun" } };
-const SIZE_OVERRIDES = { "contracts/HeimdallVault.sol": SIZE, "contracts/HeimdallVaultDeployer.sol": SIZE };
+const SIZE_OVERRIDES = { "contracts/HeimdallVault.sol": SIZE, "contracts/HeimdallVaultDeployer.sol": SIZE, "contracts/mocks/MockERC8004.sol": SIZE };
 
 const config: HardhatUserConfig = {
   plugins: [hardhatToolboxViemPlugin],

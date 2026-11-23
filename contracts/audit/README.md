@@ -9,11 +9,11 @@ Everything an external auditor needs to scope, build and test the Heimdall contr
 | Libraries | OpenZeppelin Contracts 5.6.1 |
 | Money at risk | USDG (Paxos Global Dollar, 6 decimals; pausable, with an address blocklist) and tokenized stocks (NVDA, TSLA, GOOGL, …, 18 decimals) |
 | Owner of every contract | A Safe multisig through `Ownable2Step`. The deployer never keeps ownership. |
-| Status | Not deployed yet. Three internal reviews (below), Slither, 112 tests (13 fuzz properties and 12 stateful invariants), 2 mainnet-fork tests and a full launch rehearsal on a fork (`scripts/rehearsal.sh`). |
+| Status | Not deployed yet. Four internal reviews (below), Slither, 143 tests (15 fuzz properties and 14 stateful invariants), 2 mainnet-fork tests and a full launch rehearsal on a fork (`scripts/rehearsal.sh`). |
 
 ## Scope
 
-1,404 nSLOC (non-blank, non-comment lines). The hash is the first 12 hex characters of the file's SHA-256, so you can confirm the files match.
+1,691 nSLOC (non-blank, non-comment lines). The hash is the first 12 hex characters of the file's SHA-256, so you can confirm the files match.
 
 | File | nSLOC | SHA-256 | What it does |
 | --- | ---: | --- | --- |
@@ -28,6 +28,10 @@ Everything an external auditor needs to scope, build and test the Heimdall contr
 | `contracts/HeimdallStockFeed.sol` | 58 | `9d1b6ecadff5` | Price adapter: Chainlink stock/USD ÷ USDG/USD; reports stale while the token's oracle is paused, after a multiplier change newer than the price, or while USDG is off peg |
 | `contracts/HeimdallHolderBalance.sol` | 19 | `454dc24b2b67` | `balanceOf` = $HEIM held + staked, read by vaults, Signals, Shield and the web for holder status |
 | `contracts/HeimdallVaultDeployer.sol` | 18 | `a18fc5523050` | Holds the vault creation code for the factory |
+| `contracts/HeimdallGuardModule.sol` | 165 | `decd837e3ca2` | Safe module: an AI agent spends from a Safe only with a Shield receipt, within daily ETH and per-token limits; the owners keep full control |
+| `contracts/HeimdallRiskOracle.sol` | 80 | `1813049b67cc` | Onchain risk list (drainers, phishing, honeypots) written by a reporter, readable by any contract; the owner can pin entries |
+| `contracts/HeimdallRiskAware.sol` | 23 | `dc315f55b3d9` | Abstract helper: `notBlocked` modifier with a gas-capped oracle read |
+| `contracts/interfaces/IHeimdallRisk.sol` | 19 | `bd33869fcc18` | Risk Oracle interface and level/flag constants |
 | `contracts/interfaces/IPriceFeed.sol` | 8 | `7a2bae928384` | Chainlink-style interface |
 
 Out of scope: `contracts/mocks/`, the tests, the off-chain services (Shield API, monitor, keeper, web app) and the $HEIM token itself, which is launched separately and has no Heimdall code.
@@ -52,14 +56,15 @@ Slither: `slither contracts/<File>.sol --solc-remaps "@openzeppelin/=node_module
 1. [THREAT_MODEL.md](THREAT_MODEL.md): actors, what each may and may not do, and the attacks we care about most.
 2. [INVARIANTS.md](INVARIANTS.md): the properties that must always hold, and which test or fuzz property checks each one.
 3. [KNOWN_ISSUES.md](KNOWN_ISSUES.md): issues already found, the accepted risks and open questions, so you don't spend time re-reporting them.
-4. `../SECURITY_REVIEW.md` (vault, signals, factory, guard), `../SECURITY_REVIEW_2.md` (Pay, staking, splitter, stock feed) and `../SECURITY_REVIEW_3.md` (all contracts: invariant testing, ERC-4626 views, build size). Every finding has a PoC that is now a regression test under `test/poc/` and `test/poc2/`.
+4. `../SECURITY_REVIEW.md` (vault, signals, factory, guard), `../SECURITY_REVIEW_2.md` (Pay, staking, splitter, stock feed) `../SECURITY_REVIEW_3.md` (all contracts: invariant testing, ERC-4626 views, build size) and `../SECURITY_REVIEW_4.md` (Risk Oracle, Guard module, x402 facilitator, Passport). Every finding has a PoC that is now a regression test under `test/poc/` and `test/poc2/`.
 
 ## Where we would like the most attention
 
 1. **HeimdallVault `execute` and the call allowlist.** Can a manager with valid Shield receipts move value out of the vault, or lose more than `maxLossBps` per trade or `maxDailyLossBps` per 24 h?
 2. **HeimdallAutoInvest.** It has only had an internal review (see KNOWN_ISSUES, section A). It pulls USDG from user wallets on a schedule, so any path that takes more than `amountPerBuy`, sends to someone other than the owner, or fills outside the bound is critical.
 3. **HeimdallPay dispute paths.** Conservation on every path, the 14-day timeout, and the deferred-payout (`owed`) accounting when USDG freezes an address.
-4. **Price handling** for tokenized stocks: market hours, oracle pauses, USDG de-peg, and the multiplier-activation guard in `HeimdallStockFeed` (KNOWN_ISSUES Q-1).
+4. **HeimdallGuardModule.** Can an agent with valid Shield receipts move more out of a Safe than its daily limits, or change the Safe in any way? Tokens with unusual functions (ERC-677, ERC-777, rebasing) are of special interest.
+5. **Price handling** for tokenized stocks: market hours, oracle pauses, USDG de-peg, and the multiplier-activation guard in `HeimdallStockFeed` (KNOWN_ISSUES Q-1).
 
 ## Contact
 

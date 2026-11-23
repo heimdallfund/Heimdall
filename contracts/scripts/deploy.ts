@@ -21,6 +21,8 @@ type Config = {
   assets: { symbol: string; token: string; chainlinkFeed: string; heartbeat: number; poolFee?: number }[];
   caps: { tradeBps: number; lossBps: number; dailyLossBps: number; depositCap: string };
   heim: { token: string; holderMin: string; signalsHolderFeeBps: number };
+  /** Hot key of the Risk Oracle sync job (monitor `riskSync`). Optional: the Safe can add it later. */
+  riskReporter?: string;
 };
 
 const DRY = process.env.DRY_RUN === "1";
@@ -87,6 +89,9 @@ const signals = await viem.deployContract("HeimdallSignals", [usdg, me, treasury
 const pay = await viem.deployContract("HeimdallPay", [usdg, me, treasury]);
 const uniRouter = calls[0]?.target ?? addr("0xcaf681a66d020601342297493863e78c959e5cb2", "router");
 const autoInvest = await viem.deployContract("HeimdallAutoInvest", [usdg, uniRouter, me, treasury]);
+const riskOracle = await viem.deployContract("HeimdallRiskOracle", [me]);
+const guardModule = await viem.deployContract("HeimdallGuardModule", [me, signer]);
+console.log(`HeimdallRiskOracle    ${riskOracle.address}\nHeimdallGuardModule   ${guardModule.address}`);
 console.log(`HeimdallVaultDeployer ${deployer.address}\nHeimdallVaultFactory  ${factory.address}\nHeimdallSignals       ${signals.address}\nHeimdallPay           ${pay.address}\nHeimdallAutoInvest    ${autoInvest.address}`);
 
 // ── price adapters: Chainlink stock feed ÷ USDG/USD, stale while the token's oracle is paused ──
@@ -111,27 +116,32 @@ if (cfg.heim.token && !cfg.heim.token.startsWith("<SET")) {
   await wait(signals.write.setHolderTerms([heim, BigInt(cfg.heim.holderMin), cfg.heim.signalsHolderFeeBps]));
 }
 
+if (cfg.riskReporter && !cfg.riskReporter.startsWith("<SET")) await wait(riskOracle.write.setReporter([addr(cfg.riskReporter, "riskReporter"), true]));
+
 // ── hand over to the Safe (2-step) ─────────────────────────
 await wait(factory.write.transferOwnership([admin]));
 await wait(signals.write.transferOwnership([admin]));
 await wait(pay.write.transferOwnership([admin]));
 await wait(autoInvest.write.transferOwnership([admin]));
+await wait(riskOracle.write.transferOwnership([admin]));
+await wait(guardModule.write.transferOwnership([admin]));
 
 // ── checks ─────────────────────────────────────────────────
 const [dCalls, dSpenders, dAssets] = await factory.read.getDefaults();
 if (dCalls.length !== calls.length || dSpenders.length !== spenders.length || dAssets.length !== assets.length) throw new Error("defaults mismatch");
-for (const c of [factory, signals, pay, autoInvest]) if (getAddress(await c.read.pendingOwner()) !== admin) throw new Error("ownership transfer not pending");
+if (!(await guardModule.read.isShieldSigner([signer]))) throw new Error("guard module: Shield signer not set");
+for (const c of [factory, signals, pay, autoInvest, riskOracle, guardModule]) if (getAddress(await c.read.pendingOwner()) !== admin) throw new Error("ownership transfer not pending");
 if (getAddress(await factory.read.vaultAdmin()) !== admin) throw new Error("vault admin mismatch");
 
 // ── outputs ────────────────────────────────────────────────
 const block = await pc.getBlockNumber();
 const out = { network: networkName, chainId, block: block.toString(), deployer: me, adminSafe: admin, treasury, shieldSigner: signer,
-  contracts: { HeimdallVaultDeployer: deployer.address, HeimdallVaultFactory: factory.address, HeimdallSignals: signals.address, HeimdallPay: pay.address, HeimdallAutoInvest: autoInvest.address }, priceAdapters: adapters };
+  contracts: { HeimdallVaultDeployer: deployer.address, HeimdallVaultFactory: factory.address, HeimdallSignals: signals.address, HeimdallPay: pay.address, HeimdallAutoInvest: autoInvest.address, HeimdallRiskOracle: riskOracle.address, HeimdallGuardModule: guardModule.address }, priceAdapters: adapters };
 mkdirSync("deployments", { recursive: true });
 writeFileSync(`deployments/${networkName}.json`, JSON.stringify(out, null, 2));
 const accept = encodeFunctionData({ abi: parseAbi(["function acceptOwnership()"]), functionName: "acceptOwnership" });
-const batch = { version: "1.0", chainId: String(chainId), createdAt: Date.now(), meta: { name: "Heimdall: accept ownership", description: "Safe accepts ownership of HeimdallVaultFactory, HeimdallSignals, HeimdallPay and HeimdallAutoInvest" },
-  transactions: [factory.address, signals.address, pay.address, autoInvest.address].map((to) => ({ to, value: "0", data: accept })) };
+const batch = { version: "1.0", chainId: String(chainId), createdAt: Date.now(), meta: { name: "Heimdall: accept ownership", description: "Safe accepts ownership of HeimdallVaultFactory, HeimdallSignals, HeimdallPay, HeimdallAutoInvest, HeimdallRiskOracle and HeimdallGuardModule" },
+  transactions: [factory.address, signals.address, pay.address, autoInvest.address, riskOracle.address, guardModule.address].map((to) => ({ to, value: "0", data: accept })) };
 writeFileSync(`deployments/${networkName}.safe-accept-ownership.json`, JSON.stringify(batch, null, 2));
 console.log(`\nwrote deployments/${networkName}.json and deployments/${networkName}.safe-accept-ownership.json`);
-console.log(`\nNext: import the Safe batch in Transaction Builder and execute it.\nWeb env:\nNEXT_PUBLIC_FACTORY_ADDRESS=${factory.address}\nNEXT_PUBLIC_SIGNALS_ADDRESS=${signals.address}\nNEXT_PUBLIC_PAY_ADDRESS=${pay.address}\nNEXT_PUBLIC_AUTOINVEST_ADDRESS=${autoInvest.address}`);
+console.log(`\nNext: import the Safe batch in Transaction Builder and execute it.\nWeb env:\nNEXT_PUBLIC_FACTORY_ADDRESS=${factory.address}\nNEXT_PUBLIC_SIGNALS_ADDRESS=${signals.address}\nNEXT_PUBLIC_PAY_ADDRESS=${pay.address}\nNEXT_PUBLIC_AUTOINVEST_ADDRESS=${autoInvest.address}\nNEXT_PUBLIC_RISK_ORACLE_ADDRESS=${riskOracle.address}\nNEXT_PUBLIC_GUARD_MODULE_ADDRESS=${guardModule.address}`);

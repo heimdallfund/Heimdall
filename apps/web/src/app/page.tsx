@@ -29,7 +29,7 @@ async function Metrics() {
         <Stat label="Open security findings" value={0} tone="text-allow" />
         <Stat label="Max vault loss per day" value={5} suffix="%" />
         <Stat label="Receipt lifetime (s)" value={120} />
-        <Stat label="Contract tests" value={112} />
+        <Stat label="Contract tests" value={143} />
       </>
     );
   }
@@ -166,9 +166,30 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 04 RULES */}
+      {/* 04 BUILD ON IT */}
+      <section aria-labelledby="integrate" className="mx-auto max-w-[1280px] px-6 py-24">
+        <SectionHead n="04" kicker="BUILT TO BE BUILT ON" id="integrate" title={<>Plug it into<br /><span className="text-brand">your product.</span></>}>Four pieces any app on Robinhood Chain can use on its own: in a contract, in a Safe, in an API&apos;s payment flow, or in an agent&apos;s trust decision.</SectionHead>
+        <div className="mt-12 grid gap-px border border-ink bg-ink sm:grid-cols-2 lg:grid-cols-4">
+          {([
+            ["/oracle", "Risk Oracle", "One view call keeps drainers out of your contract.", "isBlocked(to)"],
+            ["/guard", "Guard for Safe", "Agents spend from a Safe within limits. Owners keep the keys.", "enableModule(guard)"],
+            ["/x402", "x402 in USDG", "Pay per call, no API key. A facilitator that checks first.", "402 → pay → 200"],
+            ["/passport", "Agent Passport", "A trust score on ERC-8004 that any agent can read.", "getSummary(id)"],
+          ] as const).map(([href, t, d, code]) => (
+            <Link key={href} href={href} className="group flex flex-col gap-3 bg-panel p-6 transition-colors hover:bg-paper">
+              <span className="text-[18px] font-semibold">{t}</span>
+              <span className="text-[14.5px] leading-relaxed text-muted">{d}</span>
+              <code className="mt-auto block border border-ink bg-ink px-3 py-2 font-mono text-[12.5px] text-paper">{code}</code>
+              <span className="font-mono text-[12px] font-semibold uppercase tracking-[0.08em] text-brand group-hover:underline">Open →</span>
+            </Link>
+          ))}
+        </div>
+        <Link href="/integrate" className="btn btn-secondary mt-8">All integrations</Link>
+      </section>
+
+      {/* 05 RULES */}
       <section aria-labelledby="enforced" className="mx-auto max-w-[1280px] px-6 py-24">
-        <SectionHead n="04" kicker="ENFORCED ONCHAIN" id="enforced" title={<>Rules in the contract,<br /><span className="text-brand">not in a promise.</span></>}>How a Heimdall vault compares with a typical agent-managed vault.</SectionHead>
+        <SectionHead n="05" kicker="ENFORCED ONCHAIN" id="enforced" title={<>Rules in the contract,<br /><span className="text-brand">not in a promise.</span></>}>How a Heimdall vault compares with a typical agent-managed vault.</SectionHead>
         <Reveal>
           <div className="overflow-x-auto border border-ink bg-panel">
             <table className="w-full min-w-[680px] border-collapse text-left text-[15px]">
@@ -188,7 +209,7 @@ export default function Home() {
       {/* 05 PRICING */}
       <section aria-labelledby="pricing" className="border-y border-ink bg-panel">
         <div className="mx-auto max-w-[1280px] px-6 py-24">
-          <SectionHead n="05" kicker="WHAT IT COSTS" id="pricing" title={<>Priced per check,<br />not per promise.</>}>No subscriptions to start. $HEIM holders pay less across the board.</SectionHead>
+          <SectionHead n="06" kicker="WHAT IT COSTS" id="pricing" title={<>Priced per check,<br />not per promise.</>}>No subscriptions to start. $HEIM holders pay less across the board.</SectionHead>
           <div className="grid border-l border-t border-ink sm:grid-cols-2 lg:grid-cols-4">
             {[["Shield", "Free", "1,000 checks per wallet, per day", "5× with $HEIM"], ["Shield API key", "$0.001", "per check above the free tier", "600 checks a minute"], ["Vaults", "15%", "of new profit only, nothing else", "12.5% if the manager holds $HEIM"], ["Pay", "1%", "of what the provider receives", "goes to $HEIM stakers"]].map(([k, v, d, n]) => (
               <div key={k} className="flex flex-col gap-3 border-b border-r border-ink p-6">
@@ -205,10 +226,10 @@ export default function Home() {
 
       {/* 06 SECURITY + THREATS */}
       <section aria-labelledby="review" className="mx-auto max-w-[1280px] px-6 py-24">
-        <SectionHead n="06" kicker="SECURITY" id="review" title={<>Reviewed before<br />a single deposit.</>}>Two reviews of every contract found 3 serious and 7 medium issues before launch. All are fixed and kept as regression tests next to property-based fuzzing, and a bug bounty pays up to 10,000 USDG.</SectionHead>
+        <SectionHead n="07" kicker="SECURITY" id="review" title={<>Reviewed before<br />a single deposit.</>}>Four reviews of every contract found 3 serious and 8 medium issues before launch. All are fixed and kept as regression tests next to fuzzing and stateful invariant tests, and a bug bounty pays up to 10,000 USDG.</SectionHead>
         <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
           <dl className="grid grid-cols-2 border-l border-t border-ink bg-panel">
-            {[["10 / 10", "Serious & medium fixed"], ["112", "Contract tests"], ["25", "Fuzz & invariant properties"], ["10,000", "USDG cap per vault"]].map(([v, l]) => (
+            {[["11 / 11", "Serious & medium fixed"], ["143", "Contract tests"], ["29", "Fuzz & invariant properties"], ["10,000", "USDG cap per vault"]].map(([v, l]) => (
               <div key={l} className="border-b border-r border-ink p-6"><dt className="label">{l}</dt><dd className="display mt-3 text-[56px]">{v}</dd></div>
             ))}
           </dl>
@@ -223,10 +244,10 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 07 FAQ */}
+      {/* 08 FAQ */}
       <section aria-labelledby="faq" className="border-t border-ink bg-panel">
         <div className="mx-auto grid max-w-[1280px] gap-10 px-6 py-24 lg:grid-cols-[1fr_1.6fr]">
-          <div><span className="font-mono text-[12px] font-semibold tracking-[0.12em] text-muted">07 <span className="text-brand">//</span> FAQ</span><h2 id="faq" className="display mt-3 text-[56px] sm:text-[72px]">Questions,<br />answered.</h2></div>
+          <div><span className="font-mono text-[12px] font-semibold tracking-[0.12em] text-muted">08 <span className="text-brand">//</span> FAQ</span><h2 id="faq" className="display mt-3 text-[56px] sm:text-[72px]">Questions,<br />answered.</h2></div>
           <div className="border-t border-ink">
             {faq.map(([q, a]) => (
               <details key={q} className="group border-b border-ink py-5">

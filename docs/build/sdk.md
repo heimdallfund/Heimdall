@@ -36,3 +36,14 @@ try {
   if (e instanceof HeimdallDenied) console.log("Shield said no:", e.result.findings);
 }
 ```
+
+## Integrations
+
+| Function | What it does |
+| --- | --- |
+| `payX402(fetch, wallet, { maxAmount })` | A fetch that pays x402 402s in USDG, up to your cap per call ([x402](../integrate/x402.md)) |
+| `shield.risk(address)` / `readRisk(client, oracle, address)` | Risk level from the API, or straight from the onchain Risk Oracle ([Risk Oracle](../integrate/risk-oracle.md)) |
+| `guardSetupCalls(safe, setup)` / `safeBatch(...)` | The Safe transactions that enable Heimdall Guard for an agent ([Guard](../integrate/guard.md)) |
+| `executeThroughGuard(wallet, { module, safe, to, data }, { shield })` | Run an agent call through the Guard module with a Shield receipt |
+| `shield.passport(id)` / `shield.linkPassport(address, agentId)` | Agent Passport and ERC-8004 linking ([Passport](../integrate/passport.md)) |
+| `heimdallScore(client, agentId, publisher)` | Heimdall's score straight from the ERC-8004 Reputation Registry |

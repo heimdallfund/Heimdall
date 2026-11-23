@@ -31,6 +31,7 @@ const REVIEWS: [string, string, string, string][] = [
   ["Review 2", "Heimdall Pay, staking, fee splitter, stock price feed", "0 critical, 0 high, 1 medium, 5 low, 7 info", "/security/review-2.md"],
   ["Addendum", "Auto-Invest", "2 low, 3 info", "/security/review-2.md"],
   ["Review 3", "All contracts: invariant testing, ERC-4626 views, build size", "0 critical, 0 high, 0 medium, 2 low", "/security/review-3.md"],
+  ["Review 4", "Risk Oracle, Guard for Safe, x402 facilitator, Agent Passport", "0 critical, 0 high, 1 medium, 2 low", "/security/review-4.md"],
 ];
 
 const CONTRACTS: [string, string | undefined][] = [
@@ -46,7 +47,7 @@ export default function SecurityPage() {
         <h1 className="text-[55px]">Security</h1>
         <p className="max-w-2xl text-lg leading-relaxed text-muted">How Heimdall keeps agents honest and your funds out of reach, enforced by contracts rather than promises. Found a way around it? We pay for that.</p>
         <div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {[["3", "internal reviews"], ["112", "contract tests"], ["25", "fuzz and invariant properties"], ["0", "open critical or high"]].map(([n, l]) => (
+          {[["4", "internal reviews"], ["143", "contract tests"], ["29", "fuzz and invariant properties"], ["0", "open critical or high"]].map(([n, l]) => (
             <div key={l} className="card px-5 py-4"><p className="font-display text-[28px] font-bold tracking-[-0.02em]">{n}</p><p className="text-[13px] text-muted">{l}</p></div>
           ))}
         </div>

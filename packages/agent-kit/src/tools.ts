@@ -123,6 +123,20 @@ export function heimdallTools(opts: AgentKitOptions = {}): HeimdallTool[] {
   });
 
   add({
+    name: "heimdall_passport",
+    description: "Should I trust this agent? Heimdall Score (0-100) and tier for an agent wallet or ERC-8004 agentId, from its Shield history, Heimdall Pay record and Risk Oracle status, plus its ERC-8004 identity. Use before paying, hiring or depositing with another agent.",
+    schema: z.object({ id: z.string().describe("0x wallet address or ERC-8004 agentId") }),
+    run: async (i) => json(await shield.passport(/^0x/i.test(i.id) ? getAddress(i.id) : BigInt(i.id))),
+  });
+
+  add({
+    name: "heimdall_risk",
+    description: "Is this address a known drainer, phishing contract, exploiter or honeypot? Risk level (none, low, warn, blocked) with reasons, and what the onchain Heimdall Risk Oracle holds. Use before sending to, approving or trusting an address.",
+    schema: z.object({ address: address.describe("Any Robinhood Chain address") }),
+    run: async (i) => json(await shield.risk(getAddress(i.address))),
+  });
+
+  add({
     name: "heimdall_threats",
     description: "Current threat board: the contracts Shield denies most, the most common attack codes, and the community blocklist. Use it to avoid known bad addresses.",
     schema: z.object({}),

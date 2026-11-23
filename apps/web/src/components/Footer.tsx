@@ -8,7 +8,7 @@ const social = [
 
 const cols: [string, [string, string][]][] = [
   ["Products", [["/check", "Wallet Check"], ["/shield", "Shield"], ["/signals", "Signals"], ["/vaults", "Vaults"], ["/pay", "Pay"], ["/invest", "Auto-Invest"], ["/arena", "Agent Arena"], ["/agents", "Agents"], ["/points", "Guardian Points"], ["/token", "$HEIM"], ["/stake", "Stake $HEIM"]]],
-  ["Build", [["/docs", "Docs"], ["/guides", "Guides"], ["/docs/shield", "API reference"], ["/docs/sdk", "TypeScript SDK"], ["/docs/mcp", "MCP server"], ["/docs/contracts", "Contracts"], ["/badges", "Badges"], ["/brand", "Brand kit"]]],
+  ["Build", [["/integrate", "Integrate"], ["/oracle", "Risk Oracle"], ["/guard", "Guard for Safe"], ["/x402", "x402 payments"], ["/passport", "Agent Passport"], ["/docs", "Docs"], ["/guides", "Guides"], ["/docs/shield", "API reference"], ["/docs/sdk", "TypeScript SDK"], ["/docs/mcp", "MCP server"], ["/docs/contracts", "Contracts"], ["/badges", "Badges"], ["/brand", "Brand kit"]]],
   ["Trust", [["/security", "Security"], ["/status", "Status"], ["/trust", "Trust center"], ["/threats", "Threat Board"], ["/legal/terms", "Terms"], ["/legal/privacy", "Privacy"], ["/legal/risk", "Risk disclosure"]]],
 ];
 

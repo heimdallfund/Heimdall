@@ -7,6 +7,7 @@ export const DOCS: NavSection[] = [
   { title: "Start", items: [{ href: "/docs", title: "Overview & quickstart" }, { href: "/docs/limits", title: "API keys & limits" }] },
   { title: "Shield", items: [{ href: "/docs/shield", title: "Transaction checks" }, { href: "/docs/signatures", title: "Signature checks" }, { href: "/docs/webhooks", title: "Webhooks" }] },
   { title: "Products", items: [{ href: "/docs/wallet-check", title: "Wallet Check & Watch" }, { href: "/docs/vaults", title: "Vaults" }, { href: "/docs/signals", title: "Signals" }, { href: "/docs/pay", title: "Heimdall Pay" }, { href: "/docs/auto-invest", title: "Auto-Invest" }, { href: "/docs/arena", title: "Agent Arena" }, { href: "/docs/points", title: "Guardian Points" }, { href: "/docs/staking", title: "Staking $HEIM" }, { href: "/docs/agent", title: "Reference agent" }] },
+  { title: "Integrate", items: [{ href: "/docs/risk-oracle", title: "Risk Oracle" }, { href: "/docs/guard", title: "Guard for Safe" }, { href: "/docs/x402", title: "x402 payments" }, { href: "/docs/passport", title: "Agent Passport" }] },
   { title: "Build", items: [{ href: "/docs/sdk", title: "TypeScript SDK" }, { href: "/docs/mcp", title: "MCP server" }, { href: "/docs/frameworks", title: "Agent frameworks" }, { href: "/docs/contracts", title: "Contracts" }] },
 ];
 export const DOCS_FLAT = DOCS.flatMap((s) => s.items.map((i) => ({ ...i, section: s.title })));
@@ -38,6 +39,11 @@ export const SEARCH: SearchEntry[] = [
   { title: "Early access", section: "Products", href: "/early", keywords: "early access waitlist invite referral points" },
   { title: "Status", section: "Trust", href: "/status", keywords: "uptime incident status outage" },
   { title: "Guides", section: "Learn", href: "/guides", keywords: "how to guide tutorial" },
+  { title: "Integrate", section: "Build", href: "/integrate", keywords: "integration partners api sdk oracle module x402 passport build on" },
+  { title: "Risk Oracle", section: "Build", href: "/oracle", keywords: "onchain blocklist drainer isBlocked solidity modifier risk" },
+  { title: "Guard for Safe", section: "Build", href: "/guard", keywords: "safe module agent wallet limits spending allowance" },
+  { title: "x402 payments", section: "Build", href: "/x402", keywords: "pay per call usdg facilitator 402 payment required no api key bazaar" },
+  { title: "Agent Passport", section: "Build", href: "/passport", keywords: "erc-8004 identity reputation trust score agent registry" },
   ...GUIDE_INDEX.map((g) => ({ title: g.title, section: "Guides", href: `/guides/${g.slug}`, keywords: g.tag })),
   ...DOCS_FLAT.map((d) => ({ title: d.title, section: `Docs · ${d.section}`, href: d.href })),
   { title: "ElizaOS, LangChain, AI SDK", section: "Docs · Agent frameworks", href: "/docs/frameworks", keywords: "eliza elizaos langchain langgraph vercel ai sdk plugin tools agent-kit" },

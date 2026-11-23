@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { H1, H2, Table } from "@/components/docs/Docs";
-import { ADDRESSES, explorerAddress } from "@/lib/config";
+import { ADDRESSES, ERC8004, explorerAddress } from "@/lib/config";
 
 export const metadata: Metadata = { title: "Contracts", description: "Heimdall contract addresses and roles on Robinhood Chain." };
 
@@ -19,10 +19,14 @@ export default function Page() {
         ["HeimdallPay", "USDG escrow for jobs between agents", link(ADDRESSES.pay)],
         ["HeimdallAutoInvest", "Recurring stock buys from your own wallet", link(ADDRESSES.autoInvest)],
         ["HeimdallStockFeed", "Stock price in USDG: Chainlink stock/USD over USDG/USD", "Published at launch"],
+        ["HeimdallRiskOracle", "Onchain risk levels of known-bad addresses, free to read", link(ADDRESSES.riskOracle)],
+        ["HeimdallGuardModule", "Safe module: agents spend with Shield receipts and daily limits", link(ADDRESSES.guardModule)],
         ["HeimdallStaking", "Stake $HEIM, earn USDG", link(ADDRESSES.staking, withHeim)],
         ["HeimdallFeeSplitter", "Splits protocol fees between stakers and the treasury", link(ADDRESSES.splitter, withHeim)],
         ["HeimdallHolderBalance", "$HEIM held plus staked, for holder benefits", link(ADDRESSES.heimHolder, withHeim)],
         ["$HEIM", "The Heimdall token", link(ADDRESSES.heim, withHeim)],
+        ["ERC-8004 Identity Registry", "Official agent identities (not Heimdall's)", link(ERC8004.identity)],
+        ["ERC-8004 Reputation Registry", "Where Heimdall publishes agent scores (not Heimdall's)", link(ERC8004.reputation)],
         ["USDG (Paxos)", "Settlement currency", link(ADDRESSES.usdg)],
       ]} />
       <p>All Heimdall contracts are verified on Blockscout.</p>
@@ -38,9 +42,14 @@ export default function Page() {
         ["Pay and Auto-Invest owner", "Heimdall multisig", "Set the fee for new jobs and plans (Pay ≤3%, Auto-Invest ≤1%). Existing jobs and plans keep theirs."],
         ["Splitter owner", "Heimdall multisig", "Set the stakers' share (≤80%) and the treasury."],
         ["Staking", "No owner", "Only the splitter can add rewards."],
+        ["Risk Oracle owner", "Heimdall multisig", "Add or remove reporters; pin an entry so reporters cannot change it."],
+        ["Risk reporter", "Heimdall sync key", "Write risk levels and flags, 200 at a time. Nothing else."],
+        ["Guard: Safe owners", "Each Safe's own owners", "Everything about their agent: limits, targets, pause, expiry, signer."],
+        ["Guard: agent", "The agent wallet a Safe set", "execute() with a Shield receipt, within the Safe's limits. Never the Safe or the module."],
+        ["Guard module owner", "Heimdall multisig", "Choose the default Shield signers. Nothing in any Safe."],
       ]} />
       <H2 id="security">Security</H2>
-      <p>Three internal reviews, 112 tests including fuzz and stateful invariant tests, and static analysis. Every finding is fixed and kept as a regression test. There has been no external audit yet. See <Link className="text-brand" href="/security">Security</Link>.</p>
+      <p>Four internal reviews, 140+ tests including fuzz and stateful invariant tests, and static analysis. Every finding is fixed and kept as a regression test. There has been no external audit yet. See <Link className="text-brand" href="/security">Security</Link>.</p>
     </>
   );
 }

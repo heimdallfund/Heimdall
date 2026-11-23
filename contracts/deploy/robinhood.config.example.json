@@ -55,5 +55,6 @@
     "token": "",
     "holderMin": "100000000000000000000000",
     "signalsHolderFeeBps": 500
-  }
+  },
+  "riskReporter": "<SET: hot key of the risk sync job>"
 }

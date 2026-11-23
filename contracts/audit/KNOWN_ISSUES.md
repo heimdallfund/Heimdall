@@ -35,6 +35,17 @@ Not covered by either review above. Findings from a read of the contract and Sli
 
 Both findings are fixed with regression tests (see `SECURITY_REVIEW_3.md`): R3-01, the production build put the deployer over the EIP-170 size limit; R3-02, ERC-4626 views ignored a pending performance fee.
 
+## From internal review 4 (Risk Oracle, Guard module, x402, Passport)
+
+All three findings are fixed with regression tests (see `SECURITY_REVIEW_4.md`): R4-01, a limited token could be moved through calls the guard did not count; R4-02, one x402 payment could pay for many Shield calls; R4-03, the monitor re-sent pinned oracle entries.
+
+| ID | Severity | Issue | Status |
+| --- | --- | --- | --- |
+| R-01 | Info | The Risk Oracle is only as good as Shield's list: a new drainer is flagged after Shield learns about it and the next sync (every 10 minutes by default) | By design; the Safe can `pin` an entry at once |
+| R-02 | Info | A compromised reporter key can mark any unpinned address as blocked (denial of service for integrators that fail closed) or clear entries | Accepted: the Safe replaces the reporter with `setReporter` and pins what matters; integrators choose `failClosed` |
+| R-03 | Info | Guard limits use fixed 24 h windows, so up to twice the daily limit can move around a window boundary | By design, documented; set the limit with that in mind |
+| R-04 | Info | Unlisted tokens are not limited unless the Safe turns on `strictTokens` | By design; the setup builder turns it on by default |
+
 ## Open questions for the auditor
 
 - **Q-1: corporate actions (resolved 2026-11-23).** Robinhood's Chainlink feeds return the price of one *token*: the share price already multiplied by `uiMultiplier()` (ERC-8056). Our contracts use `balance × feed price` and never apply the multiplier again, which is correct. For a split, Robinhood pauses the token's oracle first; `HeimdallStockFeed` reports stale while `oraclePaused()` is true. New guard: it also reports stale when the token's `effectiveAt()` is past and later than the feed's `updatedAt`, so a price computed with the old multiplier is never used. The monitor alerts on scheduled multiplier changes and pauses. Please still check the guard and the window between activation and the next feed update.

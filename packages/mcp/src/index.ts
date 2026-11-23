@@ -5,11 +5,12 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { z } from "zod";
 import {
-  createPublicClient, encodeFunctionData, formatUnits, http, isAddress, isHash, maxUint256, parseAbi,
+  createPublicClient, createWalletClient, encodeFunctionData, formatUnits, http, isAddress, isHash, maxUint256, parseAbi,
   type Address, type Hex, type PublicClient,
 } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import {
+  payX402, readRisk,
   HeimdallShield, HeimdallPay, heimdallSignalsAbi, heimdallVaultAbi, heimdallVaultFactoryAbi, type Job,
   robinhoodChain, robinhoodChainTestnet, USDG, type CheckResult, type SignatureCheckResult,
 } from "@heimdall/sdk";
@@ -23,6 +24,7 @@ export interface Deps {
   signals?: Address;
   factory?: Address;
   pay?: Address;
+  riskOracle?: Address;
   webUrl: string;
 }
 
@@ -206,6 +208,48 @@ export function buildServer(d: Deps) {
     }
   });
 
+  server.registerTool("heimdall_risk", {
+    title: "Risk of an address",
+    description: "Is this address a known drainer, phishing contract, exploiter or honeypot? Returns Heimdall's risk level (none, low, warn, blocked), the reasons, and what the onchain Heimdall Risk Oracle holds. Use before sending to, approving or trusting an address.",
+    inputSchema: { address },
+    annotations: { readOnlyHint: true, openWorldHint: true },
+  }, async ({ address: a }) => {
+    try {
+      const r = await d.shield.risk(a as Address);
+      const onchain = r.onchain ?? (d.riskOracle ? await readRisk(d.client, d.riskOracle, a as Address).then((x) => ({ level: x.level, flags: 0, flagNames: x.flags, updatedAt: x.updatedAt ? new Date(x.updatedAt * 1000).toISOString() : null })).catch(() => null) : null);
+      return text([
+        `${a}: ${r.levelName.toUpperCase()}${r.flagNames.length ? ` (${r.flagNames.join(", ")})` : ""}`,
+        r.label ? `Reason: ${r.label}` : r.level === 0 ? "No risk data: not on Heimdall's lists. That is not a guarantee; check the transaction itself with heimdall_check_transaction." : "",
+        onchain ? `Onchain oracle: level ${onchain.level}${onchain.updatedAt ? `, updated ${onchain.updatedAt}` : ""}` : "",
+        r.blocked ? "Do not send funds to, approve, or sign for this address." : "",
+      ].filter(Boolean).join("\n"));
+    } catch (e) {
+      return fail(`Could not load risk: ${msg(e)}`);
+    }
+  });
+
+  server.registerTool("heimdall_passport", {
+    title: "Agent Passport",
+    description: "Should I trust this agent? Heimdall Score (0-100) and tier for an agent wallet or ERC-8004 agentId, built from its Shield history, Heimdall Pay record and Risk Oracle status, plus its ERC-8004 identity and onchain reputation. Use before paying, hiring or depositing with another agent.",
+    inputSchema: { id: z.string().describe("0x wallet address or ERC-8004 agentId") },
+    annotations: { readOnlyHint: true, openWorldHint: true },
+  }, async ({ id }) => {
+    try {
+      const p = await d.shield.passport((isAddress(id) ? id : BigInt(id)) as Address);
+      const name = p.identity?.registration?.name;
+      return text([
+        `${name ? `${name} · ` : ""}${p.address}${p.agentId !== null ? ` · ERC-8004 agent #${p.agentId}` : ""}`,
+        p.score === null ? "Heimdall Score: not enough history yet (new agent)." : `Heimdall Score: ${p.score}/100 · tier ${p.tier}${p.capped ? ` (capped: ${p.capped})` : ""}`,
+        ...p.components.map((c) => `- ${c.name}: ${c.score}/100 (weight ${c.weight}) · ${c.detail}`),
+        p.risk.blocked ? "BLOCKED: on Heimdall's blocklist. Do not pay or trust this agent." : "",
+        p.reputation?.count ? `Onchain: ${p.reputation.count} Heimdall rating(s) on the ERC-8004 Reputation Registry, average ${p.reputation.average}` : "",
+        `Passport: ${d.webUrl}/agent/${p.address}`,
+      ].filter(Boolean).join("\n"));
+    } catch (e) {
+      return fail(`Could not load passport: ${msg(e)}`);
+    }
+  });
+
   server.registerTool("heimdall_get_verdict", {
     title: "Open a shared verdict",
     description: "Read a verdict that was saved with share:true, by its id (from a heimdall /v/<id> link).",
@@ -374,13 +418,21 @@ export function buildServer(d: Deps) {
 
 export function depsFromEnv(env: NodeJS.ProcessEnv = process.env): Deps {
   const chain = env.HEIMDALL_CHAIN === "testnet" ? robinhoodChainTestnet : robinhoodChain;
+  // Keyless: with HEIMDALL_X402_PRIVATE_KEY the server pays per call in USDG (x402) once the free limit is used,
+  // never more than HEIMDALL_X402_MAX raw units (default 0.005 USDG) per call. The wallet needs USDG only, no ETH.
+  let fetchImpl: typeof fetch | undefined;
+  if (env.HEIMDALL_X402_PRIVATE_KEY) {
+    const wallet = createWalletClient({ account: privateKeyToAccount(env.HEIMDALL_X402_PRIVATE_KEY as Hex), chain, transport: http(env.RPC_URL) });
+    fetchImpl = payX402(fetch, wallet, { maxAmount: BigInt(env.HEIMDALL_X402_MAX ?? "5000") });
+  }
   return {
-    shield: new HeimdallShield({ baseUrl: env.HEIMDALL_API_URL, apiKey: env.HEIMDALL_API_KEY }),
+    shield: new HeimdallShield({ baseUrl: env.HEIMDALL_API_URL, apiKey: env.HEIMDALL_API_KEY, fetch: fetchImpl }),
     client: createPublicClient({ chain, transport: http(env.RPC_URL) }) as PublicClient,
     chainId: chain.id,
     signals: env.HEIMDALL_SIGNALS_ADDRESS as Address | undefined,
     factory: env.HEIMDALL_FACTORY_ADDRESS as Address | undefined,
     pay: env.HEIMDALL_PAY_ADDRESS as Address | undefined,
+    riskOracle: env.HEIMDALL_RISK_ORACLE_ADDRESS as Address | undefined,
     webUrl: (env.HEIMDALL_WEB_URL ?? "https://heimdall.fund").replace(/\/$/, ""),
   };
 }

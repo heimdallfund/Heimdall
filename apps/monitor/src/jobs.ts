@@ -169,3 +169,94 @@ export async function heartbeat(shieldUrl: string, adminKey: string, service: "m
   await fetcher(`${shieldUrl}/v1/admin/heartbeat`, { method: "POST", headers: { "content-type": "application/json", "x-admin-key": adminKey }, body: JSON.stringify({ service, probes, detail }), signal: AbortSignal.timeout(5_000) }).catch(() => {});
   return probes;
 }
+
+// ── Risk Oracle sync ─────────────────────────────────────────────────────────
+const ORACLE = parseAbi([
+  "function levelsOf(address[] accounts) view returns (uint8[] levels, uint32[] flags)",
+  "function report(address[] accounts, uint8[] levels, uint32[] flags)",
+  "function isPinned(address account) view returns (bool)",
+]);
+const RISK_SET = parseAbiItem("event RiskSet(address indexed account, uint8 level, uint32 flags, address indexed by)");
+const BATCH = 200;
+/** Address-filtered getLogs on the public RPC accepts up to 10M blocks per query; stay well under. */
+const LOG_SPAN = 5_000_000n;
+
+export interface RiskChange { address: Address; level: number; flags: number }
+
+/** Every address the oracle has ever touched (so entries Shield dropped get cleared too). */
+export async function oracleAccounts(client: PublicClient, oracle: Address, fromBlock: bigint): Promise<Set<string>> {
+  const latest = await client.getBlockNumber();
+  const out = new Set<string>();
+  for (let from = fromBlock; from <= latest; from += LOG_SPAN) {
+    const to = from + LOG_SPAN - 1n > latest ? latest : from + LOG_SPAN - 1n;
+    const logs = await client.getLogs({ address: oracle, event: RISK_SET, fromBlock: from, toBlock: to });
+    for (const l of logs) if (l.args.account) out.add(l.args.account.toLowerCase());
+  }
+  return out;
+}
+
+/** What has to change onchain: Shield's list versus the oracle, in both directions (new, changed, cleared). */
+export async function riskDiff(client: PublicClient, oracle: Address, desired: RiskChange[], known: Set<string>): Promise<RiskChange[]> {
+  const want = new Map(desired.map((d) => [d.address.toLowerCase(), d]));
+  const all = [...new Set([...want.keys(), ...known])].map((a) => getAddress(a));
+  const changes: RiskChange[] = [];
+  for (let i = 0; i < all.length; i += BATCH) {
+    const chunk = all.slice(i, i + BATCH);
+    const [levels, flags] = await client.readContract({ address: oracle, abi: ORACLE, functionName: "levelsOf", args: [chunk] });
+    chunk.forEach((a, j) => {
+      const w = want.get(a.toLowerCase()) ?? { address: a, level: 0, flags: 0 };
+      if (levels[j] !== w.level || flags[j] !== w.flags) changes.push({ address: a, level: w.level, flags: w.flags });
+    });
+  }
+  // pinned entries are the Safe's decision: the contract skips them, so don't spend gas re-sending them
+  const pinned = await Promise.all(changes.map((c) => client.readContract({ address: oracle, abi: ORACLE, functionName: "isPinned", args: [c.address] })));
+  return changes.filter((_, i) => !pinned[i]);
+}
+
+/** Pull Shield's risk list and write the differences to the oracle in batches. Pinned entries are skipped onchain. */
+export async function riskSync(wallet: WalletClient, client: PublicClient, oracle: Address, shieldUrl: string, fromBlock: bigint, fetcher: typeof fetch = fetch) {
+  const r = await fetcher(`${shieldUrl.replace(/\/$/, "")}/v1/risk`);
+  if (!r.ok) throw new Error(`Shield /v1/risk answered ${r.status}`);
+  const body = (await r.json()) as { entries: { address: string; level: number; flags: number }[] };
+  const desired = body.entries.map((e) => ({ address: getAddress(e.address), level: e.level, flags: e.flags }));
+  const changes = await riskDiff(client, oracle, desired, await oracleAccounts(client, oracle, fromBlock));
+  const txs: string[] = [];
+  for (let i = 0; i < changes.length; i += BATCH) {
+    const c = changes.slice(i, i + BATCH);
+    const hash = await wallet.writeContract({
+      address: oracle, abi: ORACLE, functionName: "report",
+      args: [c.map((x) => x.address), c.map((x) => x.level), c.map((x) => x.flags)],
+      account: wallet.account!, chain: wallet.chain,
+    });
+    await client.waitForTransactionReceipt({ hash });
+    txs.push(hash);
+  }
+  return { listed: desired.length, changed: changes.length, txs };
+}
+
+// ── Agent Passport: Heimdall Score onchain (ERC-8004 Reputation Registry) ─────
+export const ERC8004_REPUTATION: Address = "0x8004BAa17C55a88189AE136b182e5fdA19dE9b63";
+const REPUTATION = parseAbi([
+  "function giveFeedback(uint256 agentId, int128 value, uint8 valueDecimals, string tag1, string tag2, string endpoint, string feedbackURI, bytes32 feedbackHash)",
+]);
+
+/** Ask Shield which linked agents need a new score onchain, publish each as Heimdall's feedback, then confirm to Shield. */
+export async function publishPassports(wallet: WalletClient, client: PublicClient, shieldUrl: string, adminKey: string, reputation: Address = ERC8004_REPUTATION, fetcher: typeof fetch = fetch, webUrl = "https://heimdall.fund") {
+  const base = shieldUrl.replace(/\/$/, "");
+  const r = await fetcher(`${base}/v1/admin/passport/due`, { method: "POST", headers: { "x-admin-key": adminKey } });
+  if (!r.ok) throw new Error(`Shield /v1/admin/passport/due answered ${r.status}`);
+  const { due } = (await r.json()) as { due: { address: Address; agentId: string; score: number; tier: string; feedbackURI: string; feedbackHash: `0x${string}` }[] };
+  const done: { agentId: string; score: number; tx: string }[] = [];
+  for (const d of due) {
+    const hash = await wallet.writeContract({
+      address: reputation, abi: REPUTATION, functionName: "giveFeedback",
+      args: [BigInt(d.agentId), BigInt(d.score), 0, "heimdall", d.tier, `${webUrl}/agent/${d.address}`, d.feedbackURI, d.feedbackHash],
+      account: wallet.account!, chain: wallet.chain,
+    });
+    const rc = await client.waitForTransactionReceipt({ hash });
+    if (rc.status !== "success") continue;
+    await fetcher(`${base}/v1/admin/passport/published`, { method: "POST", headers: { "x-admin-key": adminKey, "content-type": "application/json" }, body: JSON.stringify({ address: d.address, score: d.score, tx: hash }) });
+    done.push({ agentId: d.agentId, score: d.score, tx: hash });
+  }
+  return { due: due.length, published: done };
+}

@@ -6,13 +6,20 @@ import { runWatch, subscribe, unsubscribe, validSubscription, webPushSender } fr
 import { bindReferral, claimAction, earlyStatus, growthStats, ipKey, referralStats, registerEarly } from "./growth.js";
 import { analytics, loadSeasons, logDecision, recentDecisions, saveSeasons, trackEvent, validateSeasons } from "./admin.js";
 import { addCommunityBlock, communityEntries, removeCommunityBlock } from "./blocklist.js";
+import { decodeHeader, discovery, encodeHeader, normalizePayload, paymentRequired, rememberResource, requirementsFor, ROBINHOOD_USDG, settlePayment, verifyPayment, type DiscoveryItem, type PaymentPayload, type PaymentRequirements } from "./x402.js";
+import { createWalletClient, custom, type WalletClient } from "viem";
+import { privateKeyToAccount } from "viem/accounts";
+import { robinhoodMainnet } from "./chains.js";
+import { isBlocklisted } from "./blocklist.js";
+import { feedbackFile, feedbackHash, linkedAddress, linkedAgentId, linkIdentity, onchainReputation, payRecord, readIdentity, scorePassport, type Identity } from "./passport.js";
+import { describe as describeRisk, flagNames, LEVEL_NAME, readOracle, riskList, type RiskEntry } from "./risk.js";
 import { applyDepositSnapshot, claimRevoke, countCheck, decideReport, leaderboard, listReports, rememberFlagged, RULES, submitReport, walletPoints } from "./points.js";
 import { createHash, timingSafeEqual } from "node:crypto";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { bodyLimit } from "hono/body-limit";
 import { serve } from "@hono/node-server";
-import { createPublicClient, fallback, http, isAddress, isHex, keccak256, toHex, type PublicClient } from "viem";
+import { createPublicClient, fallback, getAddress, http, isAddress, isHex, keccak256, toHex, type PublicClient } from "viem";
 import { z } from "zod";
 import { SUPPORTED_CHAINS, type SupportedChainId } from "./chains.js";
 import { PolicySchema } from "./policy.js";
@@ -110,7 +117,7 @@ export interface AppOptions {
   lookupKey?: (apiKey: string) => Promise<string | null>;
 }
 
-type Vars = { Variables: { caller: Caller } };
+type Vars = { Variables: { caller: Caller; paid: boolean } };
 
 export function buildApp(opts: AppOptions = {}) {
   const env = opts.env ?? process.env;
@@ -129,7 +136,7 @@ export function buildApp(opts: AppOptions = {}) {
   }
 
   const app = new Hono<Vars>();
-  app.use("*", cors({ origin: origins.includes("*") ? "*" : origins, allowHeaders: ["content-type", "authorization", "x-api-key", "x-admin-key"], maxAge: 600 }));
+  app.use("*", cors({ origin: origins.includes("*") ? "*" : origins, allowHeaders: ["content-type", "authorization", "x-api-key", "x-admin-key", "payment-signature", "x-payment"], exposeHeaders: ["payment-required", "payment-response", "x-payment-response", "x-ratelimit-remaining", "x-heimdall-quota-remaining"], maxAge: 600 }));
   app.use("*", async (c, next) => {
     const t = Date.now();
     await next();
@@ -156,20 +163,89 @@ export function buildApp(opts: AppOptions = {}) {
     return c.json({ signer: s.address, kind: s.kind, domain: receiptDomain(4663), types: RECEIPT_TYPES });
   });
 
-  /** API key → per-minute rate limit → (after validation) free daily quota per wallet. */
-  async function admit(c: any): Promise<Response | null> {
+  // ── x402: pay per call in USDG instead of an API key ──────────────────────────
+  const X402_ON = !!(env.X402_PAY_TO && isAddress(env.X402_PAY_TO) && env.X402_FACILITATOR_KEY);
+  /** USDG on Robinhood Chain. X402_ASSET overrides the token for local tests only. */
+  const NET = env.X402_ASSET && isAddress(env.X402_ASSET) ? { ...ROBINHOOD_USDG, asset: env.X402_ASSET as `0x${string}` } : ROBINHOOD_USDG;
+  const PRICE = {
+    check: BigInt(env.X402_PRICE_CHECK ?? "1000"), // 0.001 USDG
+    wallet: BigInt(env.X402_PRICE_WALLET ?? "2000"), // 0.002 USDG
+  };
+  const publicApi = (env.SHIELD_PUBLIC_URL ?? "https://api.heimdall.fund").replace(/\/$/, "");
+  let facilitator: WalletClient | null = null;
+  const facilitatorWallet = () => {
+    if (!env.X402_FACILITATOR_KEY) return null;
+    facilitator ??= createWalletClient({
+      account: privateKeyToAccount(env.X402_FACILITATOR_KEY as `0x${string}`),
+      chain: robinhoodMainnet,
+      transport: custom({ request: (args) => getClient(4663).request(args as never) }),
+    });
+    return facilitator;
+  };
+  /** Heimdall's own check before any payment is settled: never pay a blocked address. */
+  const recipientBlocked = async (a: string) => isBlocklisted(a) || (await riskEntries()).some((e) => e.level >= 3 && e.address.toLowerCase() === a.toLowerCase());
+  const ownRequirements = (price: bigint) => requirementsFor(NET, price, env.X402_PAY_TO as `0x${string}`);
+  const RESOURCES: Record<string, { description: string; price: () => bigint; method: string }> = {
+    "/v1/check": { description: "Heimdall Shield: simulate and judge a transaction before an agent signs it (ALLOW / WARN / DENY + EIP-712 receipt)", price: () => PRICE.check, method: "POST" },
+    "/v1/check-signature": { description: "Heimdall Shield: judge an EIP-712 or personal_sign request (Permit, Permit2, orders) before signing", price: () => PRICE.check, method: "POST" },
+    "/v1/wallet": { description: "Heimdall Wallet Check: every live token approval of a Robinhood Chain wallet, ranked by risk", price: () => PRICE.wallet, method: "GET" },
+  };
+  const resourceInfo = (path: string) => {
+    const key = Object.keys(RESOURCES).find((k) => path === k || path.startsWith(`${k}/`)) ?? path;
+    return { url: `${publicApi}${path}`, description: RESOURCES[key]?.description, mimeType: "application/json", serviceName: "Heimdall Shield", tags: ["security", "ai-agents", "robinhood-chain"] };
+  };
+  /** 402 with the PAYMENT-REQUIRED header (x402 v2) and the same object in the body. */
+  function paymentRequiredResponse(c: any, price: bigint, error: string, message: string) {
+    const pr = paymentRequired(resourceInfo(c.req.path), [ownRequirements(price)], error);
+    c.header("PAYMENT-REQUIRED", encodeHeader(pr));
+    return c.json({ ...pr, message }, 402);
+  }
+  /** A PAYMENT-SIGNATURE (or v1 X-PAYMENT) header: settle it, then serve the request as a paid call. */
+  async function payWithX402(c: any, price: bigint): Promise<Response | "paid" | null> {
+    const raw = c.req.header("payment-signature") ?? c.req.header("x-payment");
+    const wallet = facilitatorWallet();
+    if (!raw || !X402_ON || !wallet) return null;
+    const req = ownRequirements(price);
+    const p = normalizePayload(decodeHeader(raw), req, NET);
+    if (!p) return paymentRequiredResponse(c, price, "invalid_payload", "The payment header could not be read.");
+    // one payment buys one call: a replayed PAYMENT-SIGNATURE is refused even though settlement itself is idempotent
+    const used = `x402:consumed:${String(p.payload.authorization.from).toLowerCase()}:${p.payload.authorization.nonce}`;
+    // atomic claim first, so two concurrent requests with the same payment cannot both be served
+    if ((await store.incr(used, 30 * 86_400)) > 1) return paymentRequiredResponse(c, price, "payment_already_used", "This payment was already used for a call. Sign a new one.");
+    const r = await settlePayment(wallet, getClient(4663), p, req, { net: NET, store, recipientBlocked, minAmount: price });
+    if (!r.success) {
+      await store.remove(used).catch(() => {}); // nothing was paid: the agent may fix it and retry
+      return paymentRequiredResponse(c, price, r.errorReason ?? "payment_failed", "The payment was not accepted.");
+    }
+    await store.incr("x402:own:calls", 400 * 86_400).catch(() => 0);
+    c.set("caller", { id: `x402:${r.payer?.toLowerCase()}`, plan: "pro" } satisfies Caller);
+    c.set("paid", true);
+    c.header("PAYMENT-RESPONSE", encodeHeader(r));
+    return "paid";
+  }
+
+  /** API key → per-minute rate limit → (after validation) free daily quota per wallet. A paid x402 call skips both. */
+  async function admit(c: any, price?: bigint): Promise<Response | null> {
+    if (price !== undefined) {
+      const paid = await payWithX402(c, price);
+      if (paid === "paid") return null;
+      if (paid) return paid;
+    }
     const auth = c.req.header("authorization");
     const apiKey = auth?.startsWith("Bearer ") ? auth.slice(7).trim() : c.req.header("x-api-key") ?? undefined;
     const ip = c.req.header("x-forwarded-for")?.split(",")[0]?.trim() || c.req.header("x-real-ip") || "unknown";
     const caller = await resolveCaller(apiKey, ip);
     if (!caller) return c.json({ error: "invalid_api_key" }, 401);
-    if (caller.plan === "free" && limits.requireKey) return c.json({ error: "api_key_required" }, 401);
+    if (caller.plan === "free" && limits.requireKey) {
+      return X402_ON && price !== undefined ? paymentRequiredResponse(c, price, "api_key_required", "Use an API key, or pay per call with x402 (USDG on Robinhood Chain).") : c.json({ error: "api_key_required" }, 401);
+    }
     c.set("caller", caller);
     const rate = await checkRate(store, limits, caller);
     c.header("x-ratelimit-limit", String(rate.limit));
     c.header("x-ratelimit-remaining", String(rate.remaining));
     if (!rate.ok) {
       c.header("retry-after", String(rate.retryAfter ?? 60));
+      if (X402_ON && price !== undefined && caller.plan === "free") return paymentRequiredResponse(c, price, "rate_limited", "Free limit reached. Pay per call with x402 (USDG on Robinhood Chain), or use an API key.");
       return c.json({ error: "rate_limited", message: "Too many checks this minute. Use an API key for higher limits." }, 429);
     }
     return null;
@@ -190,13 +266,17 @@ export function buildApp(opts: AppOptions = {}) {
     return BigInt(bal) >= BigInt(env.HEIM_HOLDER_MIN ?? "100000000000000000000000") ? Number(env.HEIM_QUOTA_MULTIPLIER ?? 5) : 1;
   }
 
-  async function quota(c: any, wallet: string): Promise<Response | null> {
+  async function quota(c: any, wallet: string, price?: bigint): Promise<Response | null> {
+    if (c.get("paid")) return null;
     const caller = c.get("caller") as Caller;
     const mult = caller.plan === "free" ? await holderMultiplier(wallet) : 1;
     if (mult > 1) c.header("x-heimdall-holder", "true");
     const q = await checkDailyQuota(store, limits, caller, wallet, Date.now(), mult);
     if (Number.isFinite(q.remaining)) c.header("x-heimdall-quota-remaining", String(q.remaining));
-    if (!q.ok) return c.json({ error: "daily_quota_exceeded", message: `Free plan: ${q.limit} checks per wallet per day. Use an API key to continue.` }, 429);
+    if (!q.ok) {
+      if (X402_ON && price !== undefined && caller.plan === "free") return paymentRequiredResponse(c, price, "daily_quota_exceeded", `Free plan: ${q.limit} checks per wallet per day. Pay per call with x402 (USDG), or use an API key.`);
+      return c.json({ error: "daily_quota_exceeded", message: `Free plan: ${q.limit} checks per wallet per day. Use an API key to continue.` }, 429);
+    }
     return null;
   }
 
@@ -213,12 +293,13 @@ export function buildApp(opts: AppOptions = {}) {
   }
 
   app.post("/v1/check-signature", limitBody, async (c) => {
-    const denied = await admit(c);
-    if (denied) return denied;
+    // validate before admitting, so a paid (x402) call is never charged for a malformed request
     const parsed = SignatureBody.safeParse(await c.req.json().catch(() => ({})));
     if (!parsed.success) return c.json({ error: "invalid_request", issues: parsed.error.issues }, 400);
+    const denied = await admit(c, PRICE.check);
+    if (denied) return denied;
     const b = parsed.data;
-    const over = await quota(c, b.signer);
+    const over = await quota(c, b.signer, PRICE.check);
     if (over) return over;
     const policy = PolicySchema.parse(b.policy ?? {});
     try {
@@ -240,14 +321,13 @@ export function buildApp(opts: AppOptions = {}) {
   });
 
   app.post("/v1/check", limitBody, async (c) => {
-    const denied = await admit(c);
-    if (denied) return denied;
-
-    // validate
+    // validate before admitting, so a paid (x402) call is never charged for a malformed request
     const parsed = CheckBody.safeParse(await c.req.json().catch(() => ({})));
     if (!parsed.success) return c.json({ error: "invalid_request", issues: parsed.error.issues }, 400);
+    const denied = await admit(c, PRICE.check);
+    if (denied) return denied;
     const b = parsed.data;
-    const over = await quota(c, b.from);
+    const over = await quota(c, b.from, PRICE.check);
     if (over) return over;
 
     // 5. check
@@ -304,6 +384,189 @@ export function buildApp(opts: AppOptions = {}) {
     return c.json(await memo("threats", 60, () => threats(store)));
   });
 
+  // ── Risk Oracle ─────────────────────────────────────────────────────────────
+  const riskEntries = () => memo<RiskEntry[]>("risklist", 60, async () => {
+    const board = await memo("threats", 60, () => threats(store));
+    return riskList(board.targets);
+  });
+
+  /** Everything the onchain Risk Oracle should hold; the monitor's riskSync job writes it. Public, like the Threat Board. */
+  app.get("/v1/risk", async (c) => {
+    c.header("cache-control", "public, max-age=30, s-maxage=60");
+    const list = await riskEntries();
+    return c.json({
+      chainId: 4663,
+      oracle: env.RISK_ORACLE_ADDRESS ?? null,
+      count: list.length,
+      entries: list.map((e) => ({ ...e, levelName: LEVEL_NAME[e.level], flagNames: flagNames(e.flags) })),
+    });
+  });
+
+  app.get("/v1/risk/:address", async (c) => {
+    const a = c.req.param("address");
+    if (!isAddress(a)) return c.json({ error: "invalid_address" }, 400);
+    const list = await riskEntries();
+    const entry = list.find((e) => e.address.toLowerCase() === a.toLowerCase());
+    const onchain = await readOracle(getClient(4663), env.RISK_ORACLE_ADDRESS, a as `0x${string}`);
+    c.header("cache-control", "public, max-age=30");
+    return c.json({ ...describeRisk(entry, a as `0x${string}`), oracle: env.RISK_ORACLE_ADDRESS ?? null, onchain });
+  });
+
+  // ── x402 facilitator (any x402 server on Robinhood Chain) ───────────────────
+  const facilitatorBody = z.object({ x402Version: z.number().optional(), paymentPayload: z.unknown(), paymentRequirements: z.object({
+    scheme: z.literal("exact"), network: z.string(), amount: z.string().optional(), maxAmountRequired: z.string().optional(),
+    asset: z.string(), payTo: z.string(), maxTimeoutSeconds: z.number().default(60), extra: z.record(z.string(), z.unknown()).optional(),
+  }).passthrough() });
+  const toRequirements = (r: z.infer<typeof facilitatorBody>["paymentRequirements"]): PaymentRequirements | null => {
+    const amount = r.amount ?? r.maxAmountRequired;
+    if (!amount || !isAddress(r.asset) || !isAddress(r.payTo)) return null;
+    const network = r.network === NET.legacyNetwork ? NET.network : r.network;
+    return { scheme: "exact", network, amount, asset: r.asset, payTo: r.payTo, maxTimeoutSeconds: r.maxTimeoutSeconds, extra: r.extra };
+  };
+  const minSettle = BigInt(env.X402_MIN_SETTLE ?? "1000");
+
+  app.get("/x402/supported", (c) => {
+    const w = facilitatorWallet();
+    if (!w) return c.json({ error: "not_configured", message: "The facilitator goes live with the mainnet launch." }, 503);
+    return c.json({
+      kinds: [
+        { x402Version: 2, scheme: "exact", network: NET.network, extra: { asset: NET.asset, name: NET.name, version: NET.version } },
+        { x402Version: 1, scheme: "exact", network: NET.legacyNetwork },
+      ],
+      extensions: ["bazaar", "heimdall-recipient-check"],
+      signers: { "eip155:*": [w.account!.address] },
+    });
+  });
+
+  app.post("/x402/verify", limitBody, async (c) => {
+    const parsed = facilitatorBody.safeParse(await c.req.json().catch(() => ({})));
+    if (!parsed.success) return c.json({ isValid: false, invalidReason: "invalid_payload" }, 400);
+    const req = toRequirements(parsed.data.paymentRequirements);
+    const p = req && normalizePayload(parsed.data.paymentPayload, req, NET);
+    if (!req || !p) return c.json({ isValid: false, invalidReason: "invalid_payload" }, 400);
+    return c.json(await verifyPayment(getClient(4663), p, req, { net: NET, recipientBlocked, minAmount: minSettle }));
+  });
+
+  app.post("/x402/settle", limitBody, async (c) => {
+    const w = facilitatorWallet();
+    if (!w) return c.json({ success: false, errorReason: "not_configured", transaction: "", network: NET.network }, 503);
+    // settling costs gas: a per-IP limit stops anyone from making the facilitator burn it
+    const ip = c.req.header("x-forwarded-for")?.split(",")[0]?.trim() || c.req.header("x-real-ip") || "unknown";
+    const rate = await checkRate(store, { ...limits, freePerMinute: Number(env.X402_SETTLE_RPM ?? 120) }, { id: `x402settle:${ip}`, plan: "free" } as Caller);
+    if (!rate.ok) return c.json({ success: false, errorReason: "rate_limited", transaction: "", network: NET.network }, 429);
+    const parsed = facilitatorBody.safeParse(await c.req.json().catch(() => ({})));
+    if (!parsed.success) return c.json({ success: false, errorReason: "invalid_payload", transaction: "", network: NET.network }, 400);
+    const req = toRequirements(parsed.data.paymentRequirements);
+    const p = req && normalizePayload(parsed.data.paymentPayload, req, NET);
+    if (!req || !p) return c.json({ success: false, errorReason: "invalid_payload", transaction: "", network: NET.network }, 400);
+    const r = await settlePayment(w, getClient(4663), p, req, {
+      net: NET, store, recipientBlocked, minAmount: minSettle,
+      onSettled: async (res, payload) => {
+        await Promise.all([store.incr("x402:settled", 400 * 86_400), store.incr("x402:volume", 400 * 86_400, Number(res.amount ?? 0)), rememberResource(store, payload, req)]).catch(() => {});
+      },
+    });
+    return c.json(r, r.success ? 200 : 400);
+  });
+
+  const ownDiscovery = (): DiscoveryItem[] => X402_ON ? Object.entries(RESOURCES).map(([path, r]) => ({
+    resource: `${publicApi}${path}${path === "/v1/wallet" ? "/{address}" : ""}`, type: "http", x402Version: 2, accepts: [ownRequirements(r.price())],
+    lastUpdated: new Date().toISOString(), metadata: { description: r.description, method: r.method, mimeType: "application/json", serviceName: "Heimdall Shield" },
+  })) : [];
+  const discoveryRoute = async (c: any) => {
+    c.header("cache-control", "public, max-age=60");
+    return c.json(await discovery(store, ownDiscovery(), { limit: Number(c.req.query("limit") ?? 20), offset: Number(c.req.query("offset") ?? 0), payTo: c.req.query("payTo") ?? undefined }));
+  };
+  app.get("/x402/discovery/resources", discoveryRoute);
+  app.get("/discovery/resources", discoveryRoute);
+
+  app.get("/x402/stats", async (c) => {
+    const [settled, volume, ownCalls] = await Promise.all([store.get("x402:settled"), store.get("x402:volume"), store.get("x402:own:calls")]);
+    return c.json({ enabled: X402_ON, network: NET.network, asset: NET.asset, settled, volumeUsdg: volume / 1e6, paidShieldCalls: ownCalls, prices: { check: String(PRICE.check), wallet: String(PRICE.wallet) } });
+  });
+
+  // ── Agent Passport (Heimdall Score + ERC-8004) ─────────────────────────────
+  /** Official ERC-8004 registries on Robinhood Chain; ERC8004_* override them for local tests only. */
+  const IDENTITY = (env.ERC8004_IDENTITY && isAddress(env.ERC8004_IDENTITY) ? env.ERC8004_IDENTITY : undefined) as `0x${string}` | undefined;
+  const REPUTATION = (env.ERC8004_REPUTATION && isAddress(env.ERC8004_REPUTATION) ? env.ERC8004_REPUTATION : undefined) as `0x${string}` | undefined;
+  async function passport(address: `0x${string}`, agentIdHint?: bigint | null) {
+    const client = getClient(4663);
+    const a = address.toLowerCase();
+    const linked = await linkedAgentId(store, a);
+    const agentId = linked ?? agentIdHint ?? null;
+    const [shield, pay, txCount, list, identity] = await Promise.all([
+      agentStats(store, a),
+      payRecord(client, env.HEIMDALL_PAY_ADDRESS, address),
+      client.getTransactionCount({ address }).catch(() => null),
+      riskEntries(),
+      agentId !== null ? readIdentity(client, agentId, fetch, IDENTITY) : Promise.resolve(null as Identity | null),
+    ]);
+    // an unlinked hint only counts when the chain says this address owns or operates that agent
+    const verified = identity && (linked !== null || identity.owner.toLowerCase() === a || identity.wallet?.toLowerCase() === a) ? identity : null;
+    const risk = list.find((e) => e.address.toLowerCase() === a);
+    const s = scorePassport({ shield, pay, riskLevel: risk?.level ?? 0, txCount });
+    const reputation = verified ? await onchainReputation(client, BigInt(verified.agentId), env.PASSPORT_PUBLISHER_ADDRESS, REPUTATION) : null;
+    return {
+      address, agentId: verified?.agentId ?? null, identity: verified, linked: linked !== null,
+      ...s,
+      shield, pay, risk: describeRisk(risk, address), txCount, reputation,
+      publisher: env.PASSPORT_PUBLISHER_ADDRESS ?? null,
+      updatedAt: new Date().toISOString(),
+    };
+  }
+
+  /** Passport by address, or by ERC-8004 agentId (number). */
+  app.get("/v1/passport/:id", async (c) => {
+    const id = c.req.param("id");
+    let address: `0x${string}` | null = null;
+    let hint: bigint | null = null;
+    if (isAddress(id)) {
+      address = id as `0x${string}`;
+      const q = c.req.query("agentId");
+      if (q && /^\d{1,30}$/.test(q)) hint = BigInt(q);
+    } else if (/^\d{1,30}$/.test(id)) {
+      hint = BigInt(id);
+      address = (await linkedAddress(store, hint)) ?? null;
+      if (!address) {
+        const ident = await readIdentity(getClient(4663), hint, fetch, IDENTITY);
+        if (!ident) return c.json({ error: "agent_not_found" }, 404);
+        address = (ident.wallet ?? ident.owner) as `0x${string}`;
+      }
+    } else return c.json({ error: "invalid_id", message: "Use a 0x address or an ERC-8004 agentId." }, 400);
+    c.header("cache-control", "public, max-age=60");
+    return c.json(await memo(`passport:${address.toLowerCase()}:${hint ?? ""}`, 120, () => passport(address!, hint)));
+  });
+
+  /** Link an ERC-8004 agentId to a wallet. Anyone may ask; it only succeeds when the chain confirms ownership. */
+  app.post("/v1/passport/link", limitBody, async (c) => {
+    const b = z.object({ address: addr, agentId: z.union([z.string().regex(/^\d{1,30}$/), z.number().int().nonnegative()]) }).safeParse(await c.req.json().catch(() => ({})));
+    if (!b.success) return c.json({ error: "invalid_request", issues: b.error.issues }, 400);
+    const r = await linkIdentity(store, getClient(4663), b.data.address as `0x${string}`, BigInt(b.data.agentId), IDENTITY);
+    if (!r.ok) return c.json({ error: r.reason }, r.reason === "agent_not_found" ? 404 : 403);
+    await store.remove(`memo:passport:${b.data.address.toLowerCase()}:`).catch(() => {});
+    return c.json({ ok: true, agentId: r.identity.agentId, identity: r.identity });
+  });
+
+  /** Directory of linked agents, best first. */
+  app.get("/v1/passport", async (c) => {
+    c.header("cache-control", "public, max-age=60");
+    return c.json(await memo("passport:directory", 300, async () => {
+      const linked = (await store.members("passport:linked")).slice(0, 200);
+      const rows = await Promise.all(linked.map(async (a) => {
+        const p = await passport(getAddress(a)).catch(() => null);
+        return p && { address: p.address, agentId: p.agentId, name: p.identity?.registration?.name ?? null, score: p.score, tier: p.tier };
+      }));
+      return rows.filter((r): r is NonNullable<typeof r> => !!r).sort((x, y) => (y.score ?? -1) - (x.score ?? -1));
+    }));
+  });
+
+  /** ERC-8004 feedback files Heimdall published, at a stable URL (feedbackURI onchain points here). */
+  app.get("/v1/passport/feedback/:hash", async (c) => {
+    const f = await store.fetch(`passport:feedback:${c.req.param("hash").toLowerCase()}`).catch(() => null);
+    if (!f) return c.json({ error: "not_found" }, 404);
+    c.header("cache-control", "public, max-age=31536000, immutable");
+    return c.body(f, 200, { "content-type": "application/json" });
+  });
+
   app.get("/v1/agents/:address", async (c) => {
     const a = c.req.param("address");
     if (!isAddress(a)) return c.json({ error: "invalid_address" }, 400);
@@ -315,7 +578,7 @@ export function buildApp(opts: AppOptions = {}) {
   app.get("/v1/wallet/:address", async (c) => {
     const a = c.req.param("address");
     if (!isAddress(a)) return c.json({ error: "invalid_address" }, 400);
-    const blocked = await admit(c);
+    const blocked = await admit(c, PRICE.wallet);
     if (blocked) return blocked;
     const cacheKey = `walletcache:${a.toLowerCase()}`;
     const fresh = c.req.query("refresh") === "1";
@@ -528,6 +791,32 @@ export function buildApp(opts: AppOptions = {}) {
     return c.json(r, r.ok ? 200 : 400);
   }));
   app.get("/v1/admin/growth", admin(async (c) => c.json(await growthStats(store, Math.min(60, Number(c.req.query("days") ?? 14))))));
+  /** Monitor: which linked agents need a new score onchain (changed by 5+ points, or 7 days old). Stores their feedback files. */
+  app.post("/v1/admin/passport/due", admin(async (c) => {
+    const publisher = env.PASSPORT_PUBLISHER_ADDRESS;
+    if (!publisher || !isAddress(publisher)) return c.json({ error: "not_configured", message: "Set PASSPORT_PUBLISHER_ADDRESS" }, 503);
+    const linked = (await store.members("passport:linked")).slice(0, 200);
+    const due: { address: string; agentId: string; score: number; tier: string; feedbackURI: string; feedbackHash: string }[] = [];
+    for (const a of linked) {
+      const p = await passport(getAddress(a)).catch(() => null);
+      if (!p?.agentId || p.score === null) continue;
+      const last = JSON.parse((await store.fetch(`passport:last:${a}`).catch(() => null)) ?? "null") as { score: number; at: number } | null;
+      if (last && Math.abs(last.score - p.score) < 5 && Date.now() - last.at < 7 * 86_400_000) continue;
+      const file = feedbackFile({ agentId: p.agentId, publisher: getAddress(publisher), chainId: 4663, score: p.score, tier: p.tier, address: p.address, components: p.components });
+      const hash = feedbackHash(file);
+      await store.put(`passport:feedback:${hash.toLowerCase()}`, JSON.stringify(file));
+      due.push({ address: p.address, agentId: p.agentId, score: p.score, tier: p.tier, feedbackURI: `${publicApi}/v1/passport/feedback/${hash}`, feedbackHash: hash });
+    }
+    return c.json({ due });
+  }));
+
+  app.post("/v1/admin/passport/published", admin(async (c) => {
+    const b = z.object({ address: addr, score: z.number().int().min(0).max(100), tx: z.string() }).safeParse(await c.req.json().catch(() => ({})));
+    if (!b.success) return c.json({ error: "invalid_request" }, 400);
+    await store.put(`passport:last:${b.data.address.toLowerCase()}`, JSON.stringify({ score: b.data.score, at: Date.now(), tx: b.data.tx }));
+    return c.json({ ok: true });
+  }));
+
   app.get("/v1/admin/analytics", admin(async (c) => c.json(await analytics(store, Number(c.req.query("days") ?? 14)))));
 
   // ── Privacy-friendly analytics: an allowlisted event name and a path with ids stripped; nothing about the visitor.

@@ -22,6 +22,13 @@
 * [Signals](products/signals.md)
 * [Reference agent](products/agent.md)
 
+## Integrate
+
+* [Risk Oracle](integrate/risk-oracle.md)
+* [Guard for Safe](integrate/guard.md)
+* [x402 payments](integrate/x402.md)
+* [Agent Passport](integrate/passport.md)
+
 ## Build
 
 * [TypeScript SDK](build/sdk.md)

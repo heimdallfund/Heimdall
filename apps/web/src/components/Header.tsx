@@ -15,7 +15,7 @@ const LINKS: { href: string; label: string; match: string[] }[] = [
   { href: "/signals", label: "Signals", match: ["/signals"] },
   { href: "/pay", label: "Pay", match: ["/pay"] },
   { href: "/arena", label: "Arena", match: ["/arena"] },
-  { href: "/threats", label: "Threats", match: ["/threats", "/v"] },
+  { href: "/integrate", label: "Integrate", match: ["/integrate", "/oracle", "/guard", "/x402", "/passport"] },
   { href: "/docs", label: "Docs", match: ["/docs"] },
 ];
 

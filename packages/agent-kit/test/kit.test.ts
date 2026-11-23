@@ -48,7 +48,7 @@ function fakeWallet() {
 describe("core tools", () => {
   it("exposes read-only tools by default and adds safe_send only with a wallet", () => {
     const { shield } = fakeShield();
-    expect(heimdallTools({ shield }).map((t) => t.name)).toEqual(["heimdall_check_transaction", "heimdall_check_signature", "heimdall_wallet_check", "heimdall_agent_reputation", "heimdall_threats"]);
+    expect(heimdallTools({ shield }).map((t) => t.name)).toEqual(["heimdall_check_transaction", "heimdall_check_signature", "heimdall_wallet_check", "heimdall_agent_reputation", "heimdall_passport", "heimdall_risk", "heimdall_threats"]);
     const withWallet = heimdallTools({ shield, wallet: fakeWallet() });
     expect(withWallet.find((t) => t.name === "heimdall_safe_send")?.sendsFunds).toBe(true);
     expect(heimdallTools({ shield, only: ["heimdall_threats"] })).toHaveLength(1);

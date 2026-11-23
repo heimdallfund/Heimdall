@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SnippetCopy } from "./SnippetCopy";
 import { Reveal } from "./Reveal";
 import { IconTile, type IconName } from "./Icons";
 
@@ -50,6 +51,30 @@ export function CtaBand({ title, text, primary, secondary }: { title: string; te
           {secondary && <Link href={secondary[0]} className="btn btn-secondary">{secondary[1]}</Link>}
         </div>
       </div>
+    </Reveal>
+  );
+}
+
+/** Dark code card with a label and copy button, for product pages. */
+export function Snippet({ label, code }: { label: string; code: string }) {
+  return (
+    <div className="min-w-0 border border-ink bg-ink text-paper shadow-[6px_6px_0_var(--color-brand)]">
+      <div className="flex items-center justify-between border-b border-paper/15 px-4 py-2">
+        <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-paper/70">{label}</span>
+        <SnippetCopy text={code} />
+      </div>
+      <pre className="overflow-x-auto px-5 py-4 font-mono text-[13px] leading-[1.7] text-paper/90">{code}</pre>
+    </div>
+  );
+}
+
+/** A labelled section header in the house style: mono kicker + display title. */
+export function SectionHead({ kicker, title, lead }: { kicker: string; title: string; lead?: string }) {
+  return (
+    <Reveal>
+      <span className="font-mono text-[12px] font-semibold tracking-[0.12em] text-muted">{kicker.toUpperCase()} <span className="text-brand">//</span></span>
+      <h2 className="display mt-3 text-[44px] md:text-[56px]">{title}</h2>
+      {lead && <p className="mt-3 max-w-[680px] text-[16.5px] leading-relaxed text-muted">{lead}</p>}
     </Reveal>
   );
 }
