@@ -226,7 +226,7 @@ export default function Home() {
 
       {/* 06 SECURITY + THREATS */}
       <section aria-labelledby="review" className="mx-auto max-w-[1280px] px-6 py-24">
-        <SectionHead n="07" kicker="SECURITY" id="review" title={<>Reviewed before<br />a single deposit.</>}>Four reviews of every contract found 3 serious and 8 medium issues before launch. All are fixed and kept as regression tests next to fuzzing and stateful invariant tests, and a bug bounty pays up to 10,000 USDG.</SectionHead>
+        <SectionHead n="07" kicker="SECURITY" id="review" title={<>Reviewed before<br />a single deposit.</>}>Four reviews of every contract found 3 serious and 8 medium issues before launch. All are fixed and kept as regression tests next to fuzzing and stateful invariant tests. An independent audit comes next.</SectionHead>
         <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
           <dl className="grid grid-cols-2 border-l border-t border-ink bg-panel">
             {[["11 / 11", "Serious & medium fixed"], ["143", "Contract tests"], ["29", "Fuzz & invariant properties"], ["10,000", "USDG cap per vault"]].map(([v, l]) => (

@@ -2,7 +2,7 @@
 
 * [Build with Heimdall](README.md)
 * [API keys & limits](limits.md)
-* [Security and bug bounty](security.md)
+* [Security](security.md)
 
 ## Shield
 
