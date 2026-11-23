@@ -6,10 +6,11 @@ export const PHASES: Phase[] = [
   {
     id: "before", title: "Before the day", when: "Days ahead",
     steps: [
+      { id: "domain", title: "Register heimdall.fund", detail: "Not registered yet (checked 2026-11-24). The site, api.heimdall.fund, security@ and hello@ email, and the MCP Registry DNS proof all depend on it." },
       { id: "audit-report", title: "Independent audit report in, every fix reviewed", detail: "The auditor's fix review covers the exact commit you will deploy. Note that commit." },
       { id: "safe-ready", title: "Admin Safe ready on Robinhood Chain", detail: "Safe 1.4.1 with every signer added and a test transaction signed by the threshold." },
       { id: "kms-signer", title: "Shield signer key in AWS KMS", detail: "secp256k1 key (ECC_SECG_P256K1). Its address becomes shieldSigner in the deploy config." },
-      { id: "upstash", title: "Upstash Redis for the Shield API", detail: "Set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN on the heimdall-shield Vercel project." },
+      { id: "upstash", title: "Upstash Redis for the Shield API", detail: "Vercel → Storage → Create → Upstash Redis, connected to heimdall-shield and heimdall-monitor. It adds UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN to both." },
       { id: "rpc", title: "Paid RPC and a backup", detail: "Alchemy plus a second provider: RPC_URL_MAINNET / _BACKUP on Shield, RPC_URL / RPC_URL_BACKUP on the monitor." },
       { id: "hot-keys", title: "Hot keys funded with a little ETH", detail: "Deployer (used once), monitor reporter (RISK_REPORTER_KEY), passport publisher (PASSPORT_KEY), x402 facilitator (X402_FACILITATOR_KEY), keeper (KEEPER_KEY). None of them ever holds user funds." },
       { id: "blocklist", title: "Bring Shield's blocklist up to date", detail: "apps/shield/data/blocklist.json holds 5 publicly reported scam tokens and wallets (RIALTO, World, SCAMCOIN, VLAD), each with its source. Add any newer reports before launch: the Risk Oracle starts from this list." },
@@ -33,7 +34,7 @@ export const PHASES: Phase[] = [
     steps: [
       { id: "shield-live", title: "Shield API goes live", detail: "On heimdall-shield: add SHIELD_KMS_KEY_ID and the contract addresses (HEIMDALL_PAY_ADDRESS, RISK_ORACLE_ADDRESS, HEIM_HOLDER_ADDRESS, HEIMDALL_STAKING_ADDRESS, PASSPORT_PUBLISHER_ADDRESS), delete SHIELD_PRELAUNCH, redeploy. /health must say mode \"live\" and /v1/signer must show the KMS address." },
       { id: "x402-on", title: "x402 on", detail: "X402_PAY_TO (treasury) and X402_FACILITATOR_KEY on Shield. /x402/supported lists eip155:4663." },
-      { id: "monitor-up", title: "Monitor container running", detail: "FACTORY, AUTOINVEST, SPLITTER, USDG, RISK_ORACLE, RISK_REPORTER_KEY, PASSPORT_KEY, KEEPER_KEY, SHIELD_API_URL, SHIELD_ADMIN_KEY. The status page shows its first heartbeat." },
+      { id: "monitor-up", title: "Monitor cron wired", detail: "On the heimdall-monitor Vercel project: FACTORY, AUTOINVEST, SPLITTER, USDG, RISK_ORACLE, RISK_REPORTER_KEY, PASSPORT_KEY, KEEPER_KEY, SHIELD_API_URL, SHIELD_ADMIN_KEY and the same Upstash as Shield. Redeploy; the status page shows its first heartbeat within 2 minutes." },
       { id: "reporter", title: "Reporter appointed on the Risk Oracle", detail: "Skip if riskReporter was in the deploy config. Otherwise the Safe calls setReporter(<monitor reporter>, true)." },
       { id: "web-env", title: "Web env set and redeployed", detail: "NEXT_PUBLIC_FACTORY_ADDRESS, _SIGNALS_, _PAY_, _AUTOINVEST_, _RISK_ORACLE_, _GUARD_MODULE_, _STAKING_, _SPLITTER_, _HEIM_, _HEIM_HOLDER_ADDRESS, NEXT_PUBLIC_API_URL and SHIELD_API_URL on heimdall-web." },
       { id: "domains", title: "Domains attached", detail: "heimdall.fund → heimdall-web, api.heimdall.fund → heimdall-shield. HTTPS works on both." },
