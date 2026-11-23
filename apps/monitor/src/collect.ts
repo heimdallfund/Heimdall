@@ -1,5 +1,6 @@
 import { parseAbi, parseAbiItem, type Address, type PublicClient } from "viem";
-import { heimdallVaultAbi, heimdallVaultFactoryAbi } from "@heimdallfund/sdk";
+// generated ABIs, imported from the SDK source so the Vercel function needs no build of the SDK
+import { heimdallVaultAbi, heimdallVaultFactoryAbi } from "../../../packages/sdk/src/abi.js";
 import type { Snapshot, VaultSnapshot } from "./rules.js";
 
 const ERC20 = parseAbi(["function balanceOf(address) view returns (uint256)", "function symbol() view returns (string)"]);

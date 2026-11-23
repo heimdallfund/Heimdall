@@ -3,15 +3,22 @@
  * cron (api/cron.ts) calls it once per invocation. Everything that must survive between passes lives in `State`,
  * so a serverless run neither re-sends alerts nor repeats a daily job.
  */
-import { createPublicClient, createWalletClient, fallback, getAddress, http, type Address } from "viem";
+import { createPublicClient, createWalletClient, defineChain, fallback, getAddress, http, type Address } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { robinhoodChain } from "@heimdallfund/sdk";
 import { collect } from "./collect.js";
 import { DEFAULTS, diff, evaluate, format } from "./rules.js";
 import { webhook } from "./notify.js";
 import { arenaRows, corporateActions, heartbeat, watchAll, depositSnapshot, distributeFees, formatCorporateAction, postArena, postSnapshot, publishPassports, riskSync, runAutoInvest, sweepAutoInvestFees } from "./jobs.js";
 
 export type Env = Record<string, string | undefined>;
+
+export const robinhoodChain = defineChain({
+  id: 4663,
+  name: "Robinhood Chain",
+  nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
+  rpcUrls: { default: { http: ["https://rpc.mainnet.chain.robinhood.com"] } },
+  blockExplorers: { default: { name: "Blockscout", url: "https://robinhoodchain.blockscout.com" } },
+});
 
 export type State = {
   active: string[];

@@ -9,7 +9,6 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@heimdallfund/sdk": "file:../../packages/sdk",
     "viem": "^2.58.4",
     "@types/node": "^26.6.6"
   },
