@@ -1,14 +1,28 @@
 import type { HardhatUserConfig } from "hardhat/config";
 import hardhatToolboxViemPlugin from "@nomicfoundation/hardhat-toolbox-viem";
 
+const COMPILER = { version: "0.8.28", settings: { optimizer: { enabled: true, runs: 200 }, evmVersion: "cancun" } };
+const SIZE = { version: "0.8.28", settings: { viaIR: true, optimizer: { enabled: true, runs: 1 }, evmVersion: "cancun" } };
+const SIZE_OVERRIDES = { "contracts/HeimdallVault.sol": SIZE, "contracts/HeimdallVaultDeployer.sol": SIZE };
+
 const config: HardhatUserConfig = {
   plugins: [hardhatToolboxViemPlugin],
+  // The vault's creation code lives inside the deployer, which must stay under 24 KB (EIP-170): both contracts are
+  // optimised for size. Declared for both build profiles: Hardhat's implicit `production` profile drops overrides,
+  // which made the deployer 25.6 KB. `npm run size` checks the production build.
   solidity: {
-    compilers: [{ version: "0.8.28", settings: { optimizer: { enabled: true, runs: 200 }, evmVersion: "cancun" } }],
-    // The vault's creation code lives inside the deployer, which must stay under 24 KB: optimise these for size.
-    overrides: {
-      "contracts/HeimdallVault.sol": { version: "0.8.28", settings: { viaIR: true, optimizer: { enabled: true, runs: 1 }, evmVersion: "cancun" } },
-      "contracts/HeimdallVaultDeployer.sol": { version: "0.8.28", settings: { viaIR: true, optimizer: { enabled: true, runs: 1 }, evmVersion: "cancun" } },
+    profiles: {
+      default: { compilers: [COMPILER], overrides: SIZE_OVERRIDES },
+      production: { compilers: [COMPILER], overrides: SIZE_OVERRIDES },
+    },
+  },
+  // Solidity tests. `npx hardhat test solidity` uses the default profile; `--test-profile deep` for the long pre-release run.
+  test: {
+    solidity: {
+      profiles: {
+        default: { fuzz: { runs: 256 }, invariant: { runs: 64, depth: 64, failOnRevert: true } },
+        deep: { fuzz: { runs: 10_000 }, invariant: { runs: 512, depth: 200, failOnRevert: true } },
+      },
     },
   },
   // Lets the local fork execute calls at historical Robinhood Chain blocks (EVM rules: Cancun from genesis).

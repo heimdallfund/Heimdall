@@ -1,6 +1,6 @@
 # Invariants
 
-Each line is a property that must hold in every reachable state. "Fuzz" means a property-based test (256 runs) in `test/fuzz/`; the rest are unit tests, regression PoCs or reasoning we would like you to challenge.
+Each line is a property that must hold in every reachable state. "Fuzz" means a property-based test in `test/fuzz/` (256 runs; 10,000 with `npm run test:deep`). "Invariant" means a stateful test in `test/invariant/`: random sequences of every user action and time jumps (64 × 64; 512 × 200 with `npm run test:deep`). The rest are unit tests, regression PoCs or reasoning we would like you to challenge.
 
 ## HeimdallVault
 
@@ -15,13 +15,17 @@ Each line is a property that must hold in every reachable state. "Fuzz" means a 
 | V-7 | `redeemInKind` pays each asset pro rata to shares, needs no price, and works while paused | Fuzz `testFuzz_inKindProRata` |
 | V-8 | A stale or paused feed never values an asset; `maxWithdraw`/`maxRedeem` return 0 instead of reverting | `vault.test.ts`, PoC L-03 |
 | V-9 | The manager cannot withdraw depositor funds or change any limit | `vault.test.ts` |
+| V-10 | Shares never claim more than NAV | Invariant `invariant_sharesBacked` |
+| V-11 | A hostile manager whose every call Shield approves extracts at most `maxDailyLossBps` of the window's NAV per 24 h | Invariant `invariant_theftBoundedByDailyLimit` |
+| V-12 | Every holder can exit in kind at any time and receives something when their shares are worth something | Invariant `invariant_everyoneCanExit` |
+| V-13 | `withdraw(maxWithdraw)` and `redeem(maxRedeem)` never revert; `preview*` equal what the call does, pending fee included | Fuzz `Vault4626Fuzz.t.sol`, handler `withdraw`/`redeem` |
 
 ## HeimdallPay
 
 | ID | Invariant | Checked by |
 | --- | --- | --- |
 | P-1 | Every job's escrow is paid out exactly once, to the last unit, on every path (release, auto-release, refund, cancel, resolve, expired dispute) | Fuzz `testFuzz_conservation` |
-| P-2 | `balanceOf(pay) ≥ Σ escrow of open jobs + totalOwed` | Fuzz `testFuzz_conservation`, `PayPoc.t.sol` |
+| P-2 | `balanceOf(pay) = Σ escrow of open, submitted and disputed jobs + totalOwed`, under any sequence of actions and USDG freezes | Invariant `invariant_escrowBacked`, `invariant_owedSums`, `invariant_conservation` |
 | P-3 | A frozen client, provider, arbiter or fee recipient cannot block payouts to anyone else; their share waits in `owed` | `PayPoc.t.sol` L01 |
 | P-4 | A disputed job can always be settled: by the arbiter, or by anyone 14 days after the dispute (50/50, no arbiter fee) | `PayPoc.t.sol` M01 |
 | P-5 | The fee of a job is fixed at creation (`feeBps` stored on the job, ≤ 3%) | `pay.test.ts` |
@@ -41,7 +45,7 @@ Each line is a property that must hold in every reachable state. "Fuzz" means a 
 
 | ID | Invariant | Checked by |
 | --- | --- | --- |
-| S-1 | The contract can always pay every staker's `earned` plus all principal | Fuzz `testFuzz_solvent` |
+| S-1 | The contract can always pay every staker's `earned` plus all principal | Fuzz `testFuzz_solvent`, invariants `invariant_heimBacked`, `invariant_rewardsSolvent`, `invariant_noRewardCreation` |
 | S-2 | Only the splitter (`distributor`) can add rewards, so nobody can stretch or reset the stream | `StakingSplitterPoc.t.sol` L03 |
 | S-3 | `distribute` always delivers the stakers' share, even when the treasury transfer fails | `StakingSplitterPoc.t.sol` L04 |
 | S-4 | The stakers' share is at most 80% (`MAX_STAKER_BPS`) | `staking.test.ts` |
@@ -50,7 +54,8 @@ Each line is a property that must hold in every reachable state. "Fuzz" means a 
 
 | ID | Invariant | Checked by |
 | --- | --- | --- |
-| G-1 | A provider never redeems more than the latest cumulative voucher the payer signed, nor more than the payer's available balance | Fuzz `testFuzz_vouchersNeverOverpay` |
+| G-1 | A provider never redeems more than the latest cumulative voucher the payer signed, nor more than the payer's available balance | Fuzz `testFuzz_vouchersNeverOverpay`, invariant `invariant_neverOverCharged` |
+| G-4 | The contract holds exactly the sum of payer balances; funded = held + withdrawn + paid out | Invariants `invariant_balancesBacked`, `invariant_conservation` |
 | G-2 | A pending withdrawal is excluded from `available` immediately, so a signed voucher cannot be raced | PoC M-04 |
 | G-3 | `pay` never charges more than the caller's `maxPricePerCall` | PoC M-05 |
 

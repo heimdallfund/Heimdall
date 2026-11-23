@@ -31,8 +31,12 @@ Not covered by either review above. Findings from a read of the contract and Sli
 | A-04 | Info | Slither `arbitrary-send-erc20`: `execute` pulls from `p.owner` and can be called by anyone | By design: only on the owner's own plan, only `amountPerBuy`, only when due |
 | A-05 | Info | Plans on 24/5 feeds (AAPL, MSFT, AMZN) skip weekends; the next buy runs when the feed is fresh, without catch-up | By design |
 
+## From internal review 3 (all contracts, invariant testing)
+
+Both findings are fixed with regression tests (see `SECURITY_REVIEW_3.md`): R3-01, the production build put the deployer over the EIP-170 size limit; R3-02, ERC-4626 views ignored a pending performance fee.
+
 ## Open questions for the auditor
 
 - **Q-1: corporate actions (resolved 2026-11-23).** Robinhood's Chainlink feeds return the price of one *token*: the share price already multiplied by `uiMultiplier()` (ERC-8056). Our contracts use `balance × feed price` and never apply the multiplier again, which is correct. For a split, Robinhood pauses the token's oracle first; `HeimdallStockFeed` reports stale while `oraclePaused()` is true. New guard: it also reports stale when the token's `effectiveAt()` is past and later than the feed's `updatedAt`, so a price computed with the old multiplier is never used. The monitor alerts on scheduled multiplier changes and pauses. Please still check the guard and the window between activation and the next feed update.
 - **Q-2: sequencer downtime.** Robinhood Chain has no L2 sequencer-uptime feed today (confirmed November 2026). Our staleness bounds (90,000 s for stock feeds) are the only protection.
-- **Q-3: Shield signer compromise.** We believe a stolen signer key is bounded by the allowlist and the loss caps. Please try to break that.
+- **Q-3: Shield signer compromise.** We believe a stolen signer key is bounded by the allowlist and the loss caps. The vault invariant test (V-11) supports this: with every receipt granted and a manager routing swap output to itself, extraction stayed within the daily loss limit across 512 × 200 random actions. Please try to break it with paths the handler does not model (other allowlisted selectors, multi-hop routes, fee-on-transfer tokens).

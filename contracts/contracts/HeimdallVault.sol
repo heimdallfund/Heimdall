@@ -276,27 +276,44 @@ contract HeimdallVault is ERC4626, Ownable2Step, Pausable, ReentrancyGuard, Shie
 
     function _harvest() internal {
         uint256 supply = totalSupply();
-        if (supply == 0) return;
-        (bool ok, uint256 assetsTotal) = _tryTotalAssets();
+        (bool ok, uint256 nav) = _tryTotalAssets();
         if (!ok) return;
-        uint256 oneShare = 10 ** decimals();
-        uint256 pps = _convertToAssets(oneShare, Math.Rounding.Floor);
-        uint256 hwm = highWaterMark;
-        if (pps <= hwm) return;
-        uint256 profit = (pps - hwm).mulDiv(supply, oneShare);
-        uint256 platformBps = _managerIsHolder() ? PLATFORM_FEE_BPS / 2 : PLATFORM_FEE_BPS;
-        uint256 totalBps = MANAGER_FEE_BPS + platformBps;
-        uint256 feeAssets = profit.mulDiv(totalBps, BPS);
-        if (feeAssets == 0 || feeAssets >= assetsTotal) return;
-        // shares worth exactly `feeAssets` after minting, using the same virtual offset as ERC-4626 conversions
-        uint256 feeShares = feeAssets.mulDiv(supply + 10 ** _decimalsOffset(), assetsTotal + 1 - feeAssets);
+        (uint256 feeShares, uint256 profit, uint256 totalBps) = _pendingFee(supply, nav);
+        if (feeShares == 0) return;
         uint256 managerShares = feeShares.mulDiv(MANAGER_FEE_BPS, totalBps);
         uint256 platformShares = feeShares - managerShares;
         if (managerShares > 0) _mint(manager, managerShares);
         if (platformShares > 0) _mint(feeRecipient, platformShares);
-        uint256 newHwm = _convertToAssets(oneShare, Math.Rounding.Floor);
+        uint256 newHwm = _pps(nav, supply + feeShares);
         highWaterMark = newHwm;
         emit FeesHarvested(profit, managerShares, platformShares, newHwm);
+    }
+
+    /// @dev Base-asset value of one whole share for a given NAV and supply (same virtual offset as ERC-4626).
+    function _pps(uint256 nav, uint256 supply) internal view returns (uint256) {
+        return (10 ** decimals()).mulDiv(nav + 1, supply + 10 ** _decimalsOffset());
+    }
+
+    /// @dev Fee shares the next harvest would mint. Used by `_harvest` and by every ERC-4626 conversion, so
+    ///      previews and max* limits always match what a deposit, withdraw or redeem will actually do.
+    function _pendingFee(uint256 supply, uint256 nav) internal view returns (uint256 feeShares, uint256 profit, uint256 totalBps) {
+        if (supply == 0) return (0, 0, 0);
+        uint256 pps = _pps(nav, supply);
+        uint256 hwm = highWaterMark;
+        if (pps <= hwm) return (0, 0, 0);
+        profit = (pps - hwm).mulDiv(supply, 10 ** decimals());
+        totalBps = MANAGER_FEE_BPS + (_managerIsHolder() ? PLATFORM_FEE_BPS / 2 : PLATFORM_FEE_BPS);
+        uint256 feeAssets = profit.mulDiv(totalBps, BPS);
+        if (feeAssets == 0 || feeAssets >= nav) return (0, 0, 0);
+        // shares worth exactly `feeAssets` after minting
+        feeShares = feeAssets.mulDiv(supply + 10 ** _decimalsOffset(), nav + 1 - feeAssets);
+    }
+
+    /// @dev Supply including the fee shares a harvest would mint now.
+    function _supplyAfterFee(uint256 nav) internal view returns (uint256 supply) {
+        supply = totalSupply();
+        (uint256 fs,,) = _pendingFee(supply, nav);
+        supply += fs;
     }
 
     function _managerIsHolder() internal view returns (bool) {
@@ -313,13 +330,23 @@ contract HeimdallVault is ERC4626, Ownable2Step, Pausable, ReentrancyGuard, Shie
 
     /// @dev Start a fresh high-water mark when the vault was empty: nobody can earn a fee on a donation.
     function _resetHwmIfEmpty(uint256 supplyBefore) internal {
-        if (supplyBefore == 0) highWaterMark = _convertToAssets(10 ** decimals(), Math.Rounding.Floor);
+        if (supplyBefore == 0) highWaterMark = _pps(totalAssets(), totalSupply());
     }
 
     // ───────────────────────────── ERC-4626 overrides ─────────────────────────────
 
     function _decimalsOffset() internal pure override returns (uint8) {
         return 6;
+    }
+
+    function _convertToShares(uint256 assets, Math.Rounding rounding) internal view override returns (uint256) {
+        uint256 nav = totalAssets();
+        return assets.mulDiv(_supplyAfterFee(nav) + 10 ** _decimalsOffset(), nav + 1, rounding);
+    }
+
+    function _convertToAssets(uint256 shares, Math.Rounding rounding) internal view override returns (uint256) {
+        uint256 nav = totalAssets();
+        return shares.mulDiv(nav + 1, _supplyAfterFee(nav) + 10 ** _decimalsOffset(), rounding);
     }
 
     function maxDeposit(address) public view override returns (uint256) {
@@ -340,14 +367,14 @@ contract HeimdallVault is ERC4626, Ownable2Step, Pausable, ReentrancyGuard, Shie
     function maxWithdraw(address owner_) public view override returns (uint256) {
         (bool ok, uint256 nav) = _tryTotalAssets();
         if (!ok) return 0;
-        uint256 owned = balanceOf(owner_).mulDiv(nav + 1, totalSupply() + 10 ** _decimalsOffset());
+        uint256 owned = balanceOf(owner_).mulDiv(nav + 1, _supplyAfterFee(nav) + 10 ** _decimalsOffset());
         return Math.min(owned, IERC20(asset()).balanceOf(address(this)));
     }
 
     function maxRedeem(address owner_) public view override returns (uint256) {
         (bool ok, uint256 nav) = _tryTotalAssets();
         if (!ok) return 0;
-        uint256 idleShares = IERC20(asset()).balanceOf(address(this)).mulDiv(totalSupply() + 10 ** _decimalsOffset(), nav + 1);
+        uint256 idleShares = IERC20(asset()).balanceOf(address(this)).mulDiv(_supplyAfterFee(nav) + 10 ** _decimalsOffset(), nav + 1);
         return Math.min(balanceOf(owner_), idleShares);
     }
 

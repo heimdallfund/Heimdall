@@ -7,8 +7,10 @@
     "test": "hardhat test",
     "abi": "node scripts/gen-abi.mjs",
     "test:fork": "FORK=1 hardhat test nodejs test/fork/mainnet.fork.test.ts",
-    "deploy:dry": "DRY_RUN=1 hardhat run scripts/deploy.ts --network robinhoodFork",
-    "deploy": "hardhat run scripts/deploy.ts --network robinhood"
+    "deploy:dry": "DRY_RUN=1 hardhat run --build-profile production scripts/deploy.ts --network robinhoodFork",
+    "deploy": "npm run size && hardhat run --build-profile production scripts/deploy.ts --network robinhood",
+    "size": "hardhat build --force --build-profile production && node scripts/check-size.mjs",
+    "test:deep": "hardhat test solidity --test-profile deep"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox-viem": "^5.0.7",
