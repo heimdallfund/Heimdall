@@ -97,6 +97,12 @@ After any emergency action:
 1. Post a short status on X (what happened, what is paused, that exits work).
 2. Write a postmortem within 72 hours.
 
+## Hosting
+
+- Web: Vercel project `heimdall-web` (root `apps/web`), deployed on every push to `main` of `heimdallfund/Heimdall`.
+- Shield API: a second Vercel project (root `apps/shield`) once the KMS signer, Upstash and RPC keys exist; it refuses to start in production without a signer.
+- Monitor and keeper: one always-on container (`apps/monitor`).
+
 ## Admin panel
 
 `https://heimdall.fund/admin` (not indexed) opens with the monitor's admin key, kept only in that browser tab. It shows:
