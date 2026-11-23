@@ -1,0 +1,55 @@
+{
+  "name": "@heimdall/mcp",
+  "version": "0.2.0",
+  "description": "Heimdall MCP server: let Claude, Cursor or any MCP agent check Robinhood Chain transactions and signatures before signing",
+  "mcpName": "fund.heimdall/mcp",
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "robinhood-chain",
+    "ai-agents",
+    "firewall",
+    "wallet-security",
+    "claude"
+  ],
+  "homepage": "https://heimdall.fund/docs/mcp",
+  "bugs": {
+    "url": "https://heimdall.fund/security"
+  },
+  "author": "Heimdall <hello@heimdall.fund>",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "test": "node --import tsx --test test/*.test.ts",
+    "prepublishOnly": "npm run build && npm test"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@heimdall/sdk": "file:../sdk",
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "viem": "^2.58.4",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  },
+  "type": "module",
+  "bin": {
+    "heimdall-mcp": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public"
+  }
+}

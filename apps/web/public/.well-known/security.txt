@@ -1,0 +1,6 @@
+Contact: mailto:security@heimdall.fund
+Expires: 2027-11-23T00:00:00.000Z
+Policy: https://heimdall.fund/security#bounty
+Acknowledgments: https://heimdall.fund/security#thanks
+Preferred-Languages: en
+Canonical: https://heimdall.fund/.well-known/security.txt

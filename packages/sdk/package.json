@@ -1,0 +1,56 @@
+{
+  "name": "@heimdall/sdk",
+  "version": "0.1.0",
+  "description": "Heimdall SDK for Robinhood Chain agents: Shield transaction firewall, guarded vault execution, Heimdall Pay escrow, Auto-Invest and pay-per-call Signals",
+  "keywords": [
+    "robinhood-chain",
+    "ai-agents",
+    "firewall",
+    "transaction-simulation",
+    "viem",
+    "escrow",
+    "stock-tokens",
+    "usdg"
+  ],
+  "homepage": "https://heimdall.fund/docs/sdk",
+  "bugs": {
+    "url": "https://heimdall.fund/security"
+  },
+  "author": "Heimdall <hello@heimdall.fund>",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "prepublishOnly": "npm run build && npm test"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "viem": "^2.58.4"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.1"
+  },
+  "type": "module",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public"
+  }
+}

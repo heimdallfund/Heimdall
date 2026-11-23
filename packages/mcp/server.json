@@ -1,0 +1,25 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "fund.heimdall/mcp",
+  "title": "Heimdall Shield",
+  "description": "Firewall for AI agents on Robinhood Chain: check transactions and signatures (ALLOW, WARN, DENY) before signing.",
+  "websiteUrl": "https://heimdall.fund/docs/mcp",
+  "version": "0.2.0",
+  "packages": [
+    {
+      "registryType": "npm",
+      "registryBaseUrl": "https://registry.npmjs.org",
+      "identifier": "@heimdall/mcp",
+      "version": "0.2.0",
+      "transport": { "type": "stdio" },
+      "environmentVariables": [
+        { "name": "HEIMDALL_API_KEY", "description": "Shield API key. Optional: without one the free tier applies.", "isRequired": false, "isSecret": true },
+        { "name": "HEIMDALL_API_URL", "description": "Shield API base URL. Defaults to the public Heimdall API.", "isRequired": false },
+        { "name": "RPC_URL", "description": "Robinhood Chain RPC used for onchain reads.", "isRequired": false },
+        { "name": "HEIMDALL_PAY_ADDRESS", "description": "HeimdallPay contract, for the Pay tools.", "isRequired": false },
+        { "name": "HEIMDALL_FACTORY_ADDRESS", "description": "HeimdallVaultFactory, for the vault tools.", "isRequired": false },
+        { "name": "HEIMDALL_SIGNALS_ADDRESS", "description": "HeimdallSignals, for the signal tools.", "isRequired": false }
+      ]
+    }
+  ]
+}

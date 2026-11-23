@@ -1,0 +1,89 @@
+{
+  "name": "@heimdall/agent-kit",
+  "version": "0.1.0",
+  "description": "Heimdall Shield and Pay as native tools for the Vercel AI SDK, LangChain and ElizaOS on Robinhood Chain",
+  "keywords": [
+    "ai-sdk",
+    "langchain",
+    "elizaos",
+    "eliza-plugin",
+    "ai-agents",
+    "robinhood-chain",
+    "firewall",
+    "tools"
+  ],
+  "homepage": "https://heimdall.fund/docs/frameworks",
+  "bugs": {
+    "url": "https://heimdall.fund/security"
+  },
+  "author": "Heimdall <hello@heimdall.fund>",
+  "type": "module",
+  "license": "MIT",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./ai-sdk": {
+      "types": "./dist/ai-sdk.d.ts",
+      "import": "./dist/ai-sdk.js"
+    },
+    "./langchain": {
+      "types": "./dist/langchain.d.ts",
+      "import": "./dist/langchain.js"
+    },
+    "./eliza": {
+      "types": "./dist/eliza.d.ts",
+      "import": "./dist/eliza.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
+    "prepublishOnly": "npm run build && npm test"
+  },
+  "dependencies": {
+    "@heimdall/sdk": "file:../sdk",
+    "viem": "^2.58.4",
+    "zod": "^4.6.7"
+  },
+  "peerDependencies": {
+    "ai": ">=6",
+    "@langchain/core": ">=1",
+    "@elizaos/core": ">=2"
+  },
+  "peerDependenciesMeta": {
+    "ai": {
+      "optional": true
+    },
+    "@langchain/core": {
+      "optional": true
+    },
+    "@elizaos/core": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "ai": "^7.0.179",
+    "@langchain/core": "^1.5.0",
+    "@elizaos/core": "^2.0.5",
+    "@types/node": "^26.6.6",
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.1"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public"
+  }
+}

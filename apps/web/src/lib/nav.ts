@@ -1,0 +1,60 @@
+import { GUIDE_INDEX } from "./guideIndex";
+export interface NavItem { href: string; title: string }
+export interface NavSection { title: string; items: NavItem[] }
+
+/** Docs order: sidebar, prev/next and search all read from here. */
+export const DOCS: NavSection[] = [
+  { title: "Start", items: [{ href: "/docs", title: "Overview & quickstart" }, { href: "/docs/limits", title: "API keys & limits" }] },
+  { title: "Shield", items: [{ href: "/docs/shield", title: "Transaction checks" }, { href: "/docs/signatures", title: "Signature checks" }, { href: "/docs/webhooks", title: "Webhooks" }] },
+  { title: "Products", items: [{ href: "/docs/wallet-check", title: "Wallet Check & Watch" }, { href: "/docs/vaults", title: "Vaults" }, { href: "/docs/signals", title: "Signals" }, { href: "/docs/pay", title: "Heimdall Pay" }, { href: "/docs/auto-invest", title: "Auto-Invest" }, { href: "/docs/arena", title: "Agent Arena" }, { href: "/docs/points", title: "Guardian Points" }, { href: "/docs/staking", title: "Staking $HEIM" }, { href: "/docs/agent", title: "Reference agent" }] },
+  { title: "Build", items: [{ href: "/docs/sdk", title: "TypeScript SDK" }, { href: "/docs/mcp", title: "MCP server" }, { href: "/docs/frameworks", title: "Agent frameworks" }, { href: "/docs/contracts", title: "Contracts" }] },
+];
+export const DOCS_FLAT = DOCS.flatMap((s) => s.items.map((i) => ({ ...i, section: s.title })));
+
+export interface SearchEntry { title: string; section: string; href: string; keywords?: string }
+export const SEARCH: SearchEntry[] = [
+  { title: "Home", section: "Heimdall", href: "/" },
+  { title: "Shield", section: "Product", href: "/shield", keywords: "firewall simulate allow warn deny" },
+  { title: "Shield console", section: "App", href: "/app/shield", keywords: "check transaction try" },
+  { title: "API keys & webhook", section: "App", href: "/app/keys", keywords: "key pro plan webhook events" },
+  { title: "Signals", section: "Product", href: "/signals", keywords: "marketplace data pay per call" },
+  { title: "List a signal", section: "App", href: "/signals/new", keywords: "provider register sell" },
+  { title: "Vaults", section: "Product", href: "/vaults", keywords: "deposit usdg stocks" },
+  { title: "Open a vault", section: "App", href: "/vaults/new", keywords: "manager create factory" },
+  { title: "Agents leaderboard", section: "Product", href: "/agents", keywords: "ranking returns guardian" },
+  { title: "$HEIM", section: "Token", href: "/token", keywords: "token holder discount" },
+  { title: "Security", section: "Trust", href: "/security", keywords: "audit review bug bounty" },
+  { title: "Trust center", section: "Trust", href: "/trust", keywords: "status signer multisig contracts admin history" },
+  { title: "Threat Board", section: "Trust", href: "/threats", keywords: "drainer scam malicious blocklist attacks" },
+  { title: "Agent Arena", section: "Products", href: "/arena", keywords: "arena competition leaderboard season ai agents trading" },
+  { title: "Auto-Invest", section: "Products", href: "/invest", keywords: "dca recurring buy stocks nvda tsla googl schedule" },
+  { title: "Heimdall Pay", section: "Products", href: "/pay", keywords: "escrow pay agents hire jobs usdg arbiter dispute" },
+  { title: "Escrow jobs", section: "App", href: "/app/pay", keywords: "pay escrow create job hire agent" },
+  { title: "Wallet Check", section: "Products", href: "/check", keywords: "approvals revoke allowance permit2 wallet scan drainer" },
+  { title: "Guardian Points", section: "Products", href: "/points", keywords: "points leaderboard rewards season report drainer" },
+  { title: "Stake $HEIM", section: "Products", href: "/stake", keywords: "staking yield usdg fees heim" },
+  { title: "Badges", section: "Build", href: "/badges", keywords: "verified badge embed readme agent vault" },
+  { title: "Brand kit", section: "Press", href: "/brand", keywords: "logo press media kit colors token icon download" },
+  { title: "Early access", section: "Products", href: "/early", keywords: "early access waitlist invite referral points" },
+  { title: "Status", section: "Trust", href: "/status", keywords: "uptime incident status outage" },
+  { title: "Guides", section: "Learn", href: "/guides", keywords: "how to guide tutorial" },
+  ...GUIDE_INDEX.map((g) => ({ title: g.title, section: "Guides", href: `/guides/${g.slug}`, keywords: g.tag })),
+  ...DOCS_FLAT.map((d) => ({ title: d.title, section: `Docs · ${d.section}`, href: d.href })),
+  { title: "ElizaOS, LangChain, AI SDK", section: "Docs · Agent frameworks", href: "/docs/frameworks", keywords: "eliza elizaos langchain langgraph vercel ai sdk plugin tools agent-kit" },
+  { title: "Policy fields", section: "Docs · Transaction checks", href: "/docs/shield#policy", keywords: "strict maxNativeOut trustedSpenders" },
+  { title: "Findings codes", section: "Docs · Transaction checks", href: "/docs/shield#findings", keywords: "honeypot unlimited approval drain" },
+  { title: "Receipts (EIP-712)", section: "Docs · Transaction checks", href: "/docs/shield#receipts", keywords: "signature signer" },
+  { title: "Permit & Permit2", section: "Docs · Signature checks", href: "/docs/signatures#recognised", keywords: "seaport personal_sign" },
+  { title: "What the vault enforces", section: "Docs · Vaults", href: "/docs/vaults#guard", keywords: "limits loss trade size allowlist" },
+  { title: "Vouchers", section: "Docs · Signals", href: "/docs/signals#agents", keywords: "402 payment gasless" },
+  { title: "Provider guide", section: "Docs · Signals", href: "/docs/signals#providers", keywords: "gateVoucher redeem" },
+  { title: "MCP tools", section: "Docs · MCP server", href: "/docs/mcp#tools", keywords: "claude cursor" },
+  { title: "Contract addresses", section: "Docs · Contracts", href: "/docs/contracts#addresses", keywords: "factory signals heim" },
+  { title: "Wallet Check & Watch", section: "Docs · Products", href: "/docs/wallet-check", keywords: "approvals revoke watch notifications push" },
+  { title: "Pay lifecycle", section: "Docs · Heimdall Pay", href: "/docs/pay#lifecycle", keywords: "escrow dispute arbiter refund release" },
+  { title: "Auto-Invest contract", section: "Docs · Auto-Invest", href: "/docs/auto-invest", keywords: "dca keeper plan slippage chainlink" },
+  { title: "Arena scoring", section: "Docs · Agent Arena", href: "/docs/arena#scoring", keywords: "return drawdown snapshot season" },
+  { title: "Webhooks", section: "Docs · Shield", href: "/docs/webhooks", keywords: "webhook events notify deny warn signature hmac secret" },
+  { title: "Points rules", section: "Docs · Guardian Points", href: "/docs/points", keywords: "invite referral caps season" },
+  { title: "Staking contract", section: "Docs · Staking", href: "/docs/staking", keywords: "rewards usdg fees stream claim" },
+];

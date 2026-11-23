@@ -1,0 +1,54 @@
+<!doctype html><html><head><meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&family=Sora:wght@700&family=JetBrains+Mono:wght@500;600&display=swap">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}body{font-family:Inter;color:#1B2233}
+.f{display:none;position:relative;overflow:hidden;background:#fff}.f.on{display:block}
+.bg{position:absolute;inset:0;background:radial-gradient(60% 80% at 70% 30%,#E3E9FF 0%,rgba(255,255,255,0) 70%)}
+.grid{position:absolute;inset:0;background-image:linear-gradient(#EEF1F8 1px,transparent 1px),linear-gradient(90deg,#EEF1F8 1px,transparent 1px);background-size:48px 48px;-webkit-mask-image:radial-gradient(60% 70% at 65% 40%,#000,transparent)}
+.word{font-family:Sora;font-weight:700;letter-spacing:-.03em;display:flex;align-items:center;gap:14px}
+.word i{width:30px;height:34px;background:#3355FF;clip-path:polygon(50% 0,100% 15%,100% 50%,50% 100%,0 50%,0 15%)}
+.chip{display:inline-flex;align-items:center;gap:8px;border:1px solid #E6E8EE;background:#fff;border-radius:999px;padding:8px 16px;font-weight:600;font-size:18px;color:#525B6E}
+.dot{width:8px;height:8px;border-radius:50%;background:#0B7A3B}
+.v{display:inline-flex;align-items:center;gap:10px;border:1px solid #E6E8EE;background:rgba(255,255,255,.95);border-radius:12px;padding:10px 14px;box-shadow:0 10px 30px -14px rgba(27,34,51,.35);font-family:'JetBrains Mono';font-size:16px}
+.b{font-family:Inter;font-weight:700;font-size:12px;padding:3px 8px;border-radius:6px;letter-spacing:.03em}.allow{background:#E6F6EC;color:#0B7A3B}.deny{background:#FDE8E9;color:#B42318}.warn{background:#FFF4DB;color:#8A5A00}
+</style></head><body>
+
+<!-- X banner 1500x500 -->
+<div id="banner" class="f" style="width:1500px;height:500px">
+  <div class="bg"></div><div class="grid"></div>
+  <div style="position:absolute;left:96px;top:112px;width:760px">
+    <div style="font-size:64px;font-weight:800;letter-spacing:-.04em;line-height:1.03">Safe rails for AI agents<br>that move money.</div>
+    <div style="margin-top:22px;font-size:24px;color:#525B6E;font-weight:500">Shield · Signals · Vaults — on Robinhood Chain</div>
+  </div>
+  <img src="heimdall-3d.png" style="position:absolute;right:250px;top:70px;height:340px;filter:drop-shadow(0 30px 40px rgba(51,85,255,.25))">
+  <div class="v" style="position:absolute;right:420px;top:120px">swap 500 USDG → NVDA <span class="b allow">ALLOW</span></div>
+  <div class="v" style="position:absolute;right:120px;top:300px">approve USDG ∞ → 0x3333… <span class="b deny">DENY</span></div>
+</div>
+
+<!-- OG 1200x630 -->
+<div id="og" class="f" style="width:1200px;height:630px">
+  <div class="bg"></div><div class="grid"></div>
+  <div style="position:absolute;left:80px;top:72px" class="word"><i></i><span style="font-size:34px">Heimdall</span></div>
+  <div style="position:absolute;left:80px;top:190px;width:620px">
+    <div style="font-size:60px;font-weight:800;letter-spacing:-.04em;line-height:1.05">Safe rails for AI agents that move money.</div>
+    <div style="margin-top:22px;font-size:24px;color:#525B6E;line-height:1.45">Checked transactions, paid data and guarded stock vaults on Robinhood Chain.</div>
+  </div>
+  <img src="heimdall-3d.png" style="position:absolute;right:110px;top:120px;height:380px;filter:drop-shadow(0 30px 40px rgba(51,85,255,.25))">
+  <div style="position:absolute;left:80px;bottom:56px;display:flex;gap:10px"><span class="chip"><span class="dot"></span>Live on Robinhood Chain</span></div>
+</div>
+
+<!-- Launch card 1080x1080 -->
+<div id="card" class="f" style="width:1080px;height:1080px">
+  <div class="bg" style="background:radial-gradient(70% 60% at 50% 30%,#E3E9FF 0%,rgba(255,255,255,0) 72%)"></div><div class="grid" style="-webkit-mask-image:radial-gradient(60% 50% at 50% 35%,#000,transparent)"></div>
+  <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;text-align:center;padding-top:110px">
+    <span class="chip" style="font-size:20px"><span class="dot"></span>Now live on Robinhood Chain</span>
+    <img src="heimdall-3d.png" style="height:330px;margin:56px 0 44px;filter:drop-shadow(0 30px 40px rgba(51,85,255,.25))">
+    <div style="font-size:76px;font-weight:800;letter-spacing:-.045em;line-height:1.02">Nothing gets<br>signed unchecked.</div>
+    <div style="margin-top:28px;display:flex;gap:12px">
+      <span class="chip" style="font-size:20px;color:#1B2233">🛡 Shield</span><span class="chip" style="font-size:20px;color:#1B2233">📡 Signals</span><span class="chip" style="font-size:20px;color:#1B2233">🏦 Vaults</span>
+    </div>
+  </div>
+  <div style="position:absolute;left:0;right:0;bottom:56px;display:flex;justify-content:center" class="word"><i style="width:24px;height:28px"></i><span style="font-size:28px">Heimdall</span></div>
+</div>
+<script>const id=location.hash.slice(1);document.getElementById(id).classList.add('on');</script>
+</body></html>

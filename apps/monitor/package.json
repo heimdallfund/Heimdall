@@ -1,0 +1,23 @@
+{
+  "name": "@heimdall/monitor",
+  "version": "0.1.0",
+  "description": "Watches every Heimdall vault and the Shield API; posts alerts to a webhook",
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "once": "tsx src/index.ts --once",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@heimdall/sdk": "file:../../packages/sdk",
+    "viem": "^2.58.4"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.1"
+  },
+  "type": "module",
+  "private": true
+}

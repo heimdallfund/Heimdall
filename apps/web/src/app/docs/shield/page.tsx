@@ -1,0 +1,70 @@
+import type { Metadata } from "next";
+import { Code, H1, H2, Table, C } from "@/components/docs/Docs";
+import { PUBLIC_API_URL } from "@/lib/config";
+
+export const metadata: Metadata = { title: "Shield — transaction checks", description: "POST /v1/check: simulate a Robinhood Chain transaction and get ALLOW, WARN or DENY with reasons and a signed receipt." };
+
+export default function Page() {
+  return (
+    <>
+      <H1 lead="Send the transaction your agent is about to sign. Shield runs it against the latest block with eth_simulateV1 and tells you exactly what would happen.">Transaction checks</H1>
+      <H2 id="request">Request</H2>
+      <Code lang="http">{`POST ${PUBLIC_API_URL}/v1/check
+Authorization: Bearer hd_live_…        (optional on the free plan)
+Content-Type: application/json
+
+{
+  "chainId": 4663,
+  "from": "0xAgentWallet",
+  "to": "0xTargetContract",            // null to deploy a contract
+  "data": "0x…",
+  "value": "0",                         // wei, decimal or 0x-hex
+  "policy": { … }                       // optional, see below
+}`}</Code>
+      <H2 id="response">Response</H2>
+      <Code lang="json">{`{
+  "checkId": "0x51705c…",
+  "verdict": "DENY",                    // ALLOW | WARN | DENY
+  "riskScore": 90,                      // 0–100
+  "summary": ["Calls approve(address,uint256) on USDG (0x5fc5…d168)", "Approves unlimited USDG → 0x3333…3333"],
+  "findings": [{ "code": "UNLIMITED_APPROVAL_TO_EOA", "severity": "deny", "message": "…" }],
+  "approvals": [ … ],
+  "assetChanges": [{ "symbol": "USDG", "delta": "-100000000", "kind": "erc20", … }],
+  "simulation": { "ok": true, "available": true, "gasUsed": "46213" },
+  "receipt": { "signer": "0x…", "signature": "0x…", "expiresAt": 1795400000, "message": { … } }
+}`}</Code>
+      <p>A WARN is returned as WARN unless the policy sets <C>strict</C>; then every WARN becomes DENY. Vaults only accept receipts whose verdict is ALLOW.</p>
+      <H2 id="policy">Policy</H2>
+      <Table head={["Field", "Effect"]} rows={[
+        ["strict", "Every WARN becomes DENY."],
+        ["allowTargets", "If set, the target must be in this list."],
+        ["denyTargets", "Targets that are always denied."],
+        ["maxNativeOut", "Per-transaction cap for ETH leaving the wallet, in wei."],
+        ["maxTokenOut", "Per-transaction cap per token, raw units, keyed by token address."],
+        ["trustedSpenders", "Unlimited approvals to these spenders do not warn."],
+        ["denyUnlimitedApprovals", "Unlimited approvals are always denied."],
+        ["trustedRecipients", "Sending assets to these does not raise ONE_WAY_OUTFLOW."],
+        ["allowContractDeploy", "Allow to = null."],
+      ]} />
+      <H2 id="findings">Findings</H2>
+      <Table head={["Code", "Severity", "Meaning"]} rows={[
+        ["SIM_REVERTED", "deny", "The transaction would revert; the reason is decoded."],
+        ["UNLIMITED_APPROVAL_TO_EOA / APPROVAL_TO_EOA", "deny / warn", "Approval (ERC-20, Permit2, setApprovalForAll) to an address with no code."],
+        ["UNLIMITED_APPROVAL", "warn", "Unlimited approval to an untrusted contract, also inside multicall and Universal Router batches."],
+        ["HONEYPOT", "deny", "A token you receive cannot be transferred again."],
+        ["TRANSFER_TAX", "info / warn / deny", "A received token loses value on transfer (≥5% warns, ≥50% denies)."],
+        ["NATIVE_LIMIT / TOKEN_LIMIT", "deny", "Above a policy cap."],
+        ["DRAINS_BALANCE", "warn", "Moves 90% or more of the wallet's balance of an asset."],
+        ["ONE_WAY_OUTFLOW", "warn", "Assets leave to an untrusted address and nothing comes back."],
+        ["BLOCKLISTED_TARGET / SPENDER / RECIPIENT", "deny", "A known drainer or exploit address is involved."],
+        ["ZERO_TARGET", "deny", "Sending to the zero address."],
+        ["TARGET_NOT_ALLOWED / DENYLISTED_TARGET", "deny", "Outside the policy's allow list, or on its deny list."],
+        ["EOA_WITH_DATA", "warn", "Calldata sent to an address with no code."],
+        ["SIM_UNAVAILABLE", "warn", "The simulator could not run; nothing is assumed safe."],
+        ["DELEGATED_EOA, KNOWN_CONTRACT, APPROVAL_REVOKE", "info", "Context only."],
+      ]} />
+      <H2 id="receipts">Receipts</H2>
+      <p>Each verdict is signed as EIP-712 with domain <C>{`{ name: "Heimdall Shield", version: "1", chainId }`}</C> and type <C>Receipt(address agent, address target, bytes32 dataHash, uint256 value, uint8 verdict, uint64 expiresAt, bytes32 checkId)</C>. <C>GET /v1/signer</C> returns the current signer address. Heimdall vaults accept a receipt once, only before it expires, and only for exactly the same call.</p>
+    </>
+  );
+}

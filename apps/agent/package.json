@@ -1,0 +1,28 @@
+{
+  "name": "@heimdall/agent",
+  "version": "0.1.0",
+  "description": "Heimdall reference manager agent: buys signals, checks every trade with Shield, trades a Heimdall vault",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "once": "tsx src/index.ts --once",
+    "dry-run": "tsx src/index.ts --once --dry-run",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@heimdall/sdk": "file:../../packages/sdk",
+    "viem": "^2.58.4",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.1"
+  },
+  "type": "module",
+  "private": true
+}

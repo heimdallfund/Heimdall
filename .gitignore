@@ -1,0 +1,17 @@
+node_modules/
+dist/
+.next/
+artifacts/
+cache/
+types/
+.env
+.env.local
+*.tsbuildinfo
+mcp-registry-key.pem
+.next-*/
+test-results/
+playwright-report/
+coverage/
+contracts/deployments/localhost*.json
+apps/shield/data/*.local.*
+.DS_Store

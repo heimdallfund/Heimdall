@@ -1,0 +1,7 @@
+{
+  "name": "Heimdall",
+  "description": "A firewall for your agent's wallet on Robinhood Chain: every transaction and signature is simulated and judged ALLOW, WARN or DENY before it is signed.",
+  "actions": ["HEIMDALL_CHECK_TRANSACTION", "HEIMDALL_CHECK_SIGNATURE", "HEIMDALL_WALLET_CHECK", "HEIMDALL_AGENT_REPUTATION", "HEIMDALL_THREATS", "HEIMDALL_PAY_JOB", "HEIMDALL_PAY_RECORD"],
+  "settings": ["HEIMDALL_API_KEY", "HEIMDALL_API_URL", "HEIMDALL_PAY_ADDRESS"],
+  "links": { "homepage": "https://heimdall.fund", "docs": "https://heimdall.fund/docs/frameworks" }
+}
