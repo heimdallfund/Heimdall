@@ -850,6 +850,9 @@ export function buildApp(opts: AppOptions = {}) {
   return app;
 }
 
+/** Vercel's Hono preset loads this file and needs the app as its default export. Elsewhere (tests, tsx) nothing is built on import. */
+export default process.env.VERCEL ? buildApp() : undefined;
+
 if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split("/").pop()!)) {
   const port = Number(process.env.PORT ?? 8787);
   (prelaunch() ? Promise.resolve({ kind: "prelaunch", address: "none" }) : getSigner()).then((s) => {
