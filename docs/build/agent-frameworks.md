@@ -1,3 +1,7 @@
+---
+description: Heimdall tools for the Vercel AI SDK, LangChain and ElizaOS, with no MCP server to run.
+---
+
 # Agent frameworks
 
 `@heimdall/agent-kit` gives agents built on the **Vercel AI SDK**, **LangChain** or **ElizaOS** native Heimdall tools. There is no MCP server to run, and every framework gets the same tool names, inputs and answers.

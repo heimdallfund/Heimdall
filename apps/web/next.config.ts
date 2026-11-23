@@ -16,7 +16,11 @@ const nextConfig: NextConfig = {
   distDir: process.env.NEXT_DIST_DIR || ".next",
   async redirects() {
     if (!DOCS_URL) return [];
-    return Object.entries(DOCS_MAP).map(([source, path]) => ({ source, destination: `${DOCS_URL}${path}`, permanent: false }));
+    return [
+      ...Object.entries(DOCS_MAP).map(([source, path]) => ({ source, destination: `${DOCS_URL}${path}`, permanent: false })),
+      // any docs page not in the map lands on the GitBook home instead of a 404
+      { source: "/docs/:path+", destination: DOCS_URL, permanent: false },
+    ];
   },
   cacheComponents: true,
   partialPrefetching: true,

@@ -4,14 +4,23 @@ description: Heimdall contract addresses and roles on Robinhood Chain mainnet (c
 
 # Contracts
 
+All Heimdall contracts run on Robinhood Chain mainnet (chain ID 4663). None is upgradeable, and every admin role is a multisig through two-step ownership.
+
 ## Addresses
 
-| Contract | Address |
-| --- | --- |
-| HeimdallVaultFactory | Published at launch |
-| HeimdallSignals | Published at launch |
-| $HEIM | Published at launch |
-| USDG (Paxos) | [`0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168`](https://robinhoodchain.blockscout.com/address/0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168) |
+| Contract | What it does | Address |
+| --- | --- | --- |
+| HeimdallVaultFactory | Opens vaults with the default limits | Published at launch |
+| HeimdallVaultDeployer | Holds the vault code for the factory | Published at launch |
+| HeimdallSignals | Pay-per-call data market and vouchers | Published at launch |
+| HeimdallPay | USDG escrow for jobs between agents | Published at launch |
+| HeimdallAutoInvest | Recurring stock buys from your own wallet | Published at launch |
+| HeimdallStockFeed | Stock price in USDG: Chainlink stock/USD over USDG/USD | Published at launch |
+| HeimdallStaking | Stake $HEIM, earn USDG | Published with $HEIM |
+| HeimdallFeeSplitter | Splits protocol fees between stakers and the treasury | Published with $HEIM |
+| HeimdallHolderBalance | $HEIM held plus staked, for holder benefits | Published with $HEIM |
+| $HEIM | The Heimdall token | Published with $HEIM |
+| USDG (Paxos) | Settlement currency | [`0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168`](https://robinhoodchain.blockscout.com/address/0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168) |
 
 All Heimdall contracts are verified on [Blockscout](https://robinhoodchain.blockscout.com).
 
@@ -19,12 +28,17 @@ All Heimdall contracts are verified on [Blockscout](https://robinhoodchain.block
 
 | Role | Who | Can |
 | --- | --- | --- |
-| Vault owner | Heimdall multisig | Pause; set allowed calls, spenders, assets, feeds, Shield signer, manager, deposit cap; revoke approvals. |
+| Vault owner | Heimdall multisig | Pause; set allowed calls, spenders, assets, feeds, Shield signer, manager and deposit cap; revoke approvals. Limits never above 10% loss per trade or 15% per day. |
 | Manager | The agent that opened the vault | Call `execute()` with a valid Shield receipt. Nothing else. |
 | Shield signer | Heimdall Shield (AWS KMS key) | Sign receipts. Cannot move funds. |
-| Depositor | Anyone | Deposit, withdraw, redeem in kind. |
+| Depositor | Anyone | Deposit, withdraw, redeem in kind at any time. |
+| Arbiter | Picked by the client for each Pay job | Split a disputed job. After 14 days without a ruling, anyone can settle it 50/50. |
+| Keeper | Anyone | Run a due Auto-Invest buy within the owner's price bound; send collected fees to the splitter. |
 | Signals owner | Heimdall multisig | Set treasury, fee (≤20%), $HEIM holder terms and withdrawal delay (≤7 days). |
+| Pay and Auto-Invest owner | Heimdall multisig | Set the fee for new jobs and plans (Pay ≤3%, Auto-Invest ≤1%). Existing jobs and plans keep theirs. |
+| Splitter owner | Heimdall multisig | Set the stakers' share (≤80%) and the treasury. |
+| Staking | No owner | Only the splitter can add rewards. |
 
 ## Security
 
-The contracts were reviewed before launch; every finding is fixed and kept as a regression test, alongside property-based fuzz tests and static analysis. See [heimdall.fund/security](https://heimdall.fund/security).
+Three internal reviews, 112 tests including fuzz and stateful invariant tests, and static analysis. Every finding is fixed and kept as a regression test. There has been no external audit yet. See [heimdall.fund/security](https://heimdall.fund/security).

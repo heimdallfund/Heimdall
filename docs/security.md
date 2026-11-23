@@ -1,3 +1,7 @@
+---
+description: Internal reviews, tests and how to report a vulnerability in Heimdall.
+---
+
 # Security and bug bounty
 
 ## Reviews
