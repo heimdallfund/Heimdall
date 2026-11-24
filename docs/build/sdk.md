@@ -47,3 +47,24 @@ try {
 | `executeThroughGuard(wallet, { module, safe, to, data }, { shield })` | Run an agent call through the Guard module with a Shield receipt |
 | `shield.passport(id)` / `shield.linkPassport(address, agentId)` | Agent Passport and ERC-8004 linking ([Passport](../integrate/passport.md)) |
 | `heimdallScore(client, agentId, publisher)` | Heimdall's score straight from the ERC-8004 Reputation Registry |
+
+## Python
+
+For agents written in Python (LangChain, CrewAI, plain scripts): `heimdallfund`, sync and async, typed.
+
+```bash
+pip install heimdallfund
+```
+
+```python
+from heimdallfund import Shield, HeimdallDenied
+
+shield = Shield()  # free tier; Shield(api_key=...) or HEIMDALL_API_KEY lifts the limit
+try:
+    shield.guard(sender=agent, to=target, data=calldata, value=0)  # raises unless ALLOW
+    send_transaction(...)
+except HeimdallDenied as e:
+    print(e.result["findings"])
+```
+
+`check`, `guard`, `check_signature`, `risk`, `wallet_check`, `threats`, `passport`, `agent` and `status`; `AsyncShield` has the same methods. Over the free tier the client raises `PaymentRequired` with the x402 requirements.

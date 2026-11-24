@@ -48,6 +48,17 @@ The registry needs a public GitHub repo for the plugin.
 3. Add the topic `elizaos-plugins` to the repo.
 4. From the plugin folder: `elizaos plugins submit .` (it opens the registry pull request with `registry-entry.json`'s content).
 
+## 3b. PyPI (Python SDK)
+
+The Python client lives in `packages/sdk-python` and is published as `heimdallfund` (the name was free on 2026-11-24).
+
+```bash
+cd packages/sdk-python
+python3 -m pytest -q tests
+python3 -m build
+python3 -m twine upload dist/*   # PyPI account with two-factor; use an API token scoped to the project after the first upload
+```
+
 ## 4. Other directories (optional, after npm)
 
 Smithery, Glama and mcp.so list MCP servers from npm or a submission form. Use this text:

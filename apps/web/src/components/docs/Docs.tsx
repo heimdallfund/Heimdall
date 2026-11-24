@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { CopyButton } from "./DocsChrome";
 
-const LANG: Record<string, string> = { ts: "TypeScript", bash: "Terminal", json: "JSON", http: "HTTP" };
+const LANG: Record<string, string> = { ts: "TypeScript", bash: "Terminal", json: "JSON", http: "HTTP", python: "Python" };
 
 export function Code({ children, lang }: { children: string; lang?: string }) {
   return (

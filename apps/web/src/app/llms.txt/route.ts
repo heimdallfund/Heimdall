@@ -18,7 +18,7 @@ Free to start: no key for the free tier. Above it, pay per call with x402 (USDG)
 - [A2A agent](${PUBLIC_API_URL}/.well-known/agent-card.json): Agent2Agent v1.0 over JSON-RPC at ${PUBLIC_API_URL}/a2a. Skills: check-transaction, check-signature, check-address
 - [REST API, OpenAPI 3.1](${PUBLIC_API_URL}/openapi.json): every public endpoint; base URL ${PUBLIC_API_URL}
 - [API reference](${SITE}/docs/api): the same spec, readable, with a live Try it
-- [TypeScript SDK](${SITE}/docs/sdk): \`npm i @heimdallfund/sdk\`
+- [SDKs](${SITE}/docs/sdk): TypeScript \`npm i @heimdallfund/sdk\`, Python \`pip install heimdallfund\`
 - [Agent frameworks](${SITE}/docs/frameworks): ElizaOS, LangChain, Vercel AI SDK, agent-kit
 - [x402 payments](${SITE}/docs/x402): pay per check in USDG on Robinhood Chain, no account; discovery at ${PUBLIC_API_URL}/x402/discovery/resources
 

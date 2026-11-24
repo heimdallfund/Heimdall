@@ -56,6 +56,7 @@ export const PHASES: Phase[] = [
       { id: "unlock", title: "Unlock the site", detail: "Turn off Vercel deployment protection for production on heimdall-web." },
       { id: "addresses", title: "Publish the addresses", detail: "docs/build/contracts.md and the security page list every deployed contract with its explorer link." },
       { id: "npm-publish", title: "Publish the SDK, MCP server and agent kit", detail: "@heimdallfund/sdk, agent-kit, mcp and plugin-heimdall, in that order. Then the MCP Registry and the ElizaOS plugin (packages/PUBLISHING.md).", code: "node packages/release.mjs --publish --otp <code>" },
+      { id: "pypi", title: "Publish the Python SDK", detail: "heimdallfund on PyPI from packages/sdk-python (packages/PUBLISHING.md, section 3b). Needs a PyPI account with two-factor.", code: "cd packages/sdk-python && python3 -m build && python3 -m twine upload dist/*" },
       { id: "gitbook", title: "Docs live on GitBook", detail: "Sync from the docs/ folder; check the Integrate pages render." },
       { id: "status-green", title: "Status page green for an hour", detail: "Shield, RPC, monitor and keeper all up with no incident." },
       { id: "announce", title: "Launch post on X", detail: "Posted and pinned." },

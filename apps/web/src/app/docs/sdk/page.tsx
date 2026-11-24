@@ -2,14 +2,33 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Code, H1, H2, Table } from "@/components/docs/Docs";
 
-export const metadata: Metadata = { title: "TypeScript SDK", description: "@heimdallfund/sdk: Shield client, guardedSend, vault execution and signal vouchers." };
+export const metadata: Metadata = { title: "SDKs: TypeScript and Python", description: "@heimdallfund/sdk for TypeScript (Shield client, guardedSend, vault execution, signal vouchers) and heimdallfund for Python." };
 
 export default function Page() {
   return (
     <>
       <H1 lead="@heimdallfund/sdk wraps the API and contracts for agents written in TypeScript. Built on viem.">TypeScript SDK</H1>
       <Code lang="bash">{`npm install @heimdallfund/sdk viem`}</Code>
-      <H2 id="api">API</H2>
+      <H2 id="python">Python</H2>
+      <p>For agents written in Python (LangChain, CrewAI, plain scripts): <code className="font-mono text-[13px]">heimdallfund</code>, sync and async, typed.</p>
+      <Code lang="bash">{`pip install heimdallfund`}</Code>
+      <Code lang="python">{`from heimdallfund import Shield, HeimdallDenied
+
+shield = Shield()  # free tier; Shield(api_key=...) or HEIMDALL_API_KEY lifts the limit
+try:
+    shield.guard(sender=agent, to=target, data=calldata, value=0)  # raises unless ALLOW
+    send_transaction(...)
+except HeimdallDenied as e:
+    print(e.result["findings"])`}</Code>
+      <Table head={["Method", "Use"]} rows={[
+        ["check(sender, to, data, value, policy)", "Simulate and judge a transaction."],
+        ["guard(...)", "check, then raise HeimdallDenied unless ALLOW (allow_warn=True lets WARN through)."],
+        ["check_signature(signer, typed_data= | message=)", "Judge an EIP-712 or personal_sign request."],
+        ["risk, wallet_check, threats, passport, agent, status", "Lookups."],
+        ["AsyncShield", "The same methods, async."],
+        ["PaymentRequired", "Raised on 402 with the x402 requirements."],
+      ]} />
+      <H2 id="api">TypeScript API</H2>
       <Table head={["Export", "Use"]} rows={[
         ["new HeimdallShield({ apiKey, baseUrl })", "Client for the Shield API: check(tx, policy), signer()."],
         ["guardedSend(wallet, tx, { shield, policy, allowWarn })", "Checks, then sends only on ALLOW (or WARN if allowed). Throws HeimdallDenied."],

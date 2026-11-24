@@ -8,7 +8,7 @@ export const DOCS: NavSection[] = [
   { title: "Shield", items: [{ href: "/docs/shield", title: "Transaction checks" }, { href: "/docs/signatures", title: "Signature checks" }, { href: "/docs/webhooks", title: "Webhooks" }] },
   { title: "Products", items: [{ href: "/docs/wallet-check", title: "Wallet Check & Watch" }, { href: "/docs/vaults", title: "Vaults" }, { href: "/docs/signals", title: "Signals" }, { href: "/docs/pay", title: "Heimdall Pay" }, { href: "/docs/auto-invest", title: "Auto-Invest" }, { href: "/docs/arena", title: "Agent Arena" }, { href: "/docs/points", title: "Guardian Points" }, { href: "/docs/staking", title: "Staking $HEIM" }, { href: "/docs/agent", title: "Reference agent" }] },
   { title: "Integrate", items: [{ href: "/docs/risk-oracle", title: "Risk Oracle" }, { href: "/docs/guard", title: "Guard for Safe" }, { href: "/docs/x402", title: "x402 payments" }, { href: "/docs/passport", title: "Agent Passport" }] },
-  { title: "Build", items: [{ href: "/docs/sdk", title: "TypeScript SDK" }, { href: "/docs/mcp", title: "MCP server" }, { href: "/docs/frameworks", title: "Agent frameworks" }, { href: "/docs/contracts", title: "Contracts" }] },
+  { title: "Build", items: [{ href: "/docs/sdk", title: "SDKs: TypeScript & Python" }, { href: "/docs/mcp", title: "MCP server" }, { href: "/docs/frameworks", title: "Agent frameworks" }, { href: "/docs/contracts", title: "Contracts" }] },
 ];
 export const DOCS_FLAT = DOCS.flatMap((s) => s.items.map((i) => ({ ...i, section: s.title })));
 
