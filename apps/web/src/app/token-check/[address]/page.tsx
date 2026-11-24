@@ -87,7 +87,7 @@ async function Content({ params }: { params: Promise<{ address: string }> }) {
         </section>
       )}
       <section className="grid gap-3 text-[14px] md:grid-cols-2">
-        <div className="card flex flex-col gap-1.5 p-4">
+        <div className="card flex min-w-0 flex-col gap-1.5 p-4">
           <span className="label">Market</span>
           {r.launch?.model === "curve" && r.launch.graduated === false ? (
             <>
@@ -99,16 +99,16 @@ async function Content({ params }: { params: Promise<{ address: string }> }) {
             <><span className="break-all font-mono text-[12.5px]">{r.pool.address.slice(0, 18)}…</span><span className="text-muted">Uniswap v4 · {r.pool.pair} · {r.pool.fee === 0x800000 ? "dynamic fee" : `${(r.pool.fee / 10_000).toFixed(2)}% fee`}{r.pool.hooks && !/^0x0{40}$/i.test(r.pool.hooks) ? <> · hook <a href={explorerAddress(r.pool.hooks)} target="_blank" rel="noopener" className="font-mono hover:text-brand">{short(r.pool.hooks)}</a></> : " · no hook"}</span></>
           ) : <><a href={explorerAddress(r.pool.address)} target="_blank" rel="noopener" className="font-mono hover:text-brand">{short(r.pool.address)}</a><span className="text-muted">Uniswap v3 · {r.pool.pair} · {(r.pool.fee / 10_000).toFixed(2)}% fee</span></>) : <span className="text-muted">No Uniswap v3 or v4 pool against ETH or WETH</span>}
         </div>
-        <div className="card flex flex-col gap-1.5 p-4">
+        <div className="card flex min-w-0 flex-col gap-1.5 p-4">
           <span className="label">Owner</span>
           {r.owner ? <a href={explorerAddress(r.owner)} target="_blank" rel="noopener" className="font-mono hover:text-brand">{short(r.owner)}</a> : <span className="text-muted">None, or not exposed by owner()</span>}
-          {info.filter((f) => f.code !== "HAS_OWNER").map((f, i) => <span key={i} className="text-muted">{f.message}</span>)}
+          {info.filter((f) => f.code !== "HAS_OWNER" && f.code !== "LAUNCHPAD").map((f, i) => <span key={i} className="text-muted [overflow-wrap:anywhere]">{f.message}</span>)}
         </div>
       </section>
       {(r.launch || r.holders) && (
         <section className="grid gap-3 text-[14px] md:grid-cols-2">
           {r.launch && (
-            <div className="card flex flex-col gap-1.5 p-4">
+            <div className="card flex min-w-0 flex-col gap-1.5 p-4">
               <span className="label">Launch</span>
               <span className="font-semibold">{r.launch.url ? <a href={r.launch.url} target="_blank" rel="noopener" className="hover:text-brand">{r.launch.launchpad}</a> : r.launch.launchpad}<span className="font-normal text-muted"> · {r.launch.graduated === false ? "on the bonding curve" : r.launch.graduated ? "graduated" : r.launch.model === "curve" ? "bonding curve" : `Uniswap ${r.launch.model}`}</span></span>
               {r.launch.dev && <span className="text-muted">Dev <a href={`/check/${r.launch.dev}`} className="font-mono hover:text-brand">{short(r.launch.dev)}</a>{r.holders?.devPct != null ? ` · holds ${r.holders.devPct.toFixed(1)}%` : ""}{r.holders?.devSoldPct != null ? ` · sold or moved ${r.holders.devSoldPct.toFixed(0)}% of what they got` : ""}</span>}
@@ -116,7 +116,7 @@ async function Content({ params }: { params: Promise<{ address: string }> }) {
             </div>
           )}
           {r.holders && (
-            <div className="card flex flex-col gap-1.5 p-4">
+            <div className="card flex min-w-0 flex-col gap-1.5 p-4">
               <span className="label">Holders</span>
               <span className="font-semibold">{r.holders.count.toLocaleString("en-US")} wallet{r.holders.count === 1 ? "" : "s"}{r.holders.top10Pct !== null ? <span className="font-normal text-muted"> · top 10 hold {r.holders.top10Pct.toFixed(1)}%</span> : null}</span>
               <ul className="flex flex-col gap-0.5">{r.holders.top.slice(0, 5).map((h) => <li key={h.address} className="flex justify-between gap-3 font-mono text-[12.5px]"><a href={`/check/${h.address}`} className="text-muted hover:text-brand">{short(h.address)}{h.address === r.holders?.dev ? " (dev)" : ""}</a><span>{h.pct.toFixed(2)}%</span></li>)}</ul>
