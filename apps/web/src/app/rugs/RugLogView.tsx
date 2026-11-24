@@ -58,11 +58,11 @@ export function RugLogView() {
   if (!log) return <div className="card p-6 text-muted">{error ? "The rug log could not be loaded. Try again in a minute." : "Loading the record…"}</div>;
   return (
     <section className="flex flex-col gap-5">
-      <div className="grid gap-3 sm:grid-cols-4">
-        <div className="card flex flex-col gap-1 p-5"><span className="label">Rugs recorded</span><span className="font-mono text-[34px] font-bold">{log.total}</span><span className="text-[13px] text-muted">{log.watching.toLocaleString("en-US")} tokens on watch now</span></div>
-        <div className="card flex flex-col gap-1 p-5"><span className="label">Flagged beforehand</span><span className="font-mono text-[34px] font-bold text-allow">{pct(log.flagged, log.total)}</span><span className="text-[13px] text-muted">{log.flagged} were WARN or DENY at their first check</span></div>
-        <div className="card flex flex-col gap-1 p-5"><span className="label">Pull warned</span><span className="font-mono text-[34px] font-bold">{pct(log.lpWarned, log.total)}</span><span className="text-[13px] text-muted">{log.lpWarned} had “liquidity can be pulled” at their first check</span></div>
-        <div className="card flex flex-col gap-1 p-5"><span className="label">Missed</span><span className="font-mono text-[34px] font-bold text-warn">{log.passed}</span><span className="text-[13px] text-muted">rugged after Heimdall passed them (ALLOW)</span></div>
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <div className="card flex flex-col gap-1 p-4 sm:p-5"><span className="label">Rugs recorded</span><span className="font-mono text-[34px] font-bold">{log.total}</span><span className="text-[13px] text-muted">{log.watching.toLocaleString("en-US")} tokens on watch now</span></div>
+        <div className="card flex flex-col gap-1 p-4 sm:p-5"><span className="label">Flagged beforehand</span><span className="font-mono text-[34px] font-bold text-allow">{pct(log.flagged, log.total)}</span><span className="text-[13px] text-muted">{log.flagged} were WARN or DENY at their first check</span></div>
+        <div className="card flex flex-col gap-1 p-4 sm:p-5"><span className="label">Pull warned</span><span className="font-mono text-[34px] font-bold">{pct(log.lpWarned, log.total)}</span><span className="text-[13px] text-muted">{log.lpWarned} had “liquidity can be pulled” at their first check</span></div>
+        <div className="card flex flex-col gap-1 p-4 sm:p-5"><span className="label">Missed</span><span className="font-mono text-[34px] font-bold text-warn">{log.passed}</span><span className="text-[13px] text-muted">rugged after Heimdall passed them (ALLOW)</span></div>
       </div>
       {log.events.length ? (
         <div className="grid gap-3 md:grid-cols-2">{log.events.map((e) => <Rug key={e.token} e={e} />)}</div>
