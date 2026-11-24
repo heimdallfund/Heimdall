@@ -5,7 +5,9 @@ import type { TokenCheck } from "./tokencheck.js";
  * The verdict always comes from the simulation; the model only explains it. Runs through Vercel AI Gateway with the
  * deployment's OIDC token (or AI_GATEWAY_API_KEY). Returns null when no model is reachable: the report stands alone.
  */
-export const AI_MODEL = process.env.AI_GATEWAY_MODEL ?? "anthropic/claude-haiku-5.5";
+/** Tried in order: the first the gateway serves this team is used (free-tier teams cannot use every model). */
+export const AI_MODELS = (process.env.AI_GATEWAY_MODEL ?? "anthropic/claude-haiku-5.5,anthropic/claude-haiku-4.5,google/gemini-2.5-flash,deepseek/deepseek-v4-flash").split(",").map((m) => m.trim()).filter(Boolean);
+export const AI_MODEL = AI_MODELS[0]!;
 
 const SYSTEM = `You explain Heimdall Token Check results to crypto traders on Robinhood Chain.
 Use ONLY the facts in the JSON you are given. Never add facts, prices, predictions, opinions on the project, or advice to buy or sell.
@@ -28,24 +30,29 @@ function facts(r: TokenCheck) {
 }
 
 export async function summarizeTokenCheck(r: TokenCheck, opts: { oidc?: string; fetcher?: typeof fetch; timeoutMs?: number } = {}): Promise<string | null> {
+  return (await summarize(r, opts))?.text ?? null;
+}
+
+export async function summarize(r: TokenCheck, opts: { oidc?: string; fetcher?: typeof fetch; timeoutMs?: number } = {}): Promise<{ text: string; model: string } | null> {
   const token = process.env.AI_GATEWAY_API_KEY ?? process.env.VERCEL_OIDC_TOKEN ?? opts.oidc;
   if (!token) { console.warn(JSON.stringify({ level: "warn", path: "ai", message: "no AI Gateway credential (AI_GATEWAY_API_KEY or OIDC)" })); return null; }
-  const res = await (opts.fetcher ?? fetch)("https://ai-gateway.vercel.sh/v1/chat/completions", {
-    method: "POST",
-    headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
-    body: JSON.stringify({
-      model: AI_MODEL,
-      max_tokens: 220,
-      temperature: 0,
-      messages: [{ role: "system", content: SYSTEM }, { role: "user", content: JSON.stringify(facts(r)) }],
-    }),
-    signal: AbortSignal.timeout(opts.timeoutMs ?? 12_000),
-  });
-  if (!res.ok) {
-    console.warn(JSON.stringify({ level: "warn", path: "ai", message: `gateway ${res.status}: ${(await res.text().catch(() => "")).slice(0, 200)}` }));
-    return null;
+  const content = JSON.stringify(facts(r));
+  for (const model of AI_MODELS) {
+    const res = await (opts.fetcher ?? fetch)("https://ai-gateway.vercel.sh/v1/chat/completions", {
+      method: "POST",
+      headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
+      body: JSON.stringify({ model, max_tokens: 220, temperature: 0, messages: [{ role: "system", content: SYSTEM }, { role: "user", content }] }),
+      signal: AbortSignal.timeout(opts.timeoutMs ?? 12_000),
+    }).catch(() => null);
+    if (!res) continue;
+    if (!res.ok) {
+      console.warn(JSON.stringify({ level: "warn", path: "ai", message: `gateway ${res.status} for ${model}: ${(await res.text().catch(() => "")).slice(0, 160)}` }));
+      if (res.status === 401) return null; // bad credential: no model will work
+      continue;
+    }
+    const j = await res.json() as { choices?: { message?: { content?: string } }[] };
+    const text = j.choices?.[0]?.message?.content?.trim();
+    if (text) return { text: text.slice(0, 900), model };
   }
-  const j = await res.json() as { choices?: { message?: { content?: string } }[] };
-  const text = j.choices?.[0]?.message?.content?.trim();
-  return text ? text.slice(0, 900) : null;
+  return null;
 }

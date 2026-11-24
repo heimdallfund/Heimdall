@@ -4,7 +4,7 @@ import { currentSeason, recordSnapshots, standings, type Snapshot } from "./aren
 import { openApi } from "./openapi.js";
 import { agentCard, handleA2A } from "./a2a.js";
 import { tokenCheck } from "./tokencheck.js";
-import { AI_MODEL, summarizeTokenCheck } from "./ai.js";
+import { summarize } from "./ai.js";
 import { alchemyHoldings, explorerHoldings, flagHoldings } from "./holdings.js";
 import { countVerdict, listIncidents, recordHeartbeat, status, upsertIncident } from "./status.js";
 import { runWatch, subscribe, unsubscribe, validSubscription, webPushSender } from "./watch.js";
@@ -459,8 +459,9 @@ export function buildApp(opts: AppOptions = {}) {
     if (denied) return denied;
     try {
       const r = await cachedTokenCheck(a as `0x${string}`);
-      const summary = await summarizeTokenCheck(r, { oidc: c.req.header("x-vercel-oidc-token") }).catch((e) => { log({ level: "warn", path: "/v1/token/summary", message: (e as Error).message }); return null; });
-      const body = { token: r.token, verdict: r.verdict, summary, model: summary ? AI_MODEL : null, checkedAt: r.checkedAt };
+      const s = await summarize(r, { oidc: c.req.header("x-vercel-oidc-token") }).catch((e) => { log({ level: "warn", path: "/v1/token/summary", message: (e as Error).message }); return null; });
+      const summary = s?.text ?? null;
+      const body = { token: r.token, verdict: r.verdict, summary, model: s?.model ?? null, checkedAt: r.checkedAt };
       if (summary) await store.put(key, JSON.stringify(body), 600).catch(() => {});
       return c.json(body);
     } catch (e) {
