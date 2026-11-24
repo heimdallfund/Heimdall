@@ -107,9 +107,14 @@ export class UpstashStore implements CounterStore {
   }
 }
 
+/** Upstash REST credentials: its own names, or the KV_REST_API_* names the Vercel Marketplace integration sets. */
+export function redisRest(env: NodeJS.ProcessEnv = process.env): { url: string; token: string } | null {
+  const url = env.UPSTASH_REDIS_REST_URL ?? env.KV_REST_API_URL;
+  const token = env.UPSTASH_REDIS_REST_TOKEN ?? env.KV_REST_API_TOKEN;
+  return url && token ? { url, token } : null;
+}
+
 export function storeFromEnv(env: NodeJS.ProcessEnv = process.env): CounterStore {
-  if (env.UPSTASH_REDIS_REST_URL && env.UPSTASH_REDIS_REST_TOKEN) {
-    return new UpstashStore(env.UPSTASH_REDIS_REST_URL, env.UPSTASH_REDIS_REST_TOKEN);
-  }
-  return new MemoryStore();
+  const r = redisRest(env);
+  return r ? new UpstashStore(r.url, r.token) : new MemoryStore();
 }
