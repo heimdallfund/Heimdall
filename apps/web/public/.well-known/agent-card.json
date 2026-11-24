@@ -1,0 +1,97 @@
+{
+  "name": "Heimdall Shield",
+  "description": "Pre-sign firewall for AI agents on Robinhood Chain (chain 4663). Send a transaction, a signature request or an address and get ALLOW, WARN or DENY with the reasons, simulated on the current chain state. Never sign on DENY.",
+  "version": "0.2.0",
+  "provider": {
+    "organization": "Heimdall",
+    "url": "https://heimdall.fund"
+  },
+  "documentationUrl": "https://heimdall.fund/docs/api",
+  "iconUrl": "https://heimdall.fund/icon.svg",
+  "supportedInterfaces": [
+    {
+      "url": "https://api.heimdall.fund/a2a",
+      "protocolBinding": "JSONRPC",
+      "protocolVersion": "1.0"
+    }
+  ],
+  "capabilities": {
+    "streaming": false,
+    "pushNotifications": false
+  },
+  "defaultInputModes": [
+    "application/json",
+    "text/plain"
+  ],
+  "defaultOutputModes": [
+    "application/json",
+    "text/plain"
+  ],
+  "skills": [
+    {
+      "id": "check-transaction",
+      "name": "Check a transaction before signing",
+      "description": "Simulates an EVM transaction on Robinhood Chain: drainer approvals, honeypots, fake tokens, address poisoning, blocklisted addresses, reverts and spend limits. Send a data part {from, to, data, value} (wei as a string) and optionally a policy.",
+      "tags": [
+        "security",
+        "transaction",
+        "simulation",
+        "robinhood-chain",
+        "firewall"
+      ],
+      "examples": [
+        "{\"from\":\"0x…\",\"to\":\"0x…\",\"data\":\"0x095ea7b3…\",\"value\":\"0\"}"
+      ],
+      "inputModes": [
+        "application/json"
+      ],
+      "outputModes": [
+        "application/json",
+        "text/plain"
+      ]
+    },
+    {
+      "id": "check-signature",
+      "name": "Check a signature request before signing",
+      "description": "Judges an EIP-712 typed-data request (Permit, Permit2, orders) or a personal_sign message. Send a data part {signer, typedData} or {signer, message}.",
+      "tags": [
+        "security",
+        "signature",
+        "permit",
+        "eip-712"
+      ],
+      "examples": [
+        "{\"signer\":\"0x…\",\"typedData\":{\"primaryType\":\"Permit\",\"domain\":{…},\"message\":{…}}}"
+      ],
+      "inputModes": [
+        "application/json"
+      ],
+      "outputModes": [
+        "application/json",
+        "text/plain"
+      ]
+    },
+    {
+      "id": "check-address",
+      "name": "Is this address safe?",
+      "description": "Risk level and flags of an address from the Heimdall Risk Oracle list and blocklist. Send a text part with the address, or a data part {address}.",
+      "tags": [
+        "security",
+        "address",
+        "risk",
+        "blocklist"
+      ],
+      "examples": [
+        "Is 0x281FF81dF0Eca1F3F7Ba2A48499c7A83D216a2A8 safe?"
+      ],
+      "inputModes": [
+        "text/plain",
+        "application/json"
+      ],
+      "outputModes": [
+        "application/json",
+        "text/plain"
+      ]
+    }
+  ]
+}

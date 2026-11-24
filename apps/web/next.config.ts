@@ -29,6 +29,7 @@ const nextConfig: NextConfig = {
     const open = [{ key: "access-control-allow-origin", value: "*" }, { key: "cache-control", value: "public, max-age=3600" }];
     return [
       { source: "/.well-known/mcp/server-card.json", headers: open },
+      { source: "/.well-known/agent-card.json", headers: open },
       { source: "/llms.txt", headers: open },
     ];
   },

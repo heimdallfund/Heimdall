@@ -2,6 +2,7 @@ import { agentStats, loadVerdict, recordCheck, saveVerdict, threats } from "./in
 import { scanWallet } from "./approvals.js";
 import { currentSeason, recordSnapshots, standings, type Snapshot } from "./arena.js";
 import { openApi } from "./openapi.js";
+import { agentCard, handleA2A } from "./a2a.js";
 import { countVerdict, listIncidents, recordHeartbeat, status, upsertIncident } from "./status.js";
 import { runWatch, subscribe, unsubscribe, validSubscription, webPushSender } from "./watch.js";
 import { bindReferral, claimAction, earlyStatus, growthStats, ipKey, referralStats, registerEarly } from "./growth.js";
@@ -380,6 +381,24 @@ export function buildApp(opts: AppOptions = {}) {
       log({ level: "error", path: "/v1/check", message: (e as Error).message });
       return c.json({ error: "check_failed", message: "Shield could not complete the check. Treat the transaction as unsafe." }, 500);
     }
+  });
+
+  // ── A2A: other agents send a task (check a transaction, a signature or an address) ──
+  app.get("/.well-known/agent-card.json", (c) => {
+    c.header("access-control-allow-origin", "*");
+    c.header("cache-control", "public, max-age=3600");
+    return c.json(agentCard(env.SHIELD_PUBLIC_URL ?? "https://api.heimdall.fund"));
+  });
+  app.post("/a2a", limitBody, async (c) => {
+    const rpc = await c.req.json().catch(() => null);
+    if (!rpc || typeof rpc !== "object" || Array.isArray(rpc)) return c.json({ jsonrpc: "2.0", id: null, error: { code: -32700, message: "Parse error" } });
+    // The task runs through the public route with the caller's own headers: same IP, key, x402 payment and quota.
+    const pass = ["x-forwarded-for", "x-real-ip", "authorization", "x-api-key", "payment-signature", "x-payment", "x-heimdall-relay", "x-heimdall-client-ip"];
+    const headers: Record<string, string> = {};
+    for (const h of pass) { const v = c.req.header(h); if (v) headers[h] = v; }
+    const call = async (path: string, init: RequestInit = {}) => app.request(path, { ...init, headers: { ...headers, ...(init.headers as Record<string, string>) } });
+    c.header("access-control-allow-origin", "*");
+    return c.json(await handleA2A(rpc, call) as Record<string, unknown>);
   });
 
   app.get("/v1/verdicts/:id", async (c) => {

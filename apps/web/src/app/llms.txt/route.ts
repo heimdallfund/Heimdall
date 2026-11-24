@@ -15,6 +15,7 @@ Free to start: no key for the free tier. Above it, pay per call with x402 (USDG)
 
 - [MCP server (remote)](https://mcp.heimdall.fund/mcp): Streamable HTTP. Claude Code: \`claude mcp add --transport http heimdall https://mcp.heimdall.fund/mcp\`. Server card: https://mcp.heimdall.fund/mcp/server-card
 - [MCP server (local)](${SITE}/docs/mcp): \`npx -y @heimdallfund/mcp\` (stdio), for Claude Desktop, Cursor and any MCP client
+- [A2A agent](${PUBLIC_API_URL}/.well-known/agent-card.json): Agent2Agent v1.0 over JSON-RPC at ${PUBLIC_API_URL}/a2a. Skills: check-transaction, check-signature, check-address
 - [REST API, OpenAPI 3.1](${PUBLIC_API_URL}/openapi.json): every public endpoint; base URL ${PUBLIC_API_URL}
 - [API reference](${SITE}/docs/api): the same spec, readable, with a live Try it
 - [TypeScript SDK](${SITE}/docs/sdk): \`npm i @heimdallfund/sdk\`

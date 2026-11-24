@@ -63,6 +63,10 @@ export default async function Page() {
       <H1 lead={<>Every public endpoint of the Shield API, generated from its OpenAPI 3.1 spec. Base URL <C>{PUBLIC_API_URL}</C>.</>}>API reference</H1>
       <p>Point any OpenAPI tool at the spec to get a client in your language, or hand it to an agent: <a className="text-brand underline underline-offset-2" href={`${PUBLIC_API_URL}/openapi.json`}>{PUBLIC_API_URL}/openapi.json</a> (also at <a className="text-brand underline underline-offset-2" href="/openapi.json">heimdall.fund/openapi.json</a>).</p>
       <Code lang="bash">{`npx @openapitools/openapi-generator-cli generate -i ${PUBLIC_API_URL}/openapi.json -g python -o heimdall-client`}</Code>
+      <H2 id="a2a">Agent2Agent (A2A)</H2>
+      <p>Agents that speak A2A can delegate a check as a task. The agent card is at <a className="text-brand underline underline-offset-2" href={`${PUBLIC_API_URL}/.well-known/agent-card.json`}>{PUBLIC_API_URL}/.well-known/agent-card.json</a>; send <C>SendMessage</C> over JSON-RPC to <C>{`${PUBLIC_API_URL}/a2a`}</C> with a data part. The task comes back completed, with the verdict as data and as one readable line. Free tier, x402 and API keys work the same as on the REST routes.</p>
+      <Code lang="json">{`{"jsonrpc":"2.0","id":1,"method":"SendMessage","params":{"message":{"messageId":"1","role":"ROLE_USER",
+  "parts":[{"data":{"from":"0x…","to":"0x…","data":"0x…","value":"0"},"mediaType":"application/json"}]}}}`}</Code>
       <Note>No key needed for the free tier. Above it, the API answers 402 with a <C>PAYMENT-REQUIRED</C> header: pay per call in USDG with x402, or send an API key as <C>x-api-key</C>. See <a className="text-brand underline underline-offset-2" href="/docs/limits">API keys & limits</a>.</Note>
       {!spec && <Note>The spec could not be loaded right now. It is always at {PUBLIC_API_URL}/openapi.json.</Note>}
       {spec?.tags.map((tag) => {
