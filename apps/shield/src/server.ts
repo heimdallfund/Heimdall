@@ -4,7 +4,7 @@ import { currentSeason, recordSnapshots, standings, type Snapshot } from "./aren
 import { openApi } from "./openapi.js";
 import { agentCard, handleA2A } from "./a2a.js";
 import { tokenCheck } from "./tokencheck.js";
-import { explorerHoldings, flagHoldings } from "./holdings.js";
+import { alchemyHoldings, explorerHoldings, flagHoldings } from "./holdings.js";
 import { countVerdict, listIncidents, recordHeartbeat, status, upsertIncident } from "./status.js";
 import { runWatch, subscribe, unsubscribe, validSubscription, webPushSender } from "./watch.js";
 import { bindReferral, claimAction, earlyStatus, growthStats, ipKey, referralStats, registerEarly } from "./growth.js";
@@ -676,7 +676,7 @@ export function buildApp(opts: AppOptions = {}) {
       const client = getClient(4663);
       const [report, holdings] = await Promise.all([
         scanWallet(a as `0x${string}`, { client, store, deniedTargets: await deniedTargets() }),
-        explorerHoldings(a as `0x${string}`),
+        alchemyHoldings(client, env.RPC_URL_MAINNET, a as `0x${string}`).then((h) => h ?? explorerHoldings(a as `0x${string}`)),
       ]);
       await rememberFlagged(store, a, report.approvals.filter((r) => r.risk !== "ok"));
       // the tokens it holds can be the trap too: fakes, blocklisted tokens, honeypots and clawbacks

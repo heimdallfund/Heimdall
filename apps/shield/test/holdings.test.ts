@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { getAddress, type PublicClient } from "viem";
-import { explorerHoldings, flagHoldings, type Holding } from "../src/holdings.js";
+import { alchemyHoldings, explorerHoldings, flagHoldings, type Holding } from "../src/holdings.js";
 
 const NVDA_REAL = "0xd0601ce157db5bdc3162bbac2a2c8af5320d9eec";
 const FAKE = getAddress("0x1111111111111111111111111111111111111111");
@@ -52,5 +52,20 @@ describe("held token flags", () => {
     expect(r).toHaveLength(1);
     expect(r[0]).toMatchObject({ token: FAKE, symbol: "NVDA", decimals: 6, value: 5_000_000n });
     expect(await explorerHoldings(PLAIN, (async () => { throw new Error("down"); }) as typeof fetch, {})).toEqual([]);
+  });
+
+  it("reads Alchemy token balances across pages, fills metadata onchain, and is skipped for other RPCs", async () => {
+    const pages = [
+      { tokenBalances: [{ contractAddress: FAKE, tokenBalance: "0x0de0b6b3a7640000" }, { contractAddress: PLAIN, tokenBalance: "0x0" }], pageKey: "p2" },
+      { tokenBalances: [{ contractAddress: TRAP, tokenBalance: "0x05" }] },
+    ];
+    let call = 0;
+    const fetcher = (async () => new Response(JSON.stringify({ result: pages[call++] }))) as typeof fetch;
+    const mc = { multicall: async ({ contracts }: { contracts: { address: string; functionName: string }[] }) => contracts.map((c) => ({ status: "success", result: c.functionName === "decimals" ? 18 : c.functionName === "symbol" ? sym[c.address.toLowerCase()] : "Some token" })) } as unknown as PublicClient;
+    const r = await alchemyHoldings(mc, "https://robinhood-mainnet.g.alchemy.com/v2/x", PLAIN, fetcher);
+    expect(r?.map((h) => [h.symbol, h.value])).toEqual([["NVDA", 10n ** 18n], ["MOON", 5n]]);
+    expect(await alchemyHoldings(mc, "https://rpc.example.com", PLAIN, fetcher)).toBeNull();
+    const failing = (async () => new Response("no", { status: 500 })) as typeof fetch;
+    expect(await alchemyHoldings(mc, "https://x.alchemy.com/v2/y", PLAIN, failing)).toBeNull();
   });
 });

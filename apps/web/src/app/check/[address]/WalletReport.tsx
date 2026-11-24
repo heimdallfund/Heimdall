@@ -35,6 +35,7 @@ export function WalletReport({ address }: { address: Address }) {
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [allTokens, setAllTokens] = useState(false);
   const polls = useRef(0);
   const { address: me } = useAccount();
   const pc = usePublicClient();
@@ -104,7 +105,7 @@ export function WalletReport({ address }: { address: Address }) {
             <p className="mt-0.5 text-[14px] text-muted">Tokens like these are often airdropped as bait. Do not swap, approve or send them, and never buy more.</p>
           </div>
           <ul className="divide-y divide-line">
-            {flags.map((t) => (
+            {(allTokens ? flags : flags.slice(0, 6)).map((t) => (
               <li key={t.token} className="grid min-w-0 gap-3 px-5 py-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)_auto] md:items-center">
                 <div className="flex min-w-0 items-center gap-3">
                   <span className={`shrink-0 rounded-sm px-2.5 py-1 text-[12px] font-semibold ${TONE[t.risk]}`}>{TOKEN_LABEL[t.code] ?? LABEL[t.risk]}</span>
@@ -116,6 +117,11 @@ export function WalletReport({ address }: { address: Address }) {
               </li>
             ))}
           </ul>
+          {flags.length > 6 && !allTokens && (
+            <div className="border-t border-line px-5 py-3">
+              <button type="button" onClick={() => setAllTokens(true)} className="min-h-10 text-[14px] font-semibold text-brand hover:underline">Show all {flags.length}</button>
+            </div>
+          )}
         </section>
       )}
 
