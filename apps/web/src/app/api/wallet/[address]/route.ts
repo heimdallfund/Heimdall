@@ -1,4 +1,5 @@
 import { SHIELD_API_URL } from "@/lib/config";
+import { relayHeaders } from "@/lib/relay";
 
 /** Wallet Check proxy: keeps the Shield API key server-side and forwards the visitor IP for per-visitor limits. */
 export async function GET(req: Request, ctx: { params: Promise<{ address: string }> }) {
@@ -7,7 +8,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ address: string
   const refresh = new URL(req.url).searchParams.get("refresh") === "1" ? "?refresh=1" : "";
   try {
     const res = await fetch(`${SHIELD_API_URL}/v1/wallet/${address}${refresh}`, {
-      headers: { "x-forwarded-for": req.headers.get("x-forwarded-for") ?? "", ...(process.env.SHIELD_API_KEY ? { authorization: `Bearer ${process.env.SHIELD_API_KEY}` } : {}) },
+      headers: relayHeaders(req.headers),
       signal: AbortSignal.timeout(55_000), cache: "no-store",
     });
     return new Response(await res.text(), { status: res.status, headers: { "content-type": "application/json" } });

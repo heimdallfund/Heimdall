@@ -6,7 +6,7 @@ export const PHASES: Phase[] = [
   {
     id: "before", title: "Before the day", when: "Days ahead",
     steps: [
-      { id: "domain", title: "Register heimdall.fund", detail: "Not registered yet (checked 2026-11-24). The site, api.heimdall.fund, security@ and hello@ email, and the MCP Registry DNS proof all depend on it." },
+      { id: "domain", title: "Register heimdall.fund", detail: "Bought on Vercel 2026-11-24 (turn auto-renew on). Attached: heimdall.fund + www → heimdall-web, api. → heimdall-shield, mcp. → heimdall-mcp. The site, api.heimdall.fund, security@ and hello@ email, and the MCP Registry DNS proof all depend on it." },
       { id: "audit-report", title: "Independent audit report in, every fix reviewed", detail: "The auditor's fix review covers the exact commit you will deploy. Note that commit." },
       { id: "safe-ready", title: "Admin Safe ready on Robinhood Chain", detail: "Safe 1.4.1 with every signer added and a test transaction signed by the threshold." },
       { id: "kms-signer", title: "Shield signer key", detail: "Done 2026-11-24: 0xa6ce235055039a55aa438aFFAD18F7d0Ccf092d9, key in SHIELD_SIGNER_KEY (sensitive, production) on heimdall-shield, already in the deploy config as shieldSigner. Moving to AWS KMS later is a Safe rotation, no redeploy." },

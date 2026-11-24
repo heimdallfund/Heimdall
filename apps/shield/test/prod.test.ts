@@ -177,6 +177,14 @@ describe("hosted MCP relay", () => {
     for (let i = 0; i < 3; i++) expect((await as("3.3.3.3", "wrong")).status).toBe(200);
     expect((await as("4.4.4.4")).status).toBe(429);
   });
+
+  it("accepts the website's own relay key alongside the MCP one", async () => {
+    const a = app({ SHIELD_FREE_DAILY: "1000", SHIELD_RELAY_KEY_SHA256: sha256("mcp-key").toString("hex"), SHIELD_RELAY_KEY_SHA256_WEB: sha256("web-key").toString("hex") });
+    const as = (ip: string, key: string) => post(a, { "x-heimdall-client-ip": ip, "x-heimdall-relay": key });
+    for (let i = 0; i < 3; i++) expect((await as("5.5.5.5", "web-key")).status).toBe(200);
+    expect((await as("5.5.5.5", "mcp-key")).status).toBe(429);
+    expect((await as("6.6.6.6", "web-key")).status).toBe(200);
+  });
 });
 
 describe("Shareable verdicts, threats and agents endpoints", () => {

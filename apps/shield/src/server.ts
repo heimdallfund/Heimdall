@@ -717,11 +717,14 @@ export function buildApp(opts: AppOptions = {}) {
    * hosted MCP server calls in from one IP for many users, so it may name the real caller with x-heimdall-client-ip,
    * but only together with the relay key (SHIELD_RELAY_KEY_SHA256): nobody else can pick the IP they are counted under.
    */
+  // one relay key per trusted host: the hosted MCP server (SHIELD_RELAY_KEY_SHA256) and the website (_WEB)
+  const relayHashes = [env.SHIELD_RELAY_KEY_SHA256, env.SHIELD_RELAY_KEY_SHA256_WEB]
+    .flatMap((v) => (v ?? "").split(",")).map((v) => v.trim()).filter((v) => /^[0-9a-f]{64}$/i.test(v)).map((v) => Buffer.from(v, "hex"));
   const relayOk = (c: any) => {
-    const want = env.SHIELD_RELAY_KEY_SHA256, got = c.req.header("x-heimdall-relay");
-    if (!want || !got) return false;
-    const a = createHash("sha256").update(got).digest(), b = Buffer.from(want, "hex");
-    return a.length === b.length && timingSafeEqual(a, b);
+    const got = c.req.header("x-heimdall-relay");
+    if (!relayHashes.length || !got) return false;
+    const a = createHash("sha256").update(got).digest();
+    return relayHashes.some((b) => timingSafeEqual(a, b));
   };
   function clientIp(c: any, fallback: string): string {
     const relayed = c.req.header("x-heimdall-client-ip");

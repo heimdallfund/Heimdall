@@ -1,4 +1,5 @@
 import { SHIELD_API_URL } from "@/lib/config";
+import { relayHeaders } from "@/lib/relay";
 
 /** Proxies the console to the Shield API so the browser never needs the API key. */
 export async function POST(req: Request) {
@@ -7,7 +8,7 @@ export async function POST(req: Request) {
     const res = await fetch(`${SHIELD_API_URL}/v1/check`, {
       method: "POST",
       // Forward the visitor's IP so Shield's free-tier limits apply per visitor, not to the website as a whole.
-      headers: { "content-type": "application/json", "x-forwarded-for": req.headers.get("x-forwarded-for") ?? "" },
+      headers: relayHeaders(req.headers, { "content-type": "application/json" }),
       body,
       signal: AbortSignal.timeout(20_000),
     });
