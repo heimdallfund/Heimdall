@@ -5,6 +5,7 @@ import { connection } from "next/server";
 import { Icon } from "@/components/Icons";
 import { readHeimSupply } from "@/lib/heimSupply";
 import { heimAddress } from "@/lib/heim";
+import { readHeimMarket } from "@/lib/heimMarket";
 
 import { LogoRow } from "@/components/BrandLogo";
 export const metadata: Metadata = { title: "$HEIM", description: "The Heimdall token: holding it makes the guardian cheaper to use." };
@@ -33,6 +34,39 @@ async function HeimCA() {
       <p className="break-all font-mono text-[15px]"><a className="hover:text-brand" href={explorerAddress(a)}>{a}</a></p>
       <p className="text-[14px] text-muted">Same rules as every token: <a className="font-semibold text-ink underline hover:text-brand" href={`/token-check/${a}`}>$HEIM&apos;s own Token Check</a> · trade it on <a className="font-semibold text-ink underline hover:text-brand" href="https://ponsfamily.com" target="_blank" rel="noopener">Pons</a></p>
     </div>
+  );
+}
+
+const usdFmt = (n: number) => (n >= 1e6 ? `$${(n / 1e6).toFixed(2)}M` : n >= 1e3 ? `$${(n / 1e3).toFixed(1)}k` : n >= 1 ? `$${n.toFixed(2)}` : `$${n.toPrecision(3)}`);
+const bigFmt = (n: number) => (n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : n.toLocaleString("en-US", { maximumFractionDigits: 0 }));
+
+/** Live market data: price, market cap, holders, graduation and staking. Refreshed on every visit (cached a minute upstream). */
+async function Market() {
+  await connection();
+  const m = await readHeimMarket().catch(() => null);
+  if (!m) return null;
+  const cells: [string, string, string?][] = [
+    ["Price", m.priceUsd !== null ? usdFmt(m.priceUsd) : "—", m.priceEth !== null ? `${m.priceEth.toPrecision(3)} ETH` : undefined],
+    ["Market cap", m.marketCapUsd !== null ? usdFmt(m.marketCapUsd) : "—", "circulating supply"],
+    ["Holders", m.holders !== null ? m.holders.toLocaleString("en-US") : "—", m.verdict ? `Token Check: ${m.verdict}` : undefined],
+    ["Staked", m.staked !== null ? bigFmt(m.staked) : "—", m.staked !== null && m.circulating ? `${((m.staked / m.circulating) * 100).toFixed(2)}% of supply` : "$HEIM"],
+  ];
+  return (
+    <section aria-labelledby="market" className="flex flex-col gap-4">
+      <div className="flex flex-wrap items-end justify-between gap-3"><h2 id="market" className="display text-[35px]">Market</h2>
+        <p className="text-[13px] text-muted">Live from Robinhood Chain · price from {m.graduated ? "the Uniswap pool" : "the Pons bonding curve"}, ETH/USD from Chainlink</p></div>
+      <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-line bg-line sm:grid-cols-4">
+        {cells.map(([k, v, sub]) => <div key={k} className="bg-panel p-5"><dt className="text-[13px] text-muted">{k}</dt><dd className="mt-1.5 font-mono text-[20px]">{v}</dd>{sub && <dd className="mt-0.5 text-[12.5px] text-muted">{sub}</dd>}</div>)}
+      </dl>
+      {m.progressPct !== null && (
+        <div className="card flex flex-col gap-2 p-5">
+          <div className="flex items-baseline justify-between text-[14px]"><span className="font-semibold">On the Pons bonding curve</span><span className="font-mono">{m.progressPct.toFixed(1)}% to graduation</span></div>
+          <div className="h-2.5 overflow-hidden rounded-full bg-ice"><div className="h-full bg-brand" style={{ width: `${Math.min(100, m.progressPct)}%` }} /></div>
+          <p className="text-[13px] text-muted">At 100% the curve graduates: its liquidity moves to a Uniswap pool and is locked for good.</p>
+        </div>
+      )}
+      {m.graduated && <p className="text-[13px] text-muted">Graduated: trading on Uniswap with locked liquidity.</p>}
+    </section>
   );
 }
 
@@ -66,6 +100,8 @@ export default function TokenPage() {
         <h2 className="text-[13px] font-semibold text-muted">Contract address · Robinhood Chain</h2>
         <Suspense fallback={<p className="mt-2 font-mono text-[15px] text-muted">…</p>}><HeimCA /></Suspense>
       </section>
+
+      <Suspense fallback={<div className="h-[120px] animate-pulse rounded-xl border border-line bg-ice" />}><Market /></Suspense>
 
       <section aria-labelledby="benefits" className="flex flex-col gap-6">
         <div className="text-center"><span className="eyebrow">Holder benefits</span><h2 id="benefits" className="display mt-2 text-[46px]">What holding changes</h2></div>
