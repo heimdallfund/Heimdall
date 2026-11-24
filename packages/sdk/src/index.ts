@@ -234,10 +234,32 @@ export class HeimdallShield {
     return this.request("/v1/passport/link", { method: "POST", body: JSON.stringify({ address, agentId: agentId.toString() }) });
   }
 
+  /** Token Check: simulated buy, sell and transfer through the token's Uniswap pool, taxes, clawback backdoors and fake tickers. */
+  tokenCheck(token: Address): Promise<TokenCheckResult> {
+    return this.request<TokenCheckResult>(`/v1/token/${token}`);
+  }
+
   /** Risk data for an address: what Shield knows, and what the onchain Risk Oracle holds right now. */
   risk(address: Address): Promise<RiskReport> {
     return this.request<RiskReport>(`/v1/risk/${address}`);
   }
+}
+
+export interface TokenCheckResult {
+  token: Address;
+  symbol: string | null;
+  name: string | null;
+  decimals: number | null;
+  owner: Address | null;
+  verdict: "ALLOW" | "WARN" | "DENY";
+  riskScore: number;
+  findings: { code: string; severity: "info" | "warn" | "deny"; message: string }[];
+  pool: { address: Address; fee: number; pair: "WETH"; liquidity: string } | null;
+  buy: { ok: boolean; taxPct: number | null; reason?: string } | null;
+  sell: { ok: boolean; taxPct: number | null; reason?: string } | null;
+  transfer: { ok: boolean; taxPct: number | null; reason?: string } | null;
+  pullableBy: ("anyone" | "owner")[];
+  checkedAt: number;
 }
 
 export interface Passport {

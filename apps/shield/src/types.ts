@@ -15,6 +15,8 @@ export interface TxIntent {
   to: Address | null;
   data: Hex;
   value: bigint;
+  /** Internal only (Token Check): balances to give accounts before simulating, e.g. ETH for a probe buyer. Never from the API. */
+  overrides?: Record<string, { balance?: Hex }>;
 }
 
 export interface AssetChange {

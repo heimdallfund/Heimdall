@@ -135,6 +135,30 @@ export function buildServer(d: Deps) {
     return text(lines.join("\n"));
   });
 
+  server.registerTool("heimdall_token_check", {
+    title: "Is this token safe to buy?",
+    description: "Before buying a token on Robinhood Chain: simulates a buy, a sell and a transfer through its Uniswap pool, measures buy/sell/transfer taxes, tests whether anyone or the owner can pull it out of a holder's wallet (clawback), and checks for fake tickers (a copy of USDG, NVDA…) and the blocklist. Never buy on DENY.",
+    inputSchema: { token: address.describe("Token contract address") },
+    annotations: { readOnlyHint: true, openWorldHint: true },
+  }, async ({ token }) => {
+    try {
+      const r = await d.shield.tokenCheck(token as Address);
+      const leg = (n: string, l: { ok: boolean; taxPct: number | null; reason?: string } | null) => `${n}: ${l === null ? "not simulated" : !l.ok ? `FAILS${l.reason ? ` (${l.reason})` : ""}` : l.taxPct ? `${l.taxPct}% tax` : "ok"}`;
+      const lines = [
+        `${r.symbol ?? "Unknown"}${r.name ? ` (${r.name})` : ""} ${r.token}`,
+        `Verdict: ${r.verdict} (risk ${r.riskScore}/100)`,
+        [leg("Buy", r.buy), leg("Sell", r.sell), leg("Transfer", r.transfer)].join(" · "),
+        r.pullableBy.length ? `Clawback: ${r.pullableBy.join(" and ")} can take it from a holder's wallet` : "Clawback: none found",
+        ...r.findings.filter((f) => f.severity !== "info").map((f) => `- [${f.severity.toUpperCase()}] ${f.message}`),
+        `Report: ${d.webUrl}/token-check/${r.token}`,
+      ];
+      if (r.verdict === "DENY") lines.push("Do not buy this token.");
+      return { ...text(lines.join("\n")), structuredContent: r as unknown as Record<string, unknown> };
+    } catch (e) {
+      return fail(`Token Check failed: ${msg(e)}. Treat the token as unsafe.`);
+    }
+  });
+
   server.registerTool("heimdall_wallet_check", {
     title: "Wallet Check: risky approvals",
     description: "List every live token approval of a wallet on Robinhood Chain, ranked danger / review / ok, with the USD value each one exposes. Use it before trusting a wallet, or to tell a user what to revoke.",

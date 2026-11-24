@@ -3,6 +3,7 @@ import { scanWallet } from "./approvals.js";
 import { currentSeason, recordSnapshots, standings, type Snapshot } from "./arena.js";
 import { openApi } from "./openapi.js";
 import { agentCard, handleA2A } from "./a2a.js";
+import { tokenCheck } from "./tokencheck.js";
 import { countVerdict, listIncidents, recordHeartbeat, status, upsertIncident } from "./status.js";
 import { runWatch, subscribe, unsubscribe, validSubscription, webPushSender } from "./watch.js";
 import { bindReferral, claimAction, earlyStatus, growthStats, ipKey, referralStats, registerEarly } from "./growth.js";
@@ -399,6 +400,27 @@ export function buildApp(opts: AppOptions = {}) {
     const call = async (path: string, init: RequestInit = {}) => app.request(path, { ...init, headers: { ...headers, ...(init.headers as Record<string, string>) } });
     c.header("access-control-allow-origin", "*");
     return c.json(await handleA2A(rpc, call) as Record<string, unknown>);
+  });
+
+  /** Token Check: simulated buy, sell and transfer of a token through its Uniswap pool, plus backdoor and fake-token tests. */
+  app.get("/v1/token/:address", async (c) => {
+    const a = c.req.param("address");
+    if (!isAddress(a)) return c.json({ error: "invalid_address" }, 400);
+    const key = `tokencheck:${a.toLowerCase()}`;
+    const hit = await store.fetch(key).catch(() => null);
+    c.header("cache-control", "public, max-age=60");
+    if (hit) return c.json(JSON.parse(hit));
+    // four simulations per token: counted like a check, but a cached answer is free
+    const denied = await admit(c, PRICE.check);
+    if (denied) return denied;
+    try {
+      const r = await tokenCheck(getClient(4663), a as `0x${string}`);
+      await store.put(key, JSON.stringify(r), 60).catch(() => {});
+      return c.json(r);
+    } catch (e) {
+      log({ level: "error", path: "/v1/token", message: (e as Error).message });
+      return c.json({ error: "check_failed", message: "Token Check could not complete. Treat the token as unsafe." }, 500);
+    }
   });
 
   app.get("/v1/verdicts/:id", async (c) => {

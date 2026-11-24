@@ -30,6 +30,7 @@ ${DOCS.map((s) => s.items.map((i) => `- [${s.title}: ${i.title}](${SITE}${i.href
 
 ## Live data
 
+- [Token Check](${SITE}/token-check): honeypot checker for any Robinhood Chain token: simulated buy, sell and transfer, taxes, clawbacks, fake tickers (JSON: ${PUBLIC_API_URL}/v1/token/{address})
 - [Threat Board](${SITE}/threats): what Shield is blocking, and the sourced blocklist (JSON: ${PUBLIC_API_URL}/v1/threats)
 - [Risk Oracle list](${PUBLIC_API_URL}/v1/risk): every flagged address with its level
 - [Status](${SITE}/status): live service status (JSON: ${PUBLIC_API_URL}/v1/status)

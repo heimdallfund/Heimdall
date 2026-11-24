@@ -85,7 +85,7 @@ export async function simulate(client: PublicClient, tx: TxIntent): Promise<SimR
   try {
     res = await client.request({
       method: "eth_simulateV1" as any,
-      params: [{ blockStateCalls: [{ calls: [call] }], traceTransfers: true, validation: false }, "latest"] as any,
+      params: [{ blockStateCalls: [{ calls: [call], ...(tx.overrides ? { stateOverrides: tx.overrides } : {}) }], traceTransfers: true, validation: false }, "latest"] as any,
     });
   } catch (e) {
     return { available: false, ok: false, transfers: [], approvals: [], error: (e as Error).message?.split("\n")[0] };
@@ -124,7 +124,7 @@ export async function probeTransferability(client: PublicClient, tx: TxIntent, t
   try {
     res = await client.request({
       method: "eth_simulateV1" as any,
-      params: [{ blockStateCalls: [{ calls: [main, ...probes] }], traceTransfers: true, validation: false }, "latest"] as any,
+      params: [{ blockStateCalls: [{ calls: [main, ...probes], ...(tx.overrides ? { stateOverrides: tx.overrides } : {}) }], traceTransfers: true, validation: false }, "latest"] as any,
     });
   } catch {
     return [];
@@ -152,7 +152,7 @@ async function afterMain(client: PublicClient, tx: TxIntent, call: { from: Addre
   try {
     const res: any = await client.request({
       method: "eth_simulateV1" as any,
-      params: [{ blockStateCalls: [{ calls: [main, call] }], traceTransfers: true, validation: false }, "latest"] as any,
+      params: [{ blockStateCalls: [{ calls: [main, call], ...(tx.overrides ? { stateOverrides: tx.overrides } : {}) }], traceTransfers: true, validation: false }, "latest"] as any,
     });
     const c = res?.[0]?.calls?.[1];
     if (!c) return null;

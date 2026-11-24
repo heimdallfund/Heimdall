@@ -21,6 +21,7 @@ const fakeFetch = (async (url: string, init?: RequestInit) => {
   if (path.startsWith("/v1/agents/")) return json({ address: path.split("/").pop(), checks: 10, allowed: 8, warned: 1, denied: 1, firstSeen: Date.UTC(2026, 10, 1), lastSeen: Date.UTC(2026, 10, 23) });
   if (path.startsWith("/v1/wallet/")) return json({ owner: DRAINER, block: "1", scannedAt: 0, approvals: [{ kind: "erc20", token: DRAINER, symbol: "USDG", decimals: 6, spender: DRAINER, spenderLabel: null, spenderIsContract: false, allowance: "unlimited", unlimited: true, expiresAt: null, balance: "2500", atRiskUsd: 2500, risk: "danger", reasons: ["Spender is a plain wallet"] }], summary: { total: 1, danger: 1, review: 0, atRiskUsd: 2500 }, sources: [], complete: true, progress: 100 });
   if (path === "/v1/arena") return json({ season: { id: 1, name: "Season 1", start: Date.UTC(2026, 11, 1), end: Date.UTC(2026, 11, 31), minTvl: 500, minDepositors: 3 }, standings: [{ vault: DRAINER, name: "Alpha", manager: DRAINER, returnPct: 12.5, maxDrawdownPct: 3.1, tvl: 5000, depositors: 9, eligible: true, rank: 1 }] });
+  if (path.startsWith("/v1/token/")) return json({ token: path.split("/").pop(), symbol: "MEME", name: "Meme", decimals: 18, owner: null, verdict: "DENY", riskScore: 95, findings: [{ code: "HONEYPOT", severity: "deny", message: "Buying works but selling reverts (TRANSFER_FROM_FAILED). This is a honeypot." }], pool: { address: DRAINER, fee: 10000, pair: "WETH", liquidity: "1" }, buy: { ok: true, taxPct: 0 }, sell: { ok: false, taxPct: null, reason: "TRANSFER_FROM_FAILED" }, transfer: { ok: true, taxPct: 0 }, pullableBy: [], checkedAt: 0 });
   if (path.startsWith("/v1/verdicts/")) return json({ kind: "tx", at: Date.UTC(2026, 10, 23), chainId: 4663, result: deny });
   return json({ error: "not_found" }, 404);
 }) as typeof fetch;
@@ -48,9 +49,18 @@ const textOf = (r: any) => r.content.map((x: any) => x.text).join("\n");
 test("lists all tools, the safe_send prompt and server instructions", async () => {
   const c = await connect();
   const names = (await c.listTools()).tools.map((t) => t.name).sort();
-  assert.deepEqual(names, ["heimdall_agent_reputation", "heimdall_arena", "heimdall_check_address", "heimdall_check_signature", "heimdall_check_transaction", "heimdall_check_tx_hash", "heimdall_get_verdict", "heimdall_list_signals", "heimdall_list_vaults", "heimdall_passport", "heimdall_pay_job", "heimdall_pay_jobs", "heimdall_risk", "heimdall_threats", "heimdall_vault_info", "heimdall_wallet_check"]);
+  assert.deepEqual(names, ["heimdall_agent_reputation", "heimdall_arena", "heimdall_check_address", "heimdall_check_signature", "heimdall_check_transaction", "heimdall_check_tx_hash", "heimdall_get_verdict", "heimdall_list_signals", "heimdall_list_vaults", "heimdall_passport", "heimdall_pay_job", "heimdall_pay_jobs", "heimdall_risk", "heimdall_threats", "heimdall_token_check", "heimdall_vault_info", "heimdall_wallet_check"]);
   assert.equal((await c.listPrompts()).prompts[0].name, "safe_send");
   assert.match(c.getInstructions() ?? "", /heimdall_check_signature/);
+});
+
+test("token_check reports a honeypot with each leg and a report link", async () => {
+  const c = await connect();
+  const t = textOf(await c.callTool({ name: "heimdall_token_check", arguments: { token: DRAINER } }));
+  assert.match(t, /Verdict: DENY/);
+  assert.match(t, /Sell: FAILS \(TRANSFER_FROM_FAILED\)/);
+  assert.match(t, /Do not buy this token/);
+  assert.match(t, /heimdall\.test\/token-check\/0x3333/);
 });
 
 test("check_transaction returns DENY, the advice and a share link", async () => {
@@ -135,7 +145,7 @@ test("remote mode answers MCP over Streamable HTTP", async () => {
   assert.equal(init.status, 200);
   assert.equal((await init.json()).result.serverInfo.name, "heimdall");
   const list = await fetch(`http://127.0.0.1:${port}/mcp`, { method: "POST", headers: h, body: JSON.stringify({ jsonrpc: "2.0", id: 2, method: "tools/list" }) });
-  assert.equal((await list.json()).result.tools.length, 16);
+  assert.equal((await list.json()).result.tools.length, 17);
   assert.equal((await fetch(`http://127.0.0.1:${port}/health`)).status, 200);
   srv.close();
 });

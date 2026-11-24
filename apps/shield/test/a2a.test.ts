@@ -6,7 +6,7 @@ const call = (status: number, body: unknown, headers: Record<string, string> = {
   const fn = async (path: string, init?: RequestInit) => { seen.push({ path, body: init?.body as string | undefined }); return new Response(JSON.stringify(body), { status, headers }); };
   return { fn, seen };
 };
-const send = (parts: unknown[], method = "SendMessage") => ({ jsonrpc: "2.0", id: 7, method, params: { message: { messageId: "m1", role: "ROLE_USER", parts } } });
+const send = (parts: unknown[], method = "SendMessage") => ({ jsonrpc: "2.0", id: 7, method, params: { message: { messageId: "m1", role: "ROLE_USER", parts } } }) as never;
 
 describe("A2A", () => {
   it("publishes an agent card with a JSON-RPC interface and three skills", () => {

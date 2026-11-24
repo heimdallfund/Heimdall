@@ -106,6 +106,10 @@ class Shield(_Base):
         require_allow(result, allow_warn)
         return result
 
+    def token_check(self, token: str) -> dict[str, Any]:
+        """Token Check: simulated buy, sell and transfer through the token's Uniswap pool, taxes, clawbacks, fake tickers."""
+        return self._get(f"/v1/token/{token}")
+
     def risk(self, address: str) -> RiskReport:
         """Risk level and flags of an address, as the Risk Oracle holds them."""
         return self._get(f"/v1/risk/{address}")
@@ -167,6 +171,9 @@ class AsyncShield(_Base):
         result = await self.check(sender, to, data, value, policy)
         require_allow(result, allow_warn)
         return result
+
+    async def token_check(self, token: str) -> dict[str, Any]:
+        return await self._get(f"/v1/token/{token}")
 
     async def risk(self, address: str) -> RiskReport:
         return await self._get(f"/v1/risk/{address}")

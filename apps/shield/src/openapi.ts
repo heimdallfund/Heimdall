@@ -67,6 +67,9 @@ export function openApi(serverUrl: string) {
       "/v1/risk/{address}": {
         get: { tags: ["Risk"], operationId: "getRisk", summary: "Risk level of one address", parameters: [addrParam], responses: { "200": json(ref("RiskEntry")), "400": json(ref("Error"), "Not an address") } },
       },
+      "/v1/token/{address}": {
+        get: { tags: ["Risk"], operationId: "tokenCheck", summary: "Token Check: is this token safe to buy?", description: "Simulates a buy, a sell and a transfer through the token's Uniswap v3 pool against WETH on the current state, measures taxes from the transfers, tests whether a stranger or the owner can pull tokens from a holder, and checks for fake tickers and the blocklist. Cached for 60 seconds.", parameters: [addrParam], responses: { "200": json({ type: "object", properties: { verdict: { type: "string", enum: ["ALLOW", "WARN", "DENY"] }, findings: { type: "array", items: ref("Finding") }, buy: { type: ["object", "null"] }, sell: { type: ["object", "null"] }, transfer: { type: ["object", "null"] }, pullableBy: { type: "array", items: { type: "string" } }, pool: { type: ["object", "null"] } } }), ...errors } },
+      },
       "/v1/threats": {
         get: { tags: ["Risk"], operationId: "getThreats", summary: "Threat Board", description: "Most caught patterns, recent denials, most denied addresses and the sourced blocklist.", responses: { "200": json({ type: "object", properties: { window: { type: "string" }, codes: { type: "array", items: { type: "object", properties: { code: { type: "string" }, count: { type: "integer" } } } }, blocklist: { type: "array", items: ref("BlocklistEntry") } } }) } },
       },
