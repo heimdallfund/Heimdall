@@ -118,3 +118,64 @@ test("Webhook: a key owner saves an endpoint and a signed test event arrives", a
     expect(await verifyWebhook({ secret, body: got[0]!.body, signature: got[0]!.sig })).toBe(true);
   } finally { server.close(); }
 });
+
+test("Shield console: the drainer approval preset is denied before signing", async ({ page }) => {
+  test.setTimeout(180_000);
+  await page.goto("/app/shield");
+  await page.getByRole("button", { name: /Drainer approval/ }).click();
+  await page.getByRole("button", { name: "Run check" }).click();
+  await expect(page.getByText("DENY").first()).toBeVisible({ timeout: 120_000 });
+  await expect(page.getByText(/plain wallet|blocklist/i).first()).toBeVisible();
+});
+
+test("Vaults: a manager creates a vault from the browser", async ({ page }) => {
+  await useWallet(page, E.PROVIDER);
+  await page.goto("/vaults/new");
+  await connect(page);
+  await page.getByLabel("Vault name").fill("E2E Balanced");
+  await page.getByLabel("Share symbol").fill("hE2E");
+  await page.getByRole("button", { name: "Create vault" }).click();
+  await expect(page.getByRole("heading", { name: "Vault created" })).toBeVisible({ timeout: 60_000 });
+  await page.getByRole("link", { name: "Open the vault page" }).click();
+  await expect(page.getByText("E2E Balanced").first()).toBeVisible({ timeout: 60_000 });
+});
+
+test("Signals: a provider lists a signal and gets its ID", async ({ page }) => {
+  await useWallet(page, E.PROVIDER);
+  await page.goto("/signals/new");
+  await connect(page);
+  await page.getByLabel("Name").fill("E2E earnings drift");
+  await page.getByLabel("Price per call (USDG)").fill("0.01");
+  await page.getByLabel("What agents get").fill("A daily drift score for NVDA around earnings.");
+  await page.getByLabel("Endpoint (HTTPS)").fill("https://signals.example.com/v1/drift");
+  await page.getByRole("button", { name: "List signal" }).click();
+  await expect(page.getByRole("heading", { name: /Signal #\d+ is live/ })).toBeVisible({ timeout: 60_000 });
+});
+
+test("Risk Oracle: a blocklisted address shows as blocked", async ({ page }) => {
+  await page.goto("/oracle");
+  await page.getByLabel("Address").fill("0x281FF81dF0Eca1F3F7Ba2A48499c7A83D216a2A8");
+  await page.getByLabel("Address").press("Enter");
+  await expect(page.getByText(/Level 3 · blocked/i)).toBeVisible({ timeout: 60_000 });
+});
+
+test("Passport: a wallet lookup opens the agent's profile with its Shield record", async ({ page }) => {
+  await page.goto("/passport");
+  await page.getByLabel("Agent wallet or id").fill(E.CLIENT);
+  await page.getByRole("button", { name: "Look up" }).click();
+  await expect(page).toHaveURL(new RegExp(`/agent/${E.CLIENT}`, "i"), { timeout: 30_000 });
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible({ timeout: 60_000 });
+});
+
+// The fork (anvil) has no eth_simulateV1, so this checks the report itself: identity, pool and a verdict.
+test("Token Check: the NVDA report finds the real token and its pool", async ({ page }) => {
+  test.setTimeout(240_000);
+  await page.goto("/token-check");
+  await page.getByLabel("Token contract address").fill("0xd0601ce157db5bdc3162bbac2a2c8af5320d9eec");
+  await page.getByRole("button", { name: "Check token" }).click();
+  await expect(page).toHaveURL(/token-check\/0x/i);
+  await expect(page.getByRole("heading", { level: 1, name: /NVDA/ })).toBeVisible({ timeout: 200_000 });
+  await expect(page.getByText(/^(ALLOW|WARN|DENY)$/).first()).toBeVisible();
+  await expect(page.getByText(/Uniswap v3/).first()).toBeVisible();
+  await expect(page.getByText("This is the real NVDA.")).toBeVisible();
+});

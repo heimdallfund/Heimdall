@@ -38,7 +38,9 @@ export async function useWallet(page: Page, account: string, rpc = process.env.E
 
 export async function connect(page: Page) {
   const btn = page.locator("main").getByRole("button", { name: "Connect wallet" }).first();
+  await btn.waitFor({ state: "visible", timeout: 15_000 }).catch(() => {});
   if (await btn.isVisible().catch(() => false)) await btn.click();
+  await btn.waitFor({ state: "hidden", timeout: 15_000 }).catch(() => {});
 }
 
 export async function rpc(method: string, params: unknown[] = []) {
