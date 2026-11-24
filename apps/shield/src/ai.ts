@@ -1,4 +1,5 @@
 import type { TokenCheck } from "./tokencheck.js";
+import { knownToken } from "./registry.js";
 
 /**
  * A plain-language summary of a Token Check, written by a model from the check's own results and nothing else.
@@ -18,13 +19,21 @@ Heimdall's verdict (ALLOW, WARN or DENY) is final: explain it, never contradict 
 Write in plain English for a non-technical trader: at most 3 short sentences, then one line starting with "Bottom line:".
 Always say whether buying and selling worked in the simulation (and where: bonding curve or Uniswap pool) and any tax.
 Name the concrete reasons (honeypot, taxes, clawback, fake ticker, who holds the supply, what the dev did) with the numbers given.
-If nothing is wrong, say what was tested and that it passed, and remind that memecoins can still lose value.
+The "kind" field says what the token is. Match the closing line to it:
+- "stock token": a tokenized stock tracking the real share price; say it is the official token and that its price follows the stock, which can go down. Never call it a memecoin.
+- "stablecoin": say it is the official stablecoin; no price-risk reminder.
+- "wrapped ETH": say it is the official wrapped ETH; its price follows ETH.
+- "launchpad memecoin" or "memecoin": if nothing is wrong, say what passed and that memecoins are highly volatile and can go to zero.
+- "token": if nothing is wrong, say what passed and that a clean check does not mean the price cannot fall.
 No markdown, no emojis, no addresses unless essential.`;
 
 /** The facts the model sees: findings and measured numbers, no free text from the token itself. */
 function facts(r: TokenCheck) {
+  const known = knownToken(r.token);
+  const kind = known ? (known.stable ? "stablecoin" : known.symbol === "WETH" ? "wrapped ETH" : "stock token")
+    : r.launch ? "launchpad memecoin" : r.holders ? "memecoin" : "token";
   return {
-    verdict: r.verdict, riskScore: r.riskScore, symbol: r.symbol,
+    kind, verdict: r.verdict, riskScore: r.riskScore, symbol: r.symbol,
     launchpad: r.launch && { name: r.launch.launchpad, onBondingCurve: r.launch.graduated === false, progressPct: r.launch.progressPct, hasDev: !!r.launch.dev },
     market: r.pool ? `Uniswap v${r.pool.version}` : r.launch?.model === "curve" ? "launchpad bonding curve" : "none found",
     buy: r.buy, sell: r.sell, transfer: r.transfer, clawback: r.pullableBy,

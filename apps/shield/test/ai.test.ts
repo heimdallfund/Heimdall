@@ -27,6 +27,7 @@ describe("AI summary", () => {
     expect(text).toBe("Selling fails.\nBottom line: do not buy.");
     const user = JSON.parse(sent!.messages[1]!.content);
     expect(user.verdict).toBe("DENY");
+    expect(user.kind).toBe("launchpad memecoin");
     expect(user.launchpad).toMatchObject({ name: "Pons", onBondingCurve: true });
     expect(JSON.stringify(user)).not.toMatch(/0x1111/);
   });
@@ -46,6 +47,17 @@ describe("AI summary", () => {
     expect(urls[0]).toContain("openrouter.ai");
     expect(urls.at(-1)).toContain("ai-gateway.vercel.sh");
     delete process.env.OPENROUTER_API_KEY;
+  });
+
+  it("tells the model a known stock token is a stock, not a memecoin", async () => {
+    let user: { kind?: string } = {};
+    const fetcher = (async (_u: string, init: RequestInit) => {
+      user = JSON.parse(JSON.parse(String(init.body)).messages[1].content);
+      return new Response(JSON.stringify({ choices: [{ message: { content: "ok" } }] }), { status: 200 });
+    }) as unknown as typeof fetch;
+    const amzn = { ...check, token: "0x12f190a9F9d7D37a250758b26824B97CE941bF54", symbol: "AMZN", verdict: "ALLOW", launch: null } as unknown as TokenCheck;
+    await summarizeTokenCheck(amzn, { oidc: "t", fetcher });
+    expect(user.kind).toBe("stock token");
   });
 
   it("returns null when the gateway refuses", async () => {
