@@ -61,7 +61,7 @@ export interface RadarCheck {
 }
 export interface RadarSnapshot { generatedAt: number; block: string; launched24h: number; ethUsd: number | null; tokens: RadarToken[] }
 
-interface Launch { token: Address; venue: string; block: bigint; market: Set<string>; curve?: string; v4?: { id: Hex; eth: 0 | 1 }; v3?: { pool: string; eth: 0 | 1 } }
+interface Launch { token: Address; venue: string; block: bigint; market: Set<string>; curve?: string; v4?: { id: Hex; eth: 0 | 1 }[]; v3?: { pool: string; eth: 0 | 1 }[] }
 
 const hex = (n: bigint) => `0x${n.toString(16)}`;
 const topicAddr = (t: string) => getAddress(`0x${t.slice(26)}`);
@@ -86,9 +86,9 @@ async function launches(logs: PublicClient, from: bigint, to: bigint): Promise<M
     const token = getAddress(pair === c0 ? c1 : c0);
     const k = token.toLowerCase();
     const v4 = { id: l.args.id!, eth: (pair === c0 ? 0 : 1) as 0 | 1 };
-    if (out.has(k)) { const x = out.get(k)!; x.market.add(POOL_MANAGER.toLowerCase()); x.v4 ??= v4; continue; } // a Pons token graduating
+    if (out.has(k)) { const x = out.get(k)!; x.market.add(POOL_MANAGER.toLowerCase()); (x.v4 ??= []).push(v4); continue; } // a Pons token graduating, or a second pool
     const hook = l.args.hooks!.toLowerCase();
-    out.set(k, { token, venue: LAUNCHPAD_HOOKS[hook] ?? "Uniswap v4", block: l.blockNumber!, market: new Set([POOL_MANAGER.toLowerCase(), ...routers]), v4 });
+    out.set(k, { token, venue: LAUNCHPAD_HOOKS[hook] ?? "Uniswap v4", block: l.blockNumber!, market: new Set([POOL_MANAGER.toLowerCase(), ...routers]), v4: [v4] });
   }
   for (const l of v3) {
     const t0 = l.args.token0!.toLowerCase(), t1 = l.args.token1!.toLowerCase();
@@ -96,8 +96,8 @@ async function launches(logs: PublicClient, from: bigint, to: bigint): Promise<M
     const token = getAddress(t0 === WETH ? t1 : t0);
     const k = token.toLowerCase();
     const v3 = { pool: l.args.pool!.toLowerCase(), eth: (t0 === WETH ? 0 : 1) as 0 | 1 };
-    if (out.has(k)) { const x = out.get(k)!; x.market.add(v3.pool); x.v3 ??= v3; continue; }
-    out.set(k, { token, venue: "Uniswap v3", block: l.blockNumber!, market: new Set([v3.pool, ...routers]), v3 });
+    if (out.has(k)) { const x = out.get(k)!; x.market.add(v3.pool); (x.v3 ??= []).push(v3); continue; }
+    out.set(k, { token, venue: "Uniswap v3", block: l.blockNumber!, market: new Set([v3.pool, ...routers]), v3: [v3] });
   }
   return out;
 }
@@ -149,8 +149,8 @@ async function volume(logs: PublicClient, list: Launch[], from: bigint, to: bigi
   const range = { fromBlock: hex(from), toBlock: hex(to) };
   const q = (filter: object) => logs.request({ method: "eth_getLogs", params: [{ ...filter, ...range }] } as never).catch(() => []) as Promise<{ address: Address; topics: Hex[]; data: Hex }[]>;
   const byCurve = new Map(list.filter((l) => l.curve).map((l) => [l.curve!, l.token.toLowerCase()]));
-  const byV4 = new Map(list.filter((l) => l.v4).map((l) => [l.v4!.id.toLowerCase(), l]));
-  const byV3 = new Map(list.filter((l) => l.v3).map((l) => [l.v3!.pool, l]));
+  const byV4 = new Map(list.flatMap((l) => (l.v4 ?? []).map((p) => [p.id.toLowerCase(), { l, eth: p.eth }] as const)));
+  const byV3 = new Map(list.flatMap((l) => (l.v3 ?? []).map((p) => [p.pool, { l, eth: p.eth }] as const)));
   const [curves, v4, v3] = await Promise.all([
     byCurve.size ? q({ address: [...byCurve.keys()], topics: [[PONS_BUY, PONS_SELL]] }) : Promise.resolve([]),
     byV4.size ? q({ address: POOL_MANAGER, topics: [SWAP_V4, [...byV4.keys()]] }) : Promise.resolve([]),
@@ -165,15 +165,15 @@ async function volume(logs: PublicClient, list: Launch[], from: bigint, to: bigi
     const x = byV4.get(l.topics[1]!.toLowerCase()); const w = words(l.data);
     if (!x || w.length < 2) continue;
     // v4 amounts are the swapper's deltas: negative is paid in, positive is received
-    const eth = int(w[x.v4!.eth]!);
-    if (eth < 0n) add(x.token.toLowerCase(), -eth, 0n); else add(x.token.toLowerCase(), 0n, eth);
+    const eth = int(w[x.eth]!);
+    if (eth < 0n) add(x.l.token.toLowerCase(), -eth, 0n); else add(x.l.token.toLowerCase(), 0n, eth);
   }
   for (const l of v3) {
     const x = byV3.get(l.address.toLowerCase()); const w = words(l.data);
     if (!x || w.length < 2) continue;
     // v3 amounts are the pool's deltas: positive is paid into the pool
-    const eth = int(w[x.v3!.eth]!);
-    if (eth > 0n) add(x.token.toLowerCase(), eth, 0n); else add(x.token.toLowerCase(), 0n, -eth);
+    const eth = int(w[x.eth]!);
+    if (eth > 0n) add(x.l.token.toLowerCase(), eth, 0n); else add(x.l.token.toLowerCase(), 0n, -eth);
   }
   return vol;
 }
