@@ -135,7 +135,26 @@ async function sim(client: PublicClient, calls: { from: Address; to: Address; da
   return (res?.[0]?.calls ?? []) as { status: string; logs?: RawLog[]; returnData?: Hex; error?: { data?: Hex; message?: string } }[];
 }
 
-export async function tokenCheck(client: PublicClient, raw: Address, now = Date.now(), logs: PublicClient = logsClient): Promise<TokenCheck> {
+/**
+ * Every simulation of one check runs on the same block. Each test measures a buy in one simulation and sells that
+ * amount in the next; if a new block lands in between and the price moves, the second buy returns fewer tokens and
+ * the sell of the measured amount fails, which looked like a honeypot.
+ */
+function pinClient(client: PublicClient, n: bigint): PublicClient {
+  const tag = toHex(n);
+  return new Proxy(client, {
+    get(t, p, r) {
+      if (p === "request") return (args: { method: string; params?: unknown[] }, o?: unknown) =>
+        t.request((args.method === "eth_simulateV1" && Array.isArray(args.params) ? { ...args, params: [args.params[0], tag] } : args) as never, o as never);
+      if (p === "getBlock") return (a?: Parameters<PublicClient["getBlock"]>[0]) => t.getBlock(a ?? { blockNumber: n });
+      return Reflect.get(t, p, r);
+    },
+  });
+}
+
+export async function tokenCheck(rawClient: PublicClient, raw: Address, now = Date.now(), logs: PublicClient = logsClient): Promise<TokenCheck> {
+  const head = typeof rawClient.getBlockNumber === "function" ? await rawClient.getBlockNumber().catch(() => null) : null;
+  const client = head ? pinClient(rawClient, head) : rawClient;
   const token = getAddress(raw);
   const F: Finding[] = [];
   const add = (code: string, severity: Finding["severity"], message: string) => F.push({ code, severity, message });
