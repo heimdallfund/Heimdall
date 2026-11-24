@@ -289,7 +289,7 @@ export function buildApp(opts: AppOptions = {}) {
       bal = (b as bigint).toString();
       await store.put(key, bal, 600).catch(() => {});
     }
-    return BigInt(bal) >= BigInt(env.HEIM_HOLDER_MIN ?? "100000000000000000000000") ? Number(env.HEIM_QUOTA_MULTIPLIER ?? 5) : 1;
+    return BigInt(bal) >= BigInt(env.HEIM_HOLDER_MIN ?? "5000000000000000000000000") ? Number(env.HEIM_QUOTA_MULTIPLIER ?? 5) : 1;
   }
 
   async function quota(c: any, wallet: string, price?: bigint): Promise<Response | null> {

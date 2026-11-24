@@ -10,7 +10,7 @@ description: Shield is free to start. Keys lift the limits; $HEIM holders get mo
 | Free + $HEIM holder | 30 checks per IP | 5,000 checks per agent wallet |
 | API key | 600 checks per key | No daily cap; metered at $0.001 per check |
 
-The holder minimum is 100,000 $HEIM in the agent wallet, checked onchain. No staking or lock-up.
+The holder minimum is 5,000,000 $HEIM in the agent wallet, checked onchain. No staking or lock-up.
 
 ## Getting a key
 

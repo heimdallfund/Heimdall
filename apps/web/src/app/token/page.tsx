@@ -58,7 +58,7 @@ export default function TokenPage() {
         <div className="text-center"><span className="eyebrow">Holder benefits</span><h2 id="benefits" className="display mt-2 text-[46px]">What holding changes</h2></div>
         <div className="overflow-x-auto rounded-xl border border-line bg-panel">
           <table className="w-full min-w-[560px] border-collapse text-left text-[15px]">
-            <thead><tr className="bg-ice text-[13px]"><th scope="col" className="px-6 py-4 font-semibold"><span className="sr-only">Feature</span></th><th className="px-6 py-4 font-semibold text-muted">Without $HEIM</th><th className="px-6 py-4 font-semibold text-brand">Holding 100,000 $HEIM</th></tr></thead>
+            <thead><tr className="bg-ice text-[13px]"><th scope="col" className="px-6 py-4 font-semibold"><span className="sr-only">Feature</span></th><th className="px-6 py-4 font-semibold text-muted">Without $HEIM</th><th className="px-6 py-4 font-semibold text-brand">Holding 5,000,000 $HEIM</th></tr></thead>
             <tbody>{rows.map(([k, a, b]) => (
               <tr key={k} className="border-t border-line">
                 <th scope="row" className="px-6 py-4 text-left font-medium">{k}</th>

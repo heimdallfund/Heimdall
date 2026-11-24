@@ -50,8 +50,8 @@ const batch = {
     // $HEIM holder terms: vaults created from now on halve the platform fee for holder managers; Signals pays holders 95/5.
     // Set HOLDER_TERMS=0 to skip (for example when deploy.ts already set them).
     ...(process.env.HOLDER_TERMS === "0" ? [] : [
-      tx(factory, "function setHolderTerms(address,uint256)", "setHolderTerms", [holderBalance.address, BigInt(process.env.HOLDER_MIN ?? "100000000000000000000000")]),
-      tx(dep.contracts.HeimdallSignals, "function setHolderTerms(address,uint256,uint16)", "setHolderTerms", [holderBalance.address, BigInt(process.env.HOLDER_MIN ?? "100000000000000000000000"), Number(process.env.SIGNALS_HOLDER_FEE_BPS ?? 500)]),
+      tx(factory, "function setHolderTerms(address,uint256)", "setHolderTerms", [holderBalance.address, BigInt(process.env.HOLDER_MIN ?? "5000000000000000000000000")]),
+      tx(dep.contracts.HeimdallSignals, "function setHolderTerms(address,uint256,uint16)", "setHolderTerms", [holderBalance.address, BigInt(process.env.HOLDER_MIN ?? "5000000000000000000000000"), Number(process.env.SIGNALS_HOLDER_FEE_BPS ?? 500)]),
     ]),
   ],
 };

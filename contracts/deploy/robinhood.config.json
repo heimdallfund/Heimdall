@@ -52,7 +52,7 @@
   },
   "heim": {
     "token": "",
-    "holderMin": "100000000000000000000000",
+    "holderMin": "5000000000000000000000000",
     "signalsHolderFeeBps": 500
   },
   "riskReporter": "0x82D0b3B0c56175Cb3318Fcf64B5185d63CAD7De6",

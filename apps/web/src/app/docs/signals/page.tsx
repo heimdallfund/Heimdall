@@ -39,7 +39,7 @@ app.get("/my-signal", async (c) => {
         ["/v1/address-intel?address=0x…", "EOA, contract or EIP-7702 delegate; activity; ETH and USDG balance; blocklist", "$0.01"],
         ["/v1/stock-premium?symbol=NVDA", "Onchain stock token price vs exchange price, as a premium in bps", "$0.05"],
       ]} />
-      <Note>Every payment splits 90% to the provider and 10% to the Heimdall treasury (capped at 20% onchain). If the payout wallet holds at least 100,000 $HEIM, the split is 95/5.</Note>
+      <Note>Every payment splits 90% to the provider and 10% to the Heimdall treasury (capped at 20% onchain). If the payout wallet holds at least 5,000,000 $HEIM, the split is 95/5.</Note>
     </>
   );
 }

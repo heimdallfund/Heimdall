@@ -49,8 +49,8 @@ export const explorerAddress = (a: string) => `${chain.blockExplorers?.default.u
 export const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
 export const explorerTx = (h: string) => `${chain.blockExplorers?.default.url}/tx/${h}`;
 
-/** $HEIM balance (18 decimals) that unlocks holder benefits. Default 100,000 HEIM. */
-export const HEIM_HOLDER_MIN = BigInt(process.env.NEXT_PUBLIC_HEIM_HOLDER_MIN ?? "100000000000000000000000");
+/** $HEIM balance (18 decimals) that unlocks holder benefits. Default 5,000,000 HEIM. */
+export const HEIM_HOLDER_MIN = BigInt(process.env.NEXT_PUBLIC_HEIM_HOLDER_MIN ?? "5000000000000000000000000");
 
 /** Stocks Auto-Invest can buy (Chainlink 24/7 feeds). Override with NEXT_PUBLIC_INVEST_TOKENS='[{"symbol":"NVDA","address":"0x…"}]'. */
 export const INVEST_TOKENS: { symbol: string; name: string; address: Address }[] = (() => {
