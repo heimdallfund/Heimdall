@@ -3,7 +3,7 @@
   "usdg": "0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168",
   "adminSafe": "<SET: Safe that owns factory, signals and every vault>",
   "treasury": "<SET: fee recipient>",
-  "shieldSigner": "<SET: address of the AWS KMS Shield signer>",
+  "shieldSigner": "0xa6ce235055039a55aa438aFFAD18F7d0Ccf092d9",
   "calls": [
     {
       "name": "Uniswap SwapRouter02.exactInputSingle",

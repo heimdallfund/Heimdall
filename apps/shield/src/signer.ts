@@ -93,23 +93,25 @@ export async function kmsSigner(keyId: string, kms: KmsLike = new KMSClient({}))
 let cached: Promise<ReceiptSigner> | undefined;
 
 /**
- * Pre-launch mode (SHIELD_PRELAUNCH=1, no signer configured): the API runs in production and answers every check,
- * but signs no receipts, because no contract trusts a signer yet. Setting the KMS key ends it.
+ * Pre-launch mode (SHIELD_PRELAUNCH=1): the API runs in production and answers every check, but signs no receipts,
+ * because no contract trusts a signer yet. Setting the KMS key ends it; a SHIELD_SIGNER_KEY does not, so the key can
+ * be put in place before launch and receipts start only when SHIELD_PRELAUNCH is removed.
  */
 export function prelaunch(env: NodeJS.ProcessEnv = process.env): boolean {
-  return env.SHIELD_PRELAUNCH === "1" && !env.SHIELD_KMS_KEY_ID && !env.SHIELD_SIGNER_KEY;
+  return env.SHIELD_PRELAUNCH === "1" && !env.SHIELD_KMS_KEY_ID;
 }
 
 /**
- * SHIELD_KMS_KEY_ID → AWS KMS (production) · SHIELD_SIGNER_KEY → local key (dev/staging) ·
- * neither → ephemeral key, refused when NODE_ENV=production.
+ * SHIELD_KMS_KEY_ID → AWS KMS (preferred) · SHIELD_SIGNER_KEY → key held in a sensitive env var (production until KMS,
+ * then dev/staging) · neither → ephemeral key, refused when NODE_ENV=production. Contracts can rotate the trusted
+ * signer through the admin Safe, so moving from an env key to KMS needs no redeploy.
  */
 export function getSigner(env: NodeJS.ProcessEnv = process.env): Promise<ReceiptSigner> {
   if (!cached) {
     cached = (async () => {
+      if (prelaunch(env)) throw new Error("Pre-launch mode: receipts are not signed until launch (remove SHIELD_PRELAUNCH or set SHIELD_KMS_KEY_ID)");
       if (env.SHIELD_KMS_KEY_ID) return kmsSigner(env.SHIELD_KMS_KEY_ID);
       if (env.SHIELD_SIGNER_KEY) return localSigner(env.SHIELD_SIGNER_KEY as Hex);
-      if (prelaunch(env)) throw new Error("Pre-launch mode: receipts are not signed until SHIELD_KMS_KEY_ID is set");
       if (env.NODE_ENV === "production") throw new Error("No receipt signer configured: set SHIELD_KMS_KEY_ID or SHIELD_SIGNER_KEY");
       return localSigner(generatePrivateKey(), "ephemeral");
     })();

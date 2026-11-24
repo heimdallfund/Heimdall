@@ -76,7 +76,7 @@ async function Live() {
       <section className="grid gap-5 md:grid-cols-3">
         {[
           ["Shield API", st.ok ? "Operational" : "Not reachable", st.ok ? "allow" : "muted", st.ok ? `${st.ms} ms from this server` : "Goes live with the launch"],
-          ["Receipt signer", signer?.address ? short(signer.address) : "—", "ink", "AWS KMS key; rotated by the multisig"],
+          ["Receipt signer", signer?.address ? short(signer.address) : "—", "ink", "Server-held key, encrypted at rest; rotated by the multisig"],
           ["Admin", gov ? `${gov.threshold || "?"}-of-${gov.owners.length || "?"} multisig` : "Safe multisig", "ink", "Owns factory, Signals and every vault"],
         ].map(([k, v, t, d]) => (
           <div key={k} className="card p-6"><div className="text-[13px] text-muted">{k}</div><div className={`mt-2 flex items-center gap-2 text-[22px] font-semibold ${t === "allow" ? "text-allow" : t === "muted" ? "text-muted" : ""}`}>{t === "allow" && <span className="size-2.5 rounded-full bg-allow" />}{v}</div><div className="mt-1 text-[13px] text-muted">{d}</div></div>

@@ -9,7 +9,7 @@ export const PHASES: Phase[] = [
       { id: "domain", title: "Register heimdall.fund", detail: "Not registered yet (checked 2026-11-24). The site, api.heimdall.fund, security@ and hello@ email, and the MCP Registry DNS proof all depend on it." },
       { id: "audit-report", title: "Independent audit report in, every fix reviewed", detail: "The auditor's fix review covers the exact commit you will deploy. Note that commit." },
       { id: "safe-ready", title: "Admin Safe ready on Robinhood Chain", detail: "Safe 1.4.1 with every signer added and a test transaction signed by the threshold." },
-      { id: "kms-signer", title: "Shield signer key in AWS KMS", detail: "secp256k1 key (ECC_SECG_P256K1). Its address becomes shieldSigner in the deploy config." },
+      { id: "kms-signer", title: "Shield signer key", detail: "Done 2026-11-24: 0xa6ce235055039a55aa438aFFAD18F7d0Ccf092d9, key in SHIELD_SIGNER_KEY (sensitive, production) on heimdall-shield, already in the deploy config as shieldSigner. Moving to AWS KMS later is a Safe rotation, no redeploy." },
       { id: "upstash", title: "Upstash Redis for the Shield API", detail: "Vercel → Storage → Create → Upstash Redis, connected to heimdall-shield and heimdall-monitor. It adds UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN to both." },
       { id: "rpc", title: "Paid RPC and a backup", detail: "Alchemy plus a second provider: RPC_URL_MAINNET / _BACKUP on Shield, RPC_URL / RPC_URL_BACKUP on the monitor." },
       { id: "hot-keys", title: "Hot keys funded with a little ETH", detail: "Deployer (used once), monitor reporter (RISK_REPORTER_KEY), passport publisher (PASSPORT_KEY), x402 facilitator (X402_FACILITATOR_KEY), keeper (KEEPER_KEY). None of them ever holds user funds." },
@@ -32,7 +32,7 @@ export const PHASES: Phase[] = [
   {
     id: "wire", title: "Wire up", when: "T+30 min",
     steps: [
-      { id: "shield-live", title: "Shield API goes live", detail: "On heimdall-shield: add SHIELD_KMS_KEY_ID and the contract addresses (HEIMDALL_PAY_ADDRESS, RISK_ORACLE_ADDRESS, HEIM_HOLDER_ADDRESS, HEIMDALL_STAKING_ADDRESS, PASSPORT_PUBLISHER_ADDRESS), delete SHIELD_PRELAUNCH, redeploy. /health must say mode \"live\" and /v1/signer must show the KMS address." },
+      { id: "shield-live", title: "Shield API goes live", detail: "On heimdall-shield: add the contract addresses (HEIMDALL_PAY_ADDRESS, RISK_ORACLE_ADDRESS, HEIM_HOLDER_ADDRESS, HEIMDALL_STAKING_ADDRESS, PASSPORT_PUBLISHER_ADDRESS), delete SHIELD_PRELAUNCH, redeploy. /health must say mode \"live\" and /v1/signer must show 0xa6ce235055039a55aa438aFFAD18F7d0Ccf092d9." },
       { id: "x402-on", title: "x402 on", detail: "X402_PAY_TO (treasury) and X402_FACILITATOR_KEY on Shield. /x402/supported lists eip155:4663." },
       { id: "monitor-up", title: "Monitor cron wired", detail: "On the heimdall-monitor Vercel project: FACTORY, AUTOINVEST, SPLITTER, USDG, RISK_ORACLE, RISK_REPORTER_KEY, PASSPORT_KEY, KEEPER_KEY, SHIELD_ADMIN_KEY and the same Upstash as Shield (SHIELD_API_URL and the narrow SHIELD_HEARTBEAT_KEY are already set). Redeploy; the status page shows its first heartbeat within 2 minutes." },
       { id: "reporter", title: "Reporter appointed on the Risk Oracle", detail: "Skip if riskReporter was in the deploy config. Otherwise the Safe calls setReporter(<monitor reporter>, true)." },
@@ -44,7 +44,7 @@ export const PHASES: Phase[] = [
     id: "smoke", title: "Smoke test with small money", when: "T+1 h",
     steps: [
       { id: "risk-sync", title: "First Risk Oracle sync", detail: "The monitor log shows a sync; GET /v1/risk/<a blocklisted address> shows it onchain." },
-      { id: "shield-check", title: "A Shield check signs a receipt", detail: "From Claude or Cursor with the MCP server, check a transaction: the answer carries a receipt from the KMS signer.", code: "claude mcp add heimdall -- npx -y @heimdallfund/mcp" },
+      { id: "shield-check", title: "A Shield check signs a receipt", detail: "From Claude or Cursor with the MCP server, check a transaction: the answer carries a receipt from the Shield signer.", code: "claude mcp add heimdall -- npx -y @heimdallfund/mcp" },
       { id: "vault-cycle", title: "Vault round trip", detail: "Create a vault, deposit 10 USDG, let the reference agent run one real cycle, then redeemInKind." },
       { id: "pay-job", title: "One Pay job end to end", detail: "1 USDG job: create, submit, release. The provider receives 0.99 USDG and the splitter 0.01." },
       { id: "guard-safe", title: "Guard on a real Safe", detail: "Use the /guard builder on a test Safe with a 5 USDG daily limit; one agent payment goes through, a second over the limit is refused." },

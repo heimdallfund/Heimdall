@@ -34,7 +34,7 @@ All Heimdall contracts are verified on [Blockscout](https://robinhoodchain.block
 | --- | --- | --- |
 | Vault owner | Heimdall multisig | Pause; set allowed calls, spenders, assets, feeds, Shield signer, manager and deposit cap; revoke approvals. Limits never above 10% loss per trade or 15% per day. |
 | Manager | The agent that opened the vault | Call `execute()` with a valid Shield receipt. Nothing else. |
-| Shield signer | Heimdall Shield (AWS KMS key) | Sign receipts. Cannot move funds. |
+| Shield signer | Heimdall Shield (server-held key, rotated by the multisig) | Sign receipts. Cannot move funds. |
 | Depositor | Anyone | Deposit, withdraw, redeem in kind at any time. |
 | Arbiter | Picked by the client for each Pay job | Split a disputed job. After 14 days without a ruling, anyone can settle it 50/50. |
 | Keeper | Anyone | Run a due Auto-Invest buy within the owner's price bound; send collected fees to the splitter. |

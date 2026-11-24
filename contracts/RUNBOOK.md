@@ -8,7 +8,7 @@ All times UTC. All admin power lives in the **Safe** (`adminSafe`). The deployer
 |---|---|---|
 | Safe (multisig) | Heimdall signers | Owns the factory, Signals and every vault. Pause, caps, allowed calls, feeds, Shield signer, manager rotation, fees. |
 | Deployer | Hot key, used once | Deploys, configures, starts the ownership transfer. Nothing after the Safe accepts. |
-| Shield signer | AWS KMS key | Signs receipts. Cannot move funds. Rotated by the Safe. |
+| Shield signer | `0xa6ce235055039a55aa438aFFAD18F7d0Ccf092d9`, key in the `SHIELD_SIGNER_KEY` sensitive env var on heimdall-shield (production only); move to AWS KMS later | Signs receipts. Cannot move funds. Rotated by the Safe. |
 | Treasury | Address in config | Receives platform fees (vault 5%, Signals 10%). |
 | Manager | Agent wallet per vault | `execute()` with a valid receipt. Nothing else. |
 | Risk reporter | Monitor key (`RISK_REPORTER_KEY`), a little ETH for gas | Writes Shield's risk list to `HeimdallRiskOracle` (max 200 entries per call). Cannot touch pinned entries. Replaced by the Safe with `setReporter`. |
@@ -19,7 +19,7 @@ All times UTC. All admin power lives in the **Safe** (`adminSafe`). The deployer
 ## Before deploy
 
 1. **Safe:** deploy the Safe on Robinhood Chain (app.safe.global) with the chosen signers and threshold.
-2. **Shield signer:** create the KMS key and read its address (`GET /v1/signer` on a staging Shield API).
+2. **Shield signer:** `0xa6ce235055039a55aa438aFFAD18F7d0Ccf092d9` (env key, set 2026-11-24). To move to AWS KMS later: create the KMS key, read its address from `GET /v1/signer`, then rotate with `OP=signer` below.
 3. **Config:** copy `deploy/robinhood.config.example.json` to `deploy/robinhood.config.json` and fill every `<SET>`:
    - Price feed per stock token, with a heartbeat that matches the feed's update cadence.
    - Only reviewed `(router, function)` pairs in `calls`. Never `multicall` and never a token address.
@@ -110,7 +110,7 @@ After any emergency action:
 ## Hosting
 
 - Web: Vercel project `heimdall-web` (root `apps/web`), deployed on every push to `main` of `heimdallfund/Heimdall`.
-- Shield API: Vercel project `heimdall-shield` (root `apps/shield`), deployed on every push to `main`. Until launch it runs in pre-launch mode (`SHIELD_PRELAUNCH=1`): checks work, no receipts are signed. At launch add `SHIELD_KMS_KEY_ID`, Upstash and the contract addresses and delete `SHIELD_PRELAUNCH`; without a signer it refuses to start in production.
+- Shield API: Vercel project `heimdall-shield` (root `apps/shield`), deployed on every push to `main`. Until launch it runs in pre-launch mode (`SHIELD_PRELAUNCH=1`): checks work, no receipts are signed. The signer key (`SHIELD_SIGNER_KEY`) is already set and stays unused while `SHIELD_PRELAUNCH=1`. At launch add Upstash and the contract addresses and delete `SHIELD_PRELAUNCH`; without a signer it refuses to start in production.
 - Launch day: follow `https://heimdall.fund/admin/launch`, the checklist in order (ticks are saved on the Shield API when the admin key is open).
 - Monitor and keeper: Vercel project `heimdall-monitor` (root `apps/monitor`), a cron every 2 minutes (`/api/cron`, guarded by `CRON_SECRET`). Its state (open alerts, last block, daily and hourly runs) is kept in Upstash (`UPSTASH_REDIS_REST_URL` / `_TOKEN`), so alerts are not repeated. The same jobs still run as a container (`apps/monitor/Dockerfile`, `npm start`) if ever needed.
 

@@ -65,6 +65,14 @@ describe("KMS receipt signer", () => {
     const env = { NODE_ENV: "production", SHIELD_PRELAUNCH: "1" } as NodeJS.ProcessEnv;
     expect(prelaunch(env)).toBe(true);
     expect(prelaunch({ ...env, SHIELD_KMS_KEY_ID: "key-1" })).toBe(false);
+    // an env signer key can sit in place before launch: no receipts until the flag is removed
+    const keyed = { ...env, SHIELD_SIGNER_KEY: "0x" + "22".repeat(32) } as NodeJS.ProcessEnv;
+    expect(prelaunch(keyed)).toBe(true);
+    resetSigner();
+    await expect(getSigner(keyed)).rejects.toThrow(/Pre-launch mode/);
+    resetSigner();
+    const { SHIELD_PRELAUNCH: _, ...launched } = keyed;
+    expect((await getSigner(launched as NodeJS.ProcessEnv)).address).toMatch(/^0x[0-9a-fA-F]{40}$/);
     resetSigner();
     await expect(getSigner(env)).rejects.toThrow(/Pre-launch mode/);
     resetSigner();
