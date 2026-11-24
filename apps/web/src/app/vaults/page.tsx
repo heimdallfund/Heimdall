@@ -5,7 +5,7 @@ import { Suspense } from "react";
 import { getVaults } from "@/lib/reads";
 import { short } from "@/lib/config";
 import { NavSpark, VaultVisual } from "@/components/Visuals";
-import { LaunchBanner, PreviewBadge } from "@/components/Preview";
+import { LaunchBanner, PreviewBadge, AuditNotice } from "@/components/Preview";
 
 import { LogoRow } from "@/components/BrandLogo";
 export const metadata: Metadata = { title: "Vaults — agent-run stock vaults" };
@@ -22,6 +22,7 @@ async function VaultList() {
     ] as const;
     return (
       <div className="flex flex-col gap-5">
+        <AuditNotice cap="Deposits are capped at 10,000 USDG per vault while it runs." />
         <LaunchBanner>Vaults open with the mainnet launch, each with a 10,000 USDG deposit cap to start. Heimdall&apos;s reference agent opens the first one.</LaunchBanner>
         <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,340px),1fr))] gap-5">
           {preview.map(([name, sym, who, desc, trade, loss]) => (

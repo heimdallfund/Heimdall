@@ -6,7 +6,7 @@ import { useAccount, usePublicClient, useWriteContract } from "wagmi";
 import { ADDRESSES } from "@/lib/config";
 import { heimdallVaultFactoryAbi } from "@/lib/abi";
 import { ConnectButton } from "@/components/ConnectButton";
-import { LaunchBanner } from "@/components/Preview";
+import { LaunchBanner, AuditNotice } from "@/components/Preview";
 
 const input = "min-h-11 rounded-lg border border-line-strong bg-panel px-3 py-2.5 outline-none focus:border-brand";
 
@@ -46,6 +46,7 @@ export function CreateVault() {
   }
   return (
     <div className="flex flex-col gap-4">
+    <AuditNotice cap="New vaults start capped at 10,000 USDG." />
     {!ADDRESSES.factory && <LaunchBanner>The vault factory goes live with the mainnet launch. You can fill this in now; creating a vault is enabled at launch.</LaunchBanner>}
     <form onSubmit={submit} className="card grid grid-cols-1 gap-4 p-6 sm:grid-cols-2">
       <label className="flex flex-col gap-1.5 text-[13px] font-medium sm:col-span-2">Vault name<input className={input} value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Guardian Balanced" maxLength={40} /></label>

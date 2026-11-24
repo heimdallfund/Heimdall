@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { ADDRESSES } from "@/lib/config";
 import { Providers } from "@/components/Providers";
-import { LaunchBanner } from "@/components/Preview";
+import { LaunchBanner, AuditNotice } from "@/components/Preview";
 import { Faq, Steps } from "@/components/ProductSections";
 import { InvestPanel } from "./InvestPanel";
 import { LogoRow } from "@/components/BrandLogo";
@@ -17,6 +17,7 @@ export default function Page() {
         <p className="max-w-[640px] text-[18px] leading-relaxed text-muted">Pick a stock, an amount and how often. Each buy comes out of your own wallet, lands back in it, and only goes through within the price bound you set against Chainlink.</p>
         <LogoRow className="mt-2" items={[{ token: "NVDA", label: "NVIDIA · NVDA" }, { token: "TSLA", label: "Tesla · TSLA" }, { token: "GOOGL", label: "Alphabet · GOOGL" }, { brand: "chainlink", label: "Chainlink prices" }, { brand: "uniswap", label: "Uniswap pools" }, { token: "USDG", label: "Paid in USDG" }]} />
       </header>
+      <AuditNotice />
       {ADDRESSES.autoInvest ? <Providers><InvestPanel ai={ADDRESSES.autoInvest} /></Providers> : <LaunchBanner>Auto-Invest opens with the mainnet launch. The contract is written and tested against real Uniswap pools.</LaunchBanner>}
       <Steps title="What happens on each buy" steps={[
         ["eye", "Checked against Chainlink", "The buy only runs while the stock's Chainlink price is fresh, and never while Robinhood has paused it for a corporate action."],

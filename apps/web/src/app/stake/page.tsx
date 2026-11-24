@@ -3,7 +3,7 @@ import Link from "next/link";
 import { ADDRESSES } from "@/lib/config";
 import { Providers } from "@/components/Providers";
 import { Faq, Steps } from "@/components/ProductSections";
-import { LaunchBanner } from "@/components/Preview";
+import { LaunchBanner, AuditNotice } from "@/components/Preview";
 import { StakePanel } from "./StakePanel";
 
 import { LogoRow } from "@/components/BrandLogo";
@@ -19,6 +19,7 @@ export default function Page() {
         <p className="max-w-[640px] text-[18px] leading-relaxed text-muted">Half of the protocol fees Heimdall collects in USDG go to $HEIM stakers. The rest funds the treasury. No lock-up, no emissions: only fees people actually paid.</p>
         <LogoRow className="mt-1" items={[{ token: "HEIM", label: "Stake $HEIM" }, { token: "USDG", label: "Earn USDG" }, { brand: "robinhood", label: "Robinhood Chain" }]} />
       </header>
+      <AuditNotice />
       {live ? <Providers><StakePanel staking={ADDRESSES.staking!} heim={ADDRESSES.heim!} /></Providers>
         : <LaunchBanner>Staking opens when $HEIM launches. The contract is written, tested and goes live with the token.</LaunchBanner>}
       <Steps title="Where the USDG comes from" steps={[

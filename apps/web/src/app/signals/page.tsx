@@ -5,7 +5,7 @@ import { Suspense } from "react";
 import { getSignals } from "@/lib/reads";
 import { explorerAddress, short } from "@/lib/config";
 import { SignalsVisual } from "@/components/Visuals";
-import { LaunchBanner, PreviewBadge } from "@/components/Preview";
+import { LaunchBanner, PreviewBadge, AuditNotice } from "@/components/Preview";
 
 import { LogoRow } from "@/components/BrandLogo";
 export const metadata: Metadata = { title: "Signals — pay-per-call market signals" };
@@ -25,6 +25,7 @@ async function SignalGrid() {
     ];
     return (
       <div className="flex flex-col gap-5">
+        <AuditNotice />
         <LaunchBanner>Signals open with the mainnet launch. These are the official Heimdall signals that will be listed first; third-party providers can list theirs from day one.</LaunchBanner>
         <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,320px),1fr))] gap-5">
           {preview.map(([cat, name, desc, price, ep]) => (
