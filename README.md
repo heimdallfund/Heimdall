@@ -3,7 +3,24 @@
   <img alt="Heimdall: nothing gets signed unchecked. Live Shield verdicts: approve USDG unlimited to a drainer, DENY; swap 500 USDG to NVDA, ALLOW." src=".github/assets/hero-light.svg" width="100%">
 </picture>
 
-<p><img alt="Robinhood Chain 4663 · 143 contract tests passing · 4 internal security reviews · BUSL-1.1 · pre-launch" src=".github/assets/chips.svg" height="28"></p>
+<p><img alt="Robinhood Chain 4663 · 162 contract tests passing · 6 internal security reviews · BUSL-1.1 · live on mainnet" src=".github/assets/chips.svg" height="28"></p>
+
+<p>
+  <a href="https://heimdall.fund"><b>Website</b></a> ·
+  <a href="https://heimdall.fund/docs"><b>Docs</b></a> ·
+  <a href="https://heimdall.fund/token-check"><b>Token Check</b></a> ·
+  <a href="https://api.heimdall.fund/openapi.json"><b>Shield API</b></a> ·
+  <a href="https://x.com/HeimdallFund"><b>X</b></a>
+</p>
+
+<p>
+  <a href="https://www.npmjs.com/package/@heimdallfund/sdk"><img alt="npm @heimdallfund/sdk" src="https://img.shields.io/npm/v/@heimdallfund/sdk?label=sdk&color=4C5BD4"></a>
+  <a href="https://www.npmjs.com/package/@heimdallfund/mcp"><img alt="npm @heimdallfund/mcp" src="https://img.shields.io/npm/v/@heimdallfund/mcp?label=mcp&color=4C5BD4"></a>
+  <a href="https://www.npmjs.com/package/@heimdallfund/agent-kit"><img alt="npm @heimdallfund/agent-kit" src="https://img.shields.io/npm/v/@heimdallfund/agent-kit?label=agent-kit&color=4C5BD4"></a>
+  <a href="https://www.npmjs.com/package/@heimdallfund/plugin-heimdall"><img alt="npm @heimdallfund/plugin-heimdall" src="https://img.shields.io/npm/v/@heimdallfund/plugin-heimdall?label=elizaos&color=4C5BD4"></a>
+  <a href="https://pypi.org/project/heimdallfund/"><img alt="PyPI heimdallfund" src="https://img.shields.io/pypi/v/heimdallfund?label=pypi&color=4C5BD4"></a>
+  <a href="https://registry.modelcontextprotocol.io/v0/servers?search=fund.heimdall"><img alt="MCP Registry fund.heimdall/mcp" src="https://img.shields.io/badge/MCP_Registry-fund.heimdall%2Fmcp-4C5BD4"></a>
+</p>
 
 Heimdall sits between an AI agent and its wallet. Before the agent signs, Shield simulates the transaction or signature on the latest block and answers **ALLOW**, **WARN** or **DENY**. An ALLOW comes with a signed receipt that Heimdall vaults, the Safe module and any contract can verify onchain. Everything Shield learns is written to an onchain Risk Oracle that any app on Robinhood Chain can read for free.
 
@@ -16,7 +33,8 @@ Heimdall sits between an AI agent and its wallet. Before the agent signs, Shield
 | **Giving an agent a Safe** | Guard for Safe, daily limits and receipts | Enable `HeimdallGuardModule` from the Safe |
 | **Selling an API to agents** | x402 facilitator, USDG per call, no keys | `GET /x402/supported` |
 | **Hiring another agent** | Agent Passport, a score on ERC-8004 | `await shield.passport(agentAddress)` |
-| **Depositing** | Shield-guarded stock vaults, Pay escrow, Auto-Invest | the app, once it is live |
+| **Trading a token or memecoin** | Token Check: honeypot, tax, holders, dev wallet and launchpad curve, with an AI summary | [heimdall.fund/token-check](https://heimdall.fund/token-check) or `GET /v1/token/:address` |
+| **Depositing** | Shield-guarded stock vaults (16 stock tokens), Pay escrow, Auto-Invest | [heimdall.fund/vaults](https://heimdall.fund/vaults) |
 
 ## Sixty seconds
 
@@ -81,12 +99,14 @@ contracts/          Solidity 0.8.28, Hardhat 3: vaults, Pay, Signals, Auto-Inves
 apps/shield/        Shield API (Hono): checks, receipts, x402 facilitator, Risk Oracle feed, passports
 apps/monitor/       alerts, keeper and Risk Oracle sync, as a Vercel cron or a container
 apps/web/           heimdall.fund (Next.js 16)
+apps/mcp/           the hosted MCP server at mcp.heimdall.fund
 apps/agent/         reference vault manager agent
 apps/signals/       official pay-per-call signals
 packages/sdk/       @heimdallfund/sdk
 packages/mcp/       @heimdallfund/mcp, 16 tools for Claude, Cursor and any MCP client
 packages/agent-kit/ tools for the Vercel AI SDK and LangChain
 packages/plugin-heimdall/  ElizaOS plugin
+packages/sdk-python/ heimdallfund on PyPI
 docs/               the docs site (GitBook)
 ```
 
@@ -101,13 +121,26 @@ cd apps/web && cp .env.local-demo .env.local && npm run build && npm start
 
 ## Security
 
-Six internal reviews found 4 serious and 10 medium issues, all fixed with a regression test each ([contracts/SECURITY_REVIEW_6.md](contracts/SECURITY_REVIEW_6.md) and the five before it). 156 contract tests run with 15 fuzz properties and 14 stateful invariants, and a launch rehearsal replays every product with real money on a mainnet fork. An independent audit comes next; its report will be published in full.
+Six internal reviews found 4 serious and 10 medium issues, all fixed with a regression test each ([contracts/SECURITY_REVIEW_6.md](contracts/SECURITY_REVIEW_6.md) and the five before it). 162 contract tests run with 15 fuzz properties and 14 stateful invariants, and a launch rehearsal replays every product with real money on a mainnet fork. An independent audit comes next; its report will be published in full.
 
 Found something? Email **security@heimdall.fund**. We reply within 48 hours.
 
-## Status
+## Live on Robinhood Chain
 
-Pre-launch. Heimdall goes straight to Robinhood Chain mainnet, no testnet; vaults open with a 10,000 USDG deposit cap.
+Deployed at block 122057226, verified on Sourcify and owned by a 2-of-3 Safe. Vaults open with a 10,000 USDG deposit cap.
+
+| Contract | Address |
+| --- | --- |
+| Vault Factory | [`0x838fdede1ae6fbdc15f784030d78ca7543d1154d`](https://robinhoodchain.blockscout.com/address/0x838fdede1ae6fbdc15f784030d78ca7543d1154d) |
+| Vault Deployer | [`0x59c2385ee4876405f535f6fcf8f7f566f48cb9fb`](https://robinhoodchain.blockscout.com/address/0x59c2385ee4876405f535f6fcf8f7f566f48cb9fb) |
+| Signals | [`0x14bd445999dd254090ce86bfcf96df5d4a3e301d`](https://robinhoodchain.blockscout.com/address/0x14bd445999dd254090ce86bfcf96df5d4a3e301d) |
+| Pay | [`0xd8bd0bfc6ad1c5cee42c4f64bfcea9555a170265`](https://robinhoodchain.blockscout.com/address/0xd8bd0bfc6ad1c5cee42c4f64bfcea9555a170265) |
+| Auto-Invest | [`0xeacf613ff7d6dbc8acbf51b411ad092d48e5a932`](https://robinhoodchain.blockscout.com/address/0xeacf613ff7d6dbc8acbf51b411ad092d48e5a932) |
+| Risk Oracle | [`0x84da850303db7cca6d5194b9d9f8f392a6c9e3e0`](https://robinhoodchain.blockscout.com/address/0x84da850303db7cca6d5194b9d9f8f392a6c9e3e0) |
+| Guard Module (Safe) | [`0xd2a8815c10f1d71fc854edb7a78405db8fe86ae6`](https://robinhoodchain.blockscout.com/address/0xd2a8815c10f1d71fc854edb7a78405db8fe86ae6) |
+| Admin Safe (2-of-3) | [`0xaF1c3b55D204899CEd14d23C996153bC82424168`](https://robinhoodchain.blockscout.com/address/0xaF1c3b55D204899CEd14d23C996153bC82424168) |
+
+Every address, including the 16 stock price feeds, is in [contracts/deployments/robinhood.json](contracts/deployments/robinhood.json).
 
 ## License
 
