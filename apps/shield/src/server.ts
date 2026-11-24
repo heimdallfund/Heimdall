@@ -442,7 +442,7 @@ export function buildApp(opts: AppOptions = {}) {
     const denied = await admit(c, PRICE.check);
     if (denied) return denied;
     try {
-      const r = await tokenCheck(getClient(4663), a as `0x${string}`);
+      const r = await tokenCheck(getClient(4663), a as `0x${string}`, Date.now(), undefined, { smartCount: (w) => smartCount(store, w) });
       await store.put(key, JSON.stringify(r), 60).catch(() => {});
       return c.json(r);
     } catch (e) {
