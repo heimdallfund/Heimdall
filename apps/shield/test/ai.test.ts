@@ -11,10 +11,10 @@ const check = {
 
 describe("AI summary", () => {
   it("returns null without a gateway credential", async () => {
-    const saved = { k: process.env.AI_GATEWAY_API_KEY, o: process.env.VERCEL_OIDC_TOKEN };
-    delete process.env.AI_GATEWAY_API_KEY; delete process.env.VERCEL_OIDC_TOKEN;
+    const saved = { k: process.env.AI_GATEWAY_API_KEY, o: process.env.VERCEL_OIDC_TOKEN, r: process.env.OPENROUTER_API_KEY };
+    delete process.env.AI_GATEWAY_API_KEY; delete process.env.VERCEL_OIDC_TOKEN; delete process.env.OPENROUTER_API_KEY;
     expect(await summarizeTokenCheck(check, { fetcher: () => { throw new Error("must not call"); } })).toBeNull();
-    Object.assign(process.env, saved.k ? { AI_GATEWAY_API_KEY: saved.k } : {}, saved.o ? { VERCEL_OIDC_TOKEN: saved.o } : {});
+    Object.assign(process.env, saved.k ? { AI_GATEWAY_API_KEY: saved.k } : {}, saved.o ? { VERCEL_OIDC_TOKEN: saved.o } : {}, saved.r ? { OPENROUTER_API_KEY: saved.r } : {});
   });
 
   it("sends only the check's facts, with addresses removed, and returns the text", async () => {
@@ -29,6 +29,23 @@ describe("AI summary", () => {
     expect(user.verdict).toBe("DENY");
     expect(user.launchpad).toMatchObject({ name: "Pons", onBondingCurve: true });
     expect(JSON.stringify(user)).not.toMatch(/0x1111/);
+  });
+
+  it("uses OpenRouter first when its key is set, then falls back to the gateway", async () => {
+    process.env.OPENROUTER_API_KEY = "or-test";
+    const urls: string[] = [];
+    const fetcher = (async (url: string, init: RequestInit) => {
+      urls.push(url);
+      if (url.includes("openrouter")) {
+        expect((init.headers as Record<string, string>).authorization).toBe("Bearer or-test");
+        return new Response("no credits", { status: 402 });
+      }
+      return new Response(JSON.stringify({ choices: [{ message: { content: "ok" } }] }), { status: 200 });
+    }) as unknown as typeof fetch;
+    expect(await summarizeTokenCheck(check, { oidc: "t", fetcher })).toBe("ok");
+    expect(urls[0]).toContain("openrouter.ai");
+    expect(urls.at(-1)).toContain("ai-gateway.vercel.sh");
+    delete process.env.OPENROUTER_API_KEY;
   });
 
   it("returns null when the gateway refuses", async () => {

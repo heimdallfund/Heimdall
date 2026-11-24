@@ -2,12 +2,15 @@ import type { TokenCheck } from "./tokencheck.js";
 
 /**
  * A plain-language summary of a Token Check, written by a model from the check's own results and nothing else.
- * The verdict always comes from the simulation; the model only explains it. Runs through Vercel AI Gateway with the
- * deployment's OIDC token (or AI_GATEWAY_API_KEY). Returns null when no model is reachable: the report stands alone.
+ * The verdict always comes from the simulation; the model only explains it. Runs through OpenRouter when
+ * OPENROUTER_API_KEY is set, then through Vercel AI Gateway (OIDC or AI_GATEWAY_API_KEY) as a fallback.
+ * Returns null when no model is reachable: the report stands alone.
  */
-/** Tried in order: the first the gateway serves this team is used (free-tier teams cannot use every model). */
+/** OpenRouter models, tried in order. */
+export const OPENROUTER_MODELS = (process.env.OPENROUTER_MODEL ?? "anthropic/claude-haiku-5.5,google/gemini-3.5-flash-lite").split(",").map((m) => m.trim()).filter(Boolean);
+/** AI Gateway models, tried in order: the first the gateway serves this team is used (free-tier teams cannot use every model). */
 export const AI_MODELS = (process.env.AI_GATEWAY_MODEL ?? "anthropic/claude-haiku-5.5,anthropic/claude-haiku-4.5,google/gemini-2.5-flash,deepseek/deepseek-v4-flash").split(",").map((m) => m.trim()).filter(Boolean);
-export const AI_MODEL = AI_MODELS[0]!;
+export const AI_MODEL = process.env.OPENROUTER_API_KEY ? OPENROUTER_MODELS[0]! : AI_MODELS[0]!;
 
 const SYSTEM = `You explain Heimdall Token Check results to crypto traders on Robinhood Chain.
 Use ONLY the facts in the JSON you are given. Never add facts, prices, predictions, opinions on the project, or advice to buy or sell.
@@ -34,26 +37,42 @@ export async function summarizeTokenCheck(r: TokenCheck, opts: { oidc?: string; 
   return (await summarize(r, opts))?.text ?? null;
 }
 
+interface Route { name: string; url: string; token: string; models: string[]; extra: Record<string, unknown>; headers: Record<string, string> }
+
+function routes(oidc?: string): Route[] {
+  const out: Route[] = [];
+  const or = process.env.OPENROUTER_API_KEY;
+  if (or) out.push({
+    name: "openrouter", url: "https://openrouter.ai/api/v1/chat/completions", token: or, models: OPENROUTER_MODELS,
+    extra: {}, headers: { "HTTP-Referer": "https://heimdall.fund", "X-Title": "Heimdall Token Check" },
+  });
+  const gw = process.env.AI_GATEWAY_API_KEY ?? process.env.VERCEL_OIDC_TOKEN ?? oidc;
+  if (gw) out.push({ name: "gateway", url: "https://ai-gateway.vercel.sh/v1/chat/completions", token: gw, models: AI_MODELS, extra: { reasoning_effort: "low" }, headers: {} });
+  return out;
+}
+
 export async function summarize(r: TokenCheck, opts: { oidc?: string; fetcher?: typeof fetch; timeoutMs?: number } = {}): Promise<{ text: string; model: string } | null> {
-  const token = process.env.AI_GATEWAY_API_KEY ?? process.env.VERCEL_OIDC_TOKEN ?? opts.oidc;
-  if (!token) { console.warn(JSON.stringify({ level: "warn", path: "ai", message: "no AI Gateway credential (AI_GATEWAY_API_KEY or OIDC)" })); return null; }
+  const list = routes(opts.oidc);
+  if (!list.length) { console.warn(JSON.stringify({ level: "warn", path: "ai", message: "no AI credential (OPENROUTER_API_KEY, AI_GATEWAY_API_KEY or OIDC)" })); return null; }
   const content = JSON.stringify(facts(r));
-  for (const model of AI_MODELS) {
-    const res = await (opts.fetcher ?? fetch)("https://ai-gateway.vercel.sh/v1/chat/completions", {
-      method: "POST",
-      headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
-      body: JSON.stringify({ model, max_tokens: 1500, reasoning_effort: "low", temperature: 0, messages: [{ role: "system", content: SYSTEM }, { role: "user", content }] }),
-      signal: AbortSignal.timeout(opts.timeoutMs ?? 12_000),
-    }).catch(() => null);
-    if (!res) continue;
-    if (!res.ok) {
-      console.warn(JSON.stringify({ level: "warn", path: "ai", message: `gateway ${res.status} for ${model}: ${(await res.text().catch(() => "")).slice(0, 160)}` }));
-      if (res.status === 401) return null; // bad credential: no model will work
-      continue;
+  for (const route of list) {
+    for (const model of route.models) {
+      const res = await (opts.fetcher ?? fetch)(route.url, {
+        method: "POST",
+        headers: { authorization: `Bearer ${route.token}`, "content-type": "application/json", ...route.headers },
+        body: JSON.stringify({ model, max_tokens: 1500, temperature: 0, ...route.extra, messages: [{ role: "system", content: SYSTEM }, { role: "user", content }] }),
+        signal: AbortSignal.timeout(opts.timeoutMs ?? 12_000),
+      }).catch(() => null);
+      if (!res) continue;
+      if (!res.ok) {
+        console.warn(JSON.stringify({ level: "warn", path: "ai", message: `${route.name} ${res.status} for ${model}: ${(await res.text().catch(() => "")).slice(0, 160)}` }));
+        if (res.status === 401) break; // bad credential: no model on this route will work
+        continue;
+      }
+      const j = await res.json() as { choices?: { message?: { content?: string } }[] };
+      const text = j.choices?.[0]?.message?.content?.trim();
+      if (text) return { text: text.slice(0, 900), model: route.name === "openrouter" ? `openrouter:${model}` : model };
     }
-    const j = await res.json() as { choices?: { message?: { content?: string } }[] };
-    const text = j.choices?.[0]?.message?.content?.trim();
-    if (text) return { text: text.slice(0, 900), model };
   }
   return null;
 }

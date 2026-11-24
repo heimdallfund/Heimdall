@@ -451,7 +451,7 @@ export function buildApp(opts: AppOptions = {}) {
   app.get("/v1/token/:address/summary", async (c) => {
     const a = c.req.param("address");
     if (!isAddress(a)) return c.json({ error: "invalid_address" }, 400);
-    const key = `tokensummary:v3:${a.toLowerCase()}`;
+    const key = `tokensummary:v4:${a.toLowerCase()}`;
     c.header("cache-control", "public, max-age=300");
     const hit = await store.fetch(key).catch(() => null);
     if (hit) return c.json(JSON.parse(hit));
