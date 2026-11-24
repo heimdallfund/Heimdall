@@ -39,7 +39,10 @@ export function ConnectButton() {
     if (!open) return;
     const esc = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
     window.addEventListener("keydown", esc);
-    return () => window.removeEventListener("keydown", esc);
+    // the page behind does not scroll while the picker is open
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { window.removeEventListener("keydown", esc); document.body.style.overflow = prev; };
   }, [open]);
 
   if (isConnected && address) {
@@ -102,7 +105,7 @@ export function ConnectButton() {
                   <a className="text-ink underline decoration-brand decoration-2 underline-offset-4 hover:text-brand" href={`https://link.trustwallet.com/open_url?coin_id=60&url=${encodeURIComponent(`https://${here}`)}`}>Trust</a>
                 </div>
               )}
-              {error && <p role="alert" className="border-l-4 border-deny bg-deny-soft px-3 py-2 text-[13px] text-deny">{/rejected|denied/i.test(error.message) ? "The request was declined in the wallet." : error.message.split("\n")[0]}</p>}
+              {error && <p role="alert" className="border-l-4 border-deny bg-deny-soft px-3 py-2 text-[13px] text-deny">{/rejected|denied/i.test(error.message) ? "The request was declined in the wallet." : /internet connection|origin not allowed/i.test(error.message) ? "Could not reach WalletConnect. Check your connection and try again in a minute." : error.message.split("\n")[0]}</p>}
               <div className="flex items-center gap-3 border-t-2 border-dashed border-line pt-4">
                 <span className="flex shrink-0 gap-1 font-mono text-[10px] font-bold">
                   <span className="border border-allow px-1 text-allow">ALLOW</span><span className="border border-warn px-1 text-warn">WARN</span><span className="border border-deny px-1 text-deny">DENY</span>

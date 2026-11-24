@@ -154,3 +154,6 @@ h1:not(.docs-prose h1):not(.guide-prose h1):not(.plain) { font-family: var(--fon
 .checkpoint-track { container-type: size; }
 .checkpoint-scan { animation: cp-scan 2.4s linear infinite; will-change: transform; }
 @media (prefers-reduced-motion: reduce) { .checkpoint-scan { animation: none; transform: translateY(40cqh); } }
+
+/* Nothing may widen the page on a phone: a stray wide element otherwise lets the whole layout (and fixed dialogs) slide sideways. clip, unlike hidden, keeps sticky headers working. */
+html, body { overflow-x: clip; }
