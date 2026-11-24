@@ -214,7 +214,7 @@ await step("x402: real USDG transferWithAuthorization settled by the facilitator
     domain: { name: ROBINHOOD_USDG.name, version: ROBINHOOD_USDG.version, chainId: 4663, verifyingContract: usdg },
     types: { TransferWithAuthorization: [{ name: "from", type: "address" }, { name: "to", type: "address" }, { name: "value", type: "uint256" }, { name: "validAfter", type: "uint256" }, { name: "validBefore", type: "uint256" }, { name: "nonce", type: "bytes32" }] },
     primaryType: "TransferWithAuthorization", message: authorization });
-  const p: PaymentPayload = { x402Version: 2, resource: { url: "https://api.heimdall.fund/v1/check/transaction" }, accepted: { ...req, payTo: keeper.account.address, amount: "1000" },
+  const p: PaymentPayload = { x402Version: 2, resource: { url: "https://api.heimdall.fund/v1/check" }, accepted: { ...req, payTo: keeper.account.address, amount: "1000" },
     payload: { signature, authorization: { ...authorization, value: "1000", validAfter: "0", validBefore: String(authorization.validBefore) } } };
   const before = await pc.readContract({ address: usdg, abi: erc20Abi, functionName: "balanceOf", args: [keeper.account.address] });
   const r = await settlePayment(keeper as never, pc as never, p, req, { nowSec: Number(now) });

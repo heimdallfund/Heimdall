@@ -1,5 +1,6 @@
 import { getAddress, isAddress, keccak256, parseAbi, toHex, type Address, type PublicClient } from "viem";
 import type { CounterStore } from "./store.js";
+import { publicUrlProblem, readCapped, type Resolver } from "./net.js";
 
 /**
  * Agent Passport: one trust record per agent, built from what Heimdall can verify, and tied to the agent's ERC-8004
@@ -91,7 +92,7 @@ export function scorePassport(i: ScoreInputs): Score {
 export interface Registration { name?: string; description?: string; image?: string; services?: { name: string; endpoint: string; version?: string }[]; x402Support?: boolean; active?: boolean }
 
 /** Read an agent registration file: data: URI, or https with a size and time cap. Never throws. */
-export async function readRegistration(uri: string, fetcher: typeof fetch = fetch): Promise<Registration | null> {
+export async function readRegistration(uri: string, fetcher: typeof fetch = fetch, opts: { resolve?: Resolver } = {}): Promise<Registration | null> {
   try {
     if (uri.startsWith("data:")) {
       const [meta, body] = uri.slice(5).split(",", 2);
@@ -99,11 +100,12 @@ export async function readRegistration(uri: string, fetcher: typeof fetch = fetc
       return pick(JSON.parse(text));
     }
     const url = uri.startsWith("ipfs://") ? `https://ipfs.io/ipfs/${uri.slice(7)}` : uri;
-    if (!/^https:\/\//.test(url)) return null;
-    const res = await fetcher(url, { signal: AbortSignal.timeout(4000), redirect: "follow" });
+    // the URI is chosen by whoever registered the agent: public https hosts only, no redirects, 64 KB at most
+    if (await publicUrlProblem(url, { resolve: opts.resolve })) return null;
+    const res = await fetcher(url, { signal: AbortSignal.timeout(4000), redirect: "error" });
     if (!res.ok || Number(res.headers.get("content-length") ?? 0) > 64_000) return null;
-    const text = await res.text();
-    return text.length > 64_000 ? null : pick(JSON.parse(text));
+    const text = await readCapped(res, 64_000);
+    return text === null ? null : pick(JSON.parse(text));
   } catch {
     return null;
   }

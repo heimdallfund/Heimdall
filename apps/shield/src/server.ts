@@ -98,7 +98,7 @@ export const CheckBody = z.object({
   from: addr,
   to: addr.nullable().optional(),
   data: z.string().refine((v) => isHex(v), "data must be hex").max(65_536).default("0x"),
-  value: z.union([z.string().regex(/^(0x[0-9a-fA-F]+|\d+)$/), z.number().int().nonnegative()]).default("0"),
+  value: z.union([z.string().regex(/^(0x[0-9a-fA-F]{1,64}|\d{1,78})$/), z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER)]).default("0").refine((v) => BigInt(v) < 2n ** 256n, "value must fit in uint256"),
   policy: PolicySchema.optional(),
   share: z.boolean().optional(),
   /** A lookup ("is this address safe?") from a throwaway wallet: judged normally but kept off the Threat Board and agent stats. */
@@ -136,6 +136,8 @@ export function buildApp(opts: AppOptions = {}) {
   }
 
   const app = new Hono<Vars>();
+  // a hard ceiling for every route; check routes use the tighter limitBody (128 KB)
+  app.use("*", bodyLimit({ maxSize: 1024 * 1024, onError: (c) => c.json({ error: "payload_too_large" }, 413) }));
   app.use("*", cors({ origin: origins.includes("*") ? "*" : origins, allowHeaders: ["content-type", "authorization", "x-api-key", "x-admin-key", "payment-signature", "x-payment"], exposeHeaders: ["payment-required", "payment-response", "x-payment-response", "x-ratelimit-remaining", "x-heimdall-quota-remaining"], maxAge: 600 }));
   app.use("*", async (c, next) => {
     const t = Date.now();

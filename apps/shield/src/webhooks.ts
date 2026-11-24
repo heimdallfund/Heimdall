@@ -1,6 +1,7 @@
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { isAddress } from "viem";
 import type { CounterStore } from "./store.js";
+import { publicUrlProblem, type Resolver } from "./net.js";
 
 /**
  * Webhooks for developers: the owner of an API key registers one HTTPS endpoint and gets a signed POST when Shield
@@ -107,10 +108,12 @@ export async function deleteHook(store: CounterStore, owner: string) {
 }
 
 /** Sends one event. Never throws; records the attempt and switches the hook off after repeated failures. */
-export async function deliver(store: CounterStore, owner: string, type: HookEvent, data: unknown, fetcher: typeof fetch = fetch, opts: { allowInsecure?: boolean } = {}): Promise<Delivery | null> {
+export async function deliver(store: CounterStore, owner: string, type: HookEvent, data: unknown, fetcher: typeof fetch = fetch, opts: { allowInsecure?: boolean; resolve?: Resolver } = {}): Promise<Delivery | null> {
   const h = await getHook(store, owner);
   if (!h || (type !== "test" && (h.disabled || !h.events.includes(type)))) return null;
   if (validHookUrl(h.url, opts.allowInsecure)) return null;
+  // resolved at delivery time too, so a public name later pointed at a private address is refused
+  if (!opts.allowInsecure && (await publicUrlProblem(h.url, { resolve: opts.resolve }))) return null;
   const id = `evt_${randomBytes(9).toString("base64url")}`;
   const body = JSON.stringify({ id, type, createdAt: new Date().toISOString(), data });
   const t0 = Date.now();

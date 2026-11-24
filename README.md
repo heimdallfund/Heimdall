@@ -56,7 +56,7 @@ contract MyLaunchpad is HeimdallRiskAware {
 import { payX402 } from "@heimdallfund/sdk";
 
 const paidFetch = payX402(fetch, wallet, { maxAmount: 10_000n }); // at most 0.01 USDG a call
-const verdict = await paidFetch("https://api.heimdall.fund/v1/check/transaction", { method: "POST", body });
+const verdict = await paidFetch("https://api.heimdall.fund/v1/check", { method: "POST", body });
 ```
 </details>
 
