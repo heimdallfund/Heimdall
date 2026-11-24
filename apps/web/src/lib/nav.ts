@@ -4,7 +4,7 @@ export interface NavSection { title: string; items: NavItem[] }
 
 /** Docs order: sidebar, prev/next and search all read from here. */
 export const DOCS: NavSection[] = [
-  { title: "Start", items: [{ href: "/docs", title: "Overview & quickstart" }, { href: "/docs/limits", title: "API keys & limits" }] },
+  { title: "Start", items: [{ href: "/docs", title: "Overview & quickstart" }, { href: "/docs/limits", title: "API keys & limits" }, { href: "/docs/api", title: "API reference" }] },
   { title: "Shield", items: [{ href: "/docs/shield", title: "Transaction checks" }, { href: "/docs/signatures", title: "Signature checks" }, { href: "/docs/webhooks", title: "Webhooks" }] },
   { title: "Products", items: [{ href: "/docs/wallet-check", title: "Wallet Check & Watch" }, { href: "/docs/vaults", title: "Vaults" }, { href: "/docs/signals", title: "Signals" }, { href: "/docs/pay", title: "Heimdall Pay" }, { href: "/docs/auto-invest", title: "Auto-Invest" }, { href: "/docs/arena", title: "Agent Arena" }, { href: "/docs/points", title: "Guardian Points" }, { href: "/docs/staking", title: "Staking $HEIM" }, { href: "/docs/agent", title: "Reference agent" }] },
   { title: "Integrate", items: [{ href: "/docs/risk-oracle", title: "Risk Oracle" }, { href: "/docs/guard", title: "Guard for Safe" }, { href: "/docs/x402", title: "x402 payments" }, { href: "/docs/passport", title: "Agent Passport" }] },

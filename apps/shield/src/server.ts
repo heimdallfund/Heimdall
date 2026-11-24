@@ -1,6 +1,7 @@
 import { agentStats, loadVerdict, recordCheck, saveVerdict, threats } from "./insights.js";
 import { scanWallet } from "./approvals.js";
 import { currentSeason, recordSnapshots, standings, type Snapshot } from "./arena.js";
+import { openApi } from "./openapi.js";
 import { countVerdict, listIncidents, recordHeartbeat, status, upsertIncident } from "./status.js";
 import { runWatch, subscribe, unsubscribe, validSubscription, webPushSender } from "./watch.js";
 import { bindReferral, claimAction, earlyStatus, growthStats, ipKey, referralStats, registerEarly } from "./growth.js";
@@ -153,6 +154,15 @@ export function buildApp(opts: AppOptions = {}) {
     } catch {
       return c.json({ ok: false, service: "heimdall-shield", version: "0.2.0", error: "rpc_unreachable" }, 503);
     }
+  });
+
+  /** OpenAPI 3.1 for the public API, open to any origin so agents, SDK generators and API catalogs can read it. */
+  let spec: string | null = null;
+  app.get("/openapi.json", (c) => {
+    spec ??= JSON.stringify(openApi(env.SHIELD_PUBLIC_URL ?? "https://api.heimdall.fund"));
+    c.header("access-control-allow-origin", "*");
+    c.header("cache-control", "public, max-age=3600");
+    return c.body(spec, 200, { "content-type": "application/json" });
   });
 
   app.get("/v1/stats", async (c) => {
