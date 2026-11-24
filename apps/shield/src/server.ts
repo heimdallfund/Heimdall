@@ -1,11 +1,11 @@
 import { agentStats, loadVerdict, recordCheck, saveVerdict, threats } from "./insights.js";
 import { scanWallet } from "./approvals.js";
 import { currentSeason, recordSnapshots, standings, type Snapshot } from "./arena.js";
-import { listIncidents, recordHeartbeat, status, upsertIncident } from "./status.js";
+import { countVerdict, listIncidents, recordHeartbeat, status, upsertIncident } from "./status.js";
 import { runWatch, subscribe, unsubscribe, validSubscription, webPushSender } from "./watch.js";
 import { bindReferral, claimAction, earlyStatus, growthStats, ipKey, referralStats, registerEarly } from "./growth.js";
 import { analytics, loadSeasons, logDecision, recentDecisions, saveSeasons, trackEvent, validateSeasons } from "./admin.js";
-import { addCommunityBlock, communityEntries, removeCommunityBlock } from "./blocklist.js";
+import { addCommunityBlock, blocklistEntries, communityEntries, removeCommunityBlock } from "./blocklist.js";
 import { decodeHeader, discovery, encodeHeader, normalizePayload, paymentRequired, rememberResource, requirementsFor, ROBINHOOD_USDG, settlePayment, verifyPayment, type DiscoveryItem, type PaymentPayload, type PaymentRequirements } from "./x402.js";
 import { createWalletClient, custom, type WalletClient } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
@@ -310,7 +310,7 @@ export function buildApp(opts: AppOptions = {}) {
         ? await checkTypedData(b.chainId, b.signer as `0x${string}`, b.typedData as never, policy, getClient(b.chainId))
         : checkPersonalMessage(b.message!, policy);
       const bucket = result.verdict === "ALLOW" ? "allowed" : result.verdict === "WARN" ? "warned" : "denied";
-      await Promise.all([store.incr("stats:checks", LONG_TTL), store.incr(`stats:${bucket}`, LONG_TTL)]).catch(() => {});
+      await countVerdict(store, bucket).catch(() => {});
       const checkId = keccak256(toHex(`sig:${b.signer}:${Date.now()}:${Math.random()}`));
       const spender = result.approvals?.[0]?.spender ?? null;
       await recordCheck(store, { kind: "sig", wallet: b.signer, target: spender, result: { ...result, checkId } }).catch(() => {});
@@ -341,7 +341,7 @@ export function buildApp(opts: AppOptions = {}) {
         { client: getClient(b.chainId) },
       );
       const bucket = result.verdict === "ALLOW" ? "allowed" : result.verdict === "WARN" ? "warned" : "denied";
-      await Promise.all([store.incr("stats:checks", LONG_TTL), store.incr(`stats:${bucket}`, LONG_TTL)]).catch(() => {});
+      await countVerdict(store, bucket).catch(() => {});
       // For approvals the threat is the spender, not the token contract.
       const threatTarget = result.approvals?.[0]?.spender ?? b.to ?? null;
       if (!b.probe) await recordCheck(store, { kind: "tx", wallet: b.from, target: threatTarget, result: result as never }).catch(() => {});
@@ -732,7 +732,11 @@ export function buildApp(opts: AppOptions = {}) {
 
   // ── Public status ─────────────────────────────────────────────────────────────
   app.get("/v1/status", async (c) => {
-    const body = await memo("status", 30, () => status(store, async () => { const b = await getClient(4663).getBlock(); return { block: b.number!, timestamp: b.timestamp, provider: activeProvider(4663) ?? undefined }; }));
+    const body = await memo("status", 30, async () => {
+      const s = await status(store, async () => { const b = await getClient(4663).getBlock(); return { block: b.number!, timestamp: b.timestamp, provider: activeProvider(4663) ?? undefined }; });
+      const risk = await riskEntries().catch(() => [] as RiskEntry[]);
+      return { ...s, version: "0.2.0", mode: prelaunch(env) ? "prelaunch" : "live", protection: { blocklisted: blocklistEntries().length, riskListed: risk.length } };
+    });
     c.header("cache-control", "public, max-age=30, s-maxage=30");
     return c.json(body);
   });

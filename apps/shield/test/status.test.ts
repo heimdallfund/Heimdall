@@ -1,11 +1,26 @@
 import { describe, it, expect } from "vitest";
 import { MemoryStore } from "../src/store.js";
-import { recordHeartbeat, status, upsertIncident } from "../src/status.js";
+import { countVerdict, recordHeartbeat, status, upsertIncident } from "../src/status.js";
 
 const NOW = Date.UTC(2026, 11, 10, 12);
 const rpc = (lag: number) => async () => ({ block: 123_456n, timestamp: BigInt(Math.floor(NOW / 1000) - lag) });
 
 describe("status", () => {
+  it("counts checks per UTC day and in total, and reports the head block and RPC time", async () => {
+    const s = new MemoryStore();
+    await countVerdict(s, "allowed", NOW - 86_400_000);
+    await countVerdict(s, "denied", NOW);
+    await countVerdict(s, "warned", NOW);
+    await countVerdict(s, "allowed", NOW);
+    const st = await status(s, rpc(3), NOW);
+    expect(st.activity).toMatchObject({ total: 4, allowed: 2, warned: 1, denied: 1, today: 3 });
+    expect(st.activity.days).toHaveLength(30);
+    expect(st.activity.days.at(-1)).toEqual({ day: "2026-12-10", checks: 3, warned: 1, denied: 1 });
+    expect(st.activity.days.at(-2)!.checks).toBe(1);
+    expect(st.block).toBe("123456");
+    expect(typeof st.services[1]!.ms).toBe("number");
+  });
+
   it("reports each service from heartbeats and probes, with daily uptime", async () => {
     const s = new MemoryStore();
     for (let i = 0; i < 4; i++) await recordHeartbeat(s, "monitor", { shield: i !== 3, rpc: true }, undefined, NOW - (10 - i) * 60_000);
