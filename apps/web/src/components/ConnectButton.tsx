@@ -90,7 +90,7 @@ export function ConnectButton() {
                     icon={c.icon ? <img src={c.icon} alt="" width={40} height={40} className="size-10 rounded-lg" /> : (() => { const n = logoFor(c.name); return n ? <BrandLogo name={n} size={40} /> : <LogoMark size={40} />; })()} />
                 ))}
                 {!announced.length && generic && hasInjected && <Tile name="Browser wallet" caption="In this browser" busy={isPending} onClick={() => pick(generic)} icon={<BrandLogo name="metamask" size={40} />} />}
-                {wc && <Tile wide={tiles % 2 === 1} name="Phone wallet" caption={mobile ? "Robinhood · MetaMask · Trust · Rainbow" : "Scan the QR with any phone wallet"} busy={isPending} onClick={() => { setOpen(false); pick(wc); }}
+                {wc && <Tile wide={tiles % 2 === 1} name="Phone wallet" caption={mobile ? "Robinhood, MetaMask & more" : "Scan with any phone wallet"} busy={isPending} onClick={() => { setOpen(false); pick(wc); }}
                   icon={<BrandLogo name="walletconnect" size={40} />} logos={["robinhood", "metamask", "rainbow"]} />}
                 {cb && <Tile name="Coinbase Wallet" caption="App or extension" busy={isPending} onClick={() => pick(cb)} icon={<BrandLogo name="coinbase" size={40} />} />}
               </div>
