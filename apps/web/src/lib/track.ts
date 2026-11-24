@@ -1,7 +1,7 @@
 /** Events the Shield API accepts (anything else is dropped there). */
 export type TrackEvent =
   | "pageview" | "wallet_check" | "revoke" | "report_submitted" | "stake" | "unstake" | "claim"
-  | "pay_job_created" | "pay_released" | "plan_created" | "vault_deposit" | "shield_console_check" | "docs_copy" | "early_access" | "watch_on" | "token_check";
+  | "pay_job_created" | "pay_released" | "plan_created" | "vault_deposit" | "shield_console_check" | "docs_copy" | "early_access" | "watch_on" | "token_watch_on" | "token_check";
 
 /**
  * Privacy-friendly analytics: one anonymous counter per event and day. No cookies, no IP or wallet address is sent;

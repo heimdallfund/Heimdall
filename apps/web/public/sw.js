@@ -1,9 +1,9 @@
-/* Heimdall Wallet Watch: shows push notifications and opens the wallet's report when one is tapped. */
+/* Heimdall Wallet Watch and Token Watch: shows push notifications and opens the report when one is tapped. */
 self.addEventListener("push", (event) => {
   let d = {};
   try { d = event.data ? event.data.json() : {}; } catch (e) { d = { title: "Heimdall", body: event.data ? event.data.text() : "" }; }
-  event.waitUntil(self.registration.showNotification(d.title || "Heimdall Wallet Watch", {
-    body: d.body || "Something changed on a wallet you watch.",
+  event.waitUntil(self.registration.showNotification(d.title || "Heimdall", {
+    body: d.body || "Something changed on a wallet or token you watch.",
     icon: "/apple-icon.png",
     badge: "/apple-icon.png",
     tag: d.tag || "heimdall-watch",

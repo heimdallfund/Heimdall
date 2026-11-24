@@ -58,7 +58,7 @@ export async function recentDecisions(store: CounterStore): Promise<Decision[]> 
 /** The only events the web app may record. Anything else is ignored. */
 export const EVENTS = [
   "pageview", "wallet_check", "revoke", "report_submitted", "stake", "unstake", "claim",
-  "pay_job_created", "pay_released", "plan_created", "vault_deposit", "shield_console_check", "docs_copy", "early_access", "watch_on", "token_check",
+  "pay_job_created", "pay_released", "plan_created", "vault_deposit", "shield_console_check", "docs_copy", "early_access", "watch_on", "token_watch_on", "token_check",
 ] as const;
 export type EventName = (typeof EVENTS)[number];
 

@@ -8,6 +8,7 @@ import { ScanLoader } from "@/components/Motif";
 import { explorerAddress, short } from "@/lib/config";
 import { fetchTokenCheck, legState, VERDICT_HEAD, type Leg, type TokenReport } from "@/lib/tokencheck";
 import { TokenCheckForm } from "../TokenCheckForm";
+import { WatchButton } from "@/components/WatchButton";
 import { TokenCheckShare } from "../TokenCheckShare";
 import { TokenAiSummary } from "../TokenAiSummary";
 
@@ -98,7 +99,7 @@ async function Content({ params }: { params: Promise<{ address: string }> }) {
         <span className="eyebrow">Token Check</span>
         <h1 className="text-[40px] leading-tight md:text-[50px]">{r.symbol ?? "Unknown token"}{r.name && r.name !== r.symbol ? <span className="text-muted"> · {r.name}</span> : null}</h1>
         <a href={explorerAddress(a)} target="_blank" rel="noopener" className="break-all font-mono text-[13px] text-muted hover:text-brand">{a}</a>
-        <div className="mt-2"><TokenCheckShare check={{ address: a, symbol: r.symbol ?? short(a), verdict: r.verdict, at: r.checkedAt }} /></div>
+        <div className="mt-2 flex flex-wrap items-start gap-3"><TokenCheckShare check={{ address: a, symbol: r.symbol ?? short(a), verdict: r.verdict, at: r.checkedAt }} /><WatchButton address={a} kind="token" /></div>
       </header>
       <section className={`flex flex-col gap-2 rounded-[3px] border p-5 sm:flex-row sm:items-center sm:gap-4 ${box}`}>
         <span className={`font-mono text-[28px] font-bold ${color}`}>{r.verdict}</span>

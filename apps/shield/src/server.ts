@@ -8,6 +8,8 @@ import { summarize } from "./ai.js";
 import { alchemyHoldings, explorerHoldings, flagHoldings } from "./holdings.js";
 import { countVerdict, listIncidents, recordHeartbeat, status, upsertIncident } from "./status.js";
 import { runWatch, subscribe, unsubscribe, validSubscription, webPushSender } from "./watch.js";
+import { runTokenWatch, subscribeToken, unsubscribeToken } from "./tokenwatch.js";
+import { logsClient } from "./tokencheck.js";
 import { bindReferral, claimAction, earlyStatus, growthStats, ipKey, referralStats, registerEarly } from "./growth.js";
 import { analytics, loadSeasons, logDecision, recentDecisions, saveSeasons, trackEvent, validateSeasons } from "./admin.js";
 import { addCommunityBlock, blocklistEntries, communityEntries, removeCommunityBlock } from "./blocklist.js";
@@ -894,6 +896,23 @@ export function buildApp(opts: AppOptions = {}) {
     if (!b.endpoint || typeof b.endpoint !== "string") return c.json({ error: "invalid_request" }, 400);
     return c.json(await unsubscribe(store, b.endpoint, b.address && isAddress(b.address) ? b.address : undefined));
   });
+  // Token Watch: the same browser push, for a token (dev and whale sells, liquidity pulled, a worse Token Check)
+  app.post("/v1/watch/token", limitBody, async (c) => {
+    if (!env.VAPID_PUBLIC_KEY) return c.json({ error: "not_configured", message: "Token Watch is not switched on yet." }, 503);
+    const b = (await c.req.json().catch(() => ({}))) as { token?: string; subscription?: unknown };
+    if (!b.token || !isAddress(b.token) || !validSubscription(b.subscription)) return c.json({ error: "invalid_request" }, 400);
+    const ip = clientIp(c, "local");
+    if ((await store.incr(`watch:rl:${ipKey(ip)}`, 3_600)) > 20) return c.json({ error: "too_many_requests" }, 429);
+    try {
+      const r = await subscribeToken(store, b.token, b.subscription, () => cachedTokenCheck(b.token as `0x${string}`));
+      return c.json(r, r.ok ? 200 : 400);
+    } catch { return c.json({ error: "check_failed", message: "Could not check the token right now. Try again in a minute." }, 503); }
+  });
+  app.delete("/v1/watch/token", limitBody, async (c) => {
+    const b = (await c.req.json().catch(() => ({}))) as { endpoint?: string; token?: string };
+    if (!b.endpoint || typeof b.endpoint !== "string") return c.json({ error: "invalid_request" }, 400);
+    return c.json(await unsubscribeToken(store, b.endpoint, b.token && isAddress(b.token) ? b.token : undefined));
+  });
   const watchScan = async (address: string) => {
     const report = await scanWallet(address as `0x${string}`, { client: getClient(4663), store, quick: true, deniedTargets: await deniedTargets() });
     await rememberFlagged(store, address, report.approvals.filter((r) => r.risk !== "ok")).catch(() => {});
@@ -945,14 +964,17 @@ export function buildApp(opts: AppOptions = {}) {
     // browser push needs VAPID keys; developer webhooks run either way
     const send = await webPushSender(env);
     const site = env.HEIMDALL_WEB_URL ?? "https://heimdall.fund";
-    return c.json(await runWatch(store, watchScan, send, {
+    const tokens = await runTokenWatch(store, { logs: logsClient, client: getClient(4663), check: (t) => cachedTokenCheck(t as `0x${string}`), send, siteUrl: site })
+      .catch((e) => ({ error: (e as Error).message.split("\n")[0] }));
+    const wallets = await runWatch(store, watchScan, send, {
       limit: Math.min(500, Number(c.req.query("limit") ?? 200)), siteUrl: site,
       onRisky: async (address, fresh) => {
         for (const owner of await hookOwnersOf(store, address)) {
           await deliver(store, owner, "wallet.risky_approval", { wallet: address, approvals: fresh, reportUrl: `${site}/check/${address}` }, fetch, { allowInsecure: hookInsecure });
         }
       },
-    }));
+    });
+    return c.json({ ...wallets, tokens });
   }));
   /** The monitor's status heartbeat. Takes the admin key or the narrow heartbeat key (SHIELD_HEARTBEAT_KEY_SHA256), which opens nothing else. */
   const isHeartbeat = (c: any) => {
