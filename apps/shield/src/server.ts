@@ -470,7 +470,7 @@ export function buildApp(opts: AppOptions = {}) {
     const raw = await store.fetch(RADAR_KEY).catch(() => null);
     const snap = raw ? JSON.parse(raw) as RadarSnapshot : null;
     if (!snap || Date.now() - snap.generatedAt > 120_000) {
-      const mine = (await store.incr("radar:lock", 90).catch(() => 2)) === 1;
+      const mine = (await store.incr("radar:lock", 240).catch(() => 2)) === 1;
       if (mine) background(refreshRadar().catch((e) => log({ level: "warn", path: "/v1/radar", message: (e as Error).message })).finally(() => store.remove("radar:lock").catch(() => {})));
     }
     return snap ? c.json(snap) : c.json({ error: "radar_warming_up" }, 503);

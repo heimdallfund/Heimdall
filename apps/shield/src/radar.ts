@@ -162,13 +162,13 @@ export async function buildRadar(d: RadarDeps): Promise<RadarSnapshot> {
   const worker = async () => {
     while (next < todo.length) {
       const { x, i } = todo[next++]!;
-      const r = await Promise.race([d.check(x.l.token), new Promise<null>((res) => setTimeout(() => res(null), 30_000))]).catch(() => null);
+      const r = await Promise.race([d.check(x.l.token), new Promise<null>((res) => setTimeout(() => res(null), 50_000))]).catch(() => null);
       if (r) { cached[i] = compact(r); await d.putCheck(x.l.token, cached[i]!).catch(() => {}); }
     }
   };
   const [meta] = await Promise.all([
     d.client.multicall({ contracts: ranked.flatMap((x) => [{ address: x.l.token, abi: META, functionName: "symbol" }, { address: x.l.token, abi: META, functionName: "name" }]) as never, allowFailure: true }).catch(() => []) as Promise<{ status: string; result?: string }[]>,
-    Promise.all([worker(), worker(), worker()]),
+    Promise.all([worker(), worker(), worker(), worker()]),
   ]);
   const text = (r?: { status: string; result?: string }) => (r?.status === "success" && typeof r.result === "string" ? r.result.slice(0, 40) : null);
   return {

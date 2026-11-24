@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { CODE_LABEL } from "@/lib/shield";
+import { CODE_LABEL } from "@/lib/codes";
 import type { RadarSnapshot, RadarToken } from "@/lib/radar";
 
 type Filter = "all" | "passed" | "risky";
