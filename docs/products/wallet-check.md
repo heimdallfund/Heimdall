@@ -53,3 +53,12 @@ Turn on **Watch this wallet** on a report and the browser shows a notification w
 | Permit2 | `lockdown([(token, spender)])` on Permit2 |
 
 Each risky approval you revoke earns 50 [Guardian Points](points.md), up to 5 a day and 25 a season.
+
+## Token Check
+
+[Token Check](https://heimdall.fund/token-check) (`GET /v1/token/{address}`) tests one token by trading it in a simulation of the current block with a throwaway wallet:
+
+- **Where it trades.** Memecoins still on a **Pons** bonding curve are bought and sold on the curve itself, also when the curve is priced in another token. Tokens that trade in a Uniswap v3 or v4 pool (after graduating, or from launch on Klik, DYOR.fun, Bow.fun, RealFun, Noxa and others) are tested in that pool. hood.fun, Printr and RobinFun tokens are recognised; their old curves are reported, not simulated.
+- **Traps.** Honeypot (sell reverts), buy, sell and transfer taxes, tokens that vanish, clawback without approval, fake tickers, the blocklist, and Uniswap v4 hooks that can change swap amounts.
+- **Dev and holders**, read from the token's transfers and current balances: the launchpad and dev wallet, how far the curve is from graduating, the dev's share and how much of it they sold (burns excluded), the top holders (pools, curves and burn addresses excluded), wallets that bought in the first blocks, and the dev's other Pons launches in about the last month.
+- **In plain words.** `GET /v1/token/{address}/summary` returns a short explanation written by an AI model from the check's results only. The verdict is always the simulation's.

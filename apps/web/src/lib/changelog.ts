@@ -8,6 +8,9 @@ export const CHANGELOG: ChangeEntry[] = [
     title: "Agents can find and use Heimdall on their own",
     summary: "A hosted MCP server, an OpenAPI spec and discovery files mean an agent or a developer tool can connect without anyone setting it up. Plus a live status page, a bigger sourced blocklist and a security pass on the Shield API.",
     changes: [
+      { tag: "Web", text: "Token Check now covers memecoins still on a launchpad: Pons tokens are bought and sold on their bonding curve itself, also when the curve is priced in another token, and tokens from Klik, DYOR.fun, Bow.fun, RealFun and other launchpads are tested in their Uniswap pool." },
+      { tag: "Web", text: "Every Token Check shows the dev and the holders: the launchpad, the dev wallet and how much of its tokens it sold, the top holders, wallets that bought in the first blocks and the dev's other launches." },
+      { tag: "Web", text: "Token Check explains its result in plain words, written by AI from the checks on the page only. The verdict stays the simulation's." },
       { tag: "Contracts", text: "Vaults and Auto-Invest now hold 16 stock tokens: AMZN, AAPL, MSFT, META, COIN, QQQ, SPCX, GME, MU, CRCL, DELL, USO and SGOV join NVDA, TSLA and GOOGL. The new ones are priced Monday to Friday: from Saturday 00:00 to Monday 01:00 UTC a vault holding one pauses deposits, NAV withdrawals and trades, like a closed market, and in-kind exits keep working." },
       { tag: "Shield", text: "Fake-ticker detection covers the 10 new stocks too, including the many tokens that call themselves GME." },
       { tag: "Integrations", text: "SDK 0.2.1: HEIMDALL_MAINNET.stocks lists every stock token with its price feed and trading hours." },
