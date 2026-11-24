@@ -5,7 +5,7 @@ import { CODE_LABEL } from "@/lib/codes";
 import type { RadarSnapshot, RadarToken } from "@/lib/radar";
 
 type Filter = "all" | "passed" | "risky";
-type Sort = "buyers" | "new";
+type Sort = "buyers" | "volume" | "new";
 
 const VERDICT = {
   ALLOW: "border-allow/50 bg-allow-soft text-allow",
@@ -19,10 +19,17 @@ const ago = (t: number, now: number) => {
 };
 const label = (code: string) => { const l = CODE_LABEL[code] ?? code.replace(/_/g, " ").toLowerCase(); return l.charAt(0).toUpperCase() + l.slice(1); };
 
-function Row({ t, now }: { t: RadarToken; now: number }) {
+const vol = (t: RadarToken) => (t.buyEth1h ?? 0) + (t.sellEth1h ?? 0);
+const eth = (n: number) => (n >= 100 ? n.toFixed(0) : n >= 10 ? n.toFixed(1) : n.toFixed(2));
+const usd = (n: number) => (n >= 1_000_000 ? `$${(n / 1_000_000).toFixed(1)}M` : n >= 1_000 ? `$${(n / 1_000).toFixed(1)}k` : `$${Math.round(n)}`);
+
+function Row({ t, now, ethUsd }: { t: RadarToken; now: number; ethUsd: number | null }) {
   const c = t.check;
-  const total = t.buys1h + t.sells1h;
-  const buyShare = total ? Math.round((t.buys1h / total) * 100) : 0;
+  const hasVol = t.buyEth1h != null && t.sellEth1h != null;
+  const total = hasVol ? vol(t) : t.buys1h + t.sells1h;
+  // with ETH amounts, the bar shows the share of ETH that came in to buy; without, the share of trades that were buys
+  const buyShare = total ? Math.round(((hasVol ? t.buyEth1h! : t.buys1h) / total) * 100) : 0;
+  const net = hasVol ? t.buyEth1h! - t.sellEth1h! : null;
   return (
     <Link href={`/token-check/${t.token}`} className="card group flex flex-col gap-3 p-4 transition-colors hover:border-brand sm:flex-row sm:items-center sm:gap-5">
       <div className="flex min-w-0 flex-1 flex-col gap-1">
@@ -39,10 +46,14 @@ function Row({ t, now }: { t: RadarToken; now: number }) {
           {c?.smart ? <span className="text-allow">· {c.smart} early-winner wallet{c.smart === 1 ? "" : "s"}</span> : null}
         </div>
       </div>
-      <div className="grid grid-cols-3 gap-3 text-[13px] sm:w-[300px]">
+      <div className="grid grid-cols-3 gap-3 text-[13px] sm:w-[340px]">
         <div><div className="font-mono text-[17px] font-semibold">{t.buyers1h}</div><div className="text-muted">buyers 1h</div></div>
-        <div><div className="font-mono text-[17px] font-semibold">{t.buys1h}<span className="text-muted">/</span>{t.sells1h}</div><div className="text-muted">buys/sells</div></div>
-        <div className="flex flex-col justify-center gap-1"><span className="h-1.5 w-full overflow-hidden rounded-full bg-deny-soft"><span className="block h-full bg-allow" style={{ width: `${buyShare}%` }} /></span><span className="text-muted">{buyShare}% buys</span></div>
+        {hasVol ? (
+          <div><div className="font-mono text-[17px] font-semibold">{eth(total)}<span className="text-[12px] font-normal text-muted"> ETH</span></div><div className="text-muted">vol 1h{ethUsd ? ` · ${usd(total * ethUsd)}` : ""}</div></div>
+        ) : (
+          <div><div className="font-mono text-[17px] font-semibold">{t.buys1h}<span className="text-muted">/</span>{t.sells1h}</div><div className="text-muted">buys/sells</div></div>
+        )}
+        <div className="flex flex-col justify-center gap-1"><span className="h-1.5 w-full overflow-hidden rounded-full bg-deny-soft"><span className="block h-full bg-allow" style={{ width: `${buyShare}%` }} /></span><span className="text-muted">{net !== null ? <span className={net >= 0 ? "text-allow" : "text-deny"}>{net >= 0 ? "+" : "−"}{eth(Math.abs(net))} ETH net</span> : `${buyShare}% buys`}</span></div>
       </div>
       <div className="flex items-center gap-3 sm:w-[230px] sm:flex-col sm:items-end sm:gap-1">
         {c ? (
@@ -83,7 +94,7 @@ export function RadarList() {
 
   const rows = useMemo(() => {
     const list = (snap?.tokens ?? []).filter((t) => filter === "all" ? true : filter === "passed" ? t.check?.verdict === "ALLOW" : t.check && t.check.verdict !== "ALLOW");
-    return sort === "new" ? [...list].sort((a, b) => b.launchedAt - a.launchedAt) : list;
+    return sort === "new" ? [...list].sort((a, b) => b.launchedAt - a.launchedAt) : sort === "volume" ? [...list].sort((a, b) => vol(b) - vol(a)) : list;
   }, [snap, filter, sort]);
 
   const chip = (on: boolean) => `rounded-[3px] border px-3 py-1.5 font-mono text-[12px] uppercase tracking-wider ${on ? "border-ink bg-ink text-paper" : "border-line bg-panel text-muted hover:text-ink"}`;
@@ -97,6 +108,7 @@ export function RadarList() {
         </div>
         <div className="flex gap-2">
           <button type="button" className={chip(sort === "buyers")} onClick={() => setSort("buyers")}>Most buyers</button>
+          <button type="button" className={chip(sort === "volume")} onClick={() => setSort("volume")}>Volume</button>
           <button type="button" className={chip(sort === "new")} onClick={() => setSort("new")}>Newest</button>
         </div>
       </div>
@@ -105,8 +117,8 @@ export function RadarList() {
       )}
       {!snap && !error && <div className="card p-6 text-muted">Scanning the last 24 hours of launches…</div>}
       {!snap && error && <div className="card p-6 text-muted">The radar is scanning launches and running the first checks. This page updates by itself in a few seconds.</div>}
-      {snap && now !== null && (rows.length ? <div className="flex flex-col gap-2.5">{rows.map((t) => <Row key={t.token} t={t} now={now} />)}</div> : <div className="card p-6 text-muted">Nothing matches this filter right now.</div>)}
-      <p className="text-[12.5px] leading-relaxed text-muted">A buyer is a wallet that received the token from its curve or pool in the last hour; buys and sells are counted the same way. A verdict is Token Check on the current chain state, refreshed every 45 minutes or sooner; open a token for the full report. Busy does not mean safe, and passing the checks does not mean the price will hold.</p>
+      {snap && now !== null && (rows.length ? <div className="flex flex-col gap-2.5">{rows.map((t) => <Row key={t.token} t={t} now={now} ethUsd={snap.ethUsd ?? null} />)}</div> : <div className="card p-6 text-muted">Nothing matches this filter right now.</div>)}
+      <p className="text-[12.5px] leading-relaxed text-muted">A buyer is a wallet that received the token from its curve or pool in the last hour. Volume is the ETH paid in to buy plus the ETH paid out to sellers, read from the curve's and the pool's own trade events; net is in minus out. Dollar values use the Chainlink ETH price. A verdict is Token Check on the current chain state, refreshed every 45 minutes or sooner; open a token for the full report. Busy does not mean safe, and passing the checks does not mean the price will hold.</p>
     </section>
   );
 }

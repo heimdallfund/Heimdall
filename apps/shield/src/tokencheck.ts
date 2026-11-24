@@ -8,6 +8,7 @@ import type { Finding, Verdict } from "./types.js";
 import { detectLaunch, LAUNCHPAD_HOOKS, type Launch } from "./launchpad.js";
 import { memecoinSignals, type Holders } from "./memecoin.js";
 import { eachWindow } from "./windowlogs.js";
+import { isKlikPlatform } from "./devhistory.js";
 import { BUYER as DEEP_BUYER, deepTests, type Powers, type Route } from "./powers.js";
 import { liquidityFindings, v3Liquidity, v4Liquidity, type Liquidity } from "./lp.js";
 
@@ -165,13 +166,16 @@ export async function tokenCheck(rawClient: PublicClient, raw: Address, now = Da
   const read = <T>(functionName: "symbol" | "name" | "decimals" | "totalSupply" | "owner") =>
     client.readContract({ address: token, abi: ERC20, functionName } as never).then((v) => v as T).catch(() => null);
 
-  const [code, symbol, name, decimals, supply, owner, pool, fake, launch] = await Promise.all([
+  const [code, symbol, name, decimals, supply, owner, pool, fake, detected] = await Promise.all([
     client.getCode({ address: token }).catch(() => undefined),
     read<string>("symbol"), read<string>("name"), read<number>("decimals"), read<bigint>("totalSupply"), read<Address>("owner"),
     findPool(client, token),
     fakeTokenCheck(client, token).catch(() => undefined),
     detectLaunch(client, token).catch(() => null),
   ]);
+  // Klik deploys most tokens from its own launcher account: that address is the platform, not the token's dev
+  let launch = detected;
+  if (launch?.launchpad === "Klik" && launch.dev && await isKlikPlatform(client, logs, launch.dev).catch(() => false)) launch = { ...launch, dev: null };
   const out: TokenCheck = {
     token, symbol, name, decimals: decimals === null ? null : Number(decimals), totalSupply: supply === null ? null : supply.toString(),
     owner: owner && !/^0x0{40}$/i.test(owner) ? getAddress(owner) : null,

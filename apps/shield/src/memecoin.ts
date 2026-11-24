@@ -2,7 +2,7 @@ import { getAddress, parseAbi, type Address, type PublicClient } from "viem";
 import { LAUNCHPAD_CONTRACTS, type Launch } from "./launchpad.js";
 import { POOL_MANAGER, UNIVERSAL_ROUTER } from "./v4hooks.js";
 import type { Finding } from "./types.js";
-import { devHistoryFindings, ponsDevHistory, type DevHistory } from "./devhistory.js";
+import { devHistoryFindings, isKlikPlatform, klikDevHistory, ponsDevHistory, type DevHistory } from "./devhistory.js";
 
 /**
  * Who holds a token, read from the chain: its Transfer events (up to ~10M blocks back) give every address that ever
@@ -104,7 +104,9 @@ export async function memecoinSignals(
   const ranked = [...balances.entries()].sort((a, b) => (b[1] > a[1] ? 1 : b[1] < a[1] ? -1 : 0));
   const top10 = ranked.slice(0, 10).reduce((s, [, v]) => s + v, 0n);
 
-  const dev = ctx.launch?.dev ?? null;
+  // a launchpad's own launcher account is not a dev: its "sales" are the platform's, and it has no history of its own
+  const launcher = ctx.launch?.launchpad === "Klik" && ctx.launch.dev ? await isKlikPlatform(client, logs, ctx.launch.dev) : false;
+  const dev = launcher ? null : ctx.launch?.dev ?? null;
   const devBal = dev ? (balances.get(dev) ?? (await client.readContract({ address: token, abi: ERC20, functionName: "balanceOf", args: [dev] }).catch(() => 0n))) : null;
   const devIn = dev ? received.get(dev) ?? 0n : 0n;
   const devOut = dev ? sent.get(dev) ?? 0n : 0n;
@@ -124,7 +126,9 @@ export async function memecoinSignals(
     launchBuyers = { wallets: early.size, pct: pct(held, supply) };
   }
   const [devHistory, smart] = await Promise.all([
-    dev && ctx.launch?.launchpad === "Pons" ? ponsDevHistory(client, logs, dev, token).catch(() => null) : Promise.resolve(null),
+    dev && ctx.launch?.launchpad === "Pons" ? ponsDevHistory(client, logs, dev, token).catch(() => null)
+      : dev && ctx.launch?.launchpad === "Klik" ? klikDevHistory(client, logs, dev, token).catch(() => null)
+      : Promise.resolve(null),
     ctx.smartCount ? ctx.smartCount(ranked.slice(0, 30).map(([a]) => a.toLowerCase()).filter((a) => a !== dev?.toLowerCase())).catch(() => null) : Promise.resolve(null),
   ]);
   const devLaunches = devHistory ? devHistory.launches : null;
