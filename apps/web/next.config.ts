@@ -1,16 +1,11 @@
 import type { NextConfig } from "next";
+import docsMap from "./docs-map.json" with { type: "json" };
 
 // Docs live on GitBook once NEXT_PUBLIC_DOCS_URL is set (e.g. https://docs.heimdall.fund);
 // until then the built-in /docs pages are served. Old /docs links keep working either way.
 const DOCS_URL = process.env.NEXT_PUBLIC_DOCS_URL?.replace(/\/$/, "");
-const DOCS_MAP: Record<string, string> = {
-  "/docs": "", "/docs/limits": "/limits", "/docs/shield": "/shield/transactions", "/docs/signatures": "/shield/signatures",
-  "/docs/vaults": "/products/vaults", "/docs/signals": "/products/signals", "/docs/agent": "/products/agent",
-  "/docs/sdk": "/build/sdk", "/docs/mcp": "/build/mcp", "/docs/frameworks": "/build/agent-frameworks", "/docs/contracts": "/build/contracts",
-  "/docs/webhooks": "/shield/webhooks", "/docs/wallet-check": "/products/wallet-check", "/docs/pay": "/products/pay", "/docs/auto-invest": "/products/auto-invest",
-  "/docs/arena": "/products/arena", "/docs/points": "/products/points", "/docs/staking": "/products/staking",
-  "/docs/risk-oracle": "/integrate/risk-oracle", "/docs/guard": "/integrate/guard", "/docs/x402": "/integrate/x402", "/docs/passport": "/integrate/passport",
-};
+// Built-in docs route → GitBook path (and docs/*.md file). Shared with scripts/llms-full.mjs.
+const DOCS_MAP: Record<string, string> = docsMap;
 
 const nextConfig: NextConfig = {
   // e2e/run.sh builds into its own folder so a fork build never replaces the real one
@@ -31,6 +26,8 @@ const nextConfig: NextConfig = {
       { source: "/.well-known/mcp/server-card.json", headers: open },
       { source: "/.well-known/agent-card.json", headers: open },
       { source: "/llms.txt", headers: open },
+      { source: "/llms-full.txt", headers: open },
+      { source: "/docs/:page*.md", headers: [...open, { key: "content-type", value: "text/markdown; charset=utf-8" }] },
     ];
   },
   cacheComponents: true,

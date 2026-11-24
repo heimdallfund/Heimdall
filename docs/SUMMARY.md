@@ -31,7 +31,7 @@
 
 ## Build
 
-* [TypeScript SDK](build/sdk.md)
+* [SDKs: TypeScript & Python](build/sdk.md)
 * [MCP server](build/mcp.md)
 * [Agent frameworks](build/agent-frameworks.md)
 * [Contracts](build/contracts.md)

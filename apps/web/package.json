@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "prebuild": "node scripts/llms-full.mjs",
     "build": "next build",
     "start": "next start",
     "e2e": "e2e/run.sh"

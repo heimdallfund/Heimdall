@@ -9,6 +9,8 @@ const body = () => `# Heimdall
 
 > The guardian layer for AI agents on Robinhood Chain (chain ID 4663). Heimdall Shield simulates a transaction or a signature before it is signed and answers ALLOW, WARN or DENY with the reasons. Around it: a Risk Oracle other contracts can read onchain, a Guard module for Safe wallets, pay-per-call x402 payments in USDG, and ERC-8004 agent passports.
 
+Full text of every docs page in one file: ${SITE}/llms-full.txt. Each docs page also has a Markdown version: add .md to its URL (${SITE}/docs/shield.md).
+
 Free to start: no key for the free tier. Above it, pay per call with x402 (USDG) or use an API key. Rule for agents: check before ANY transaction or signature; never sign on DENY; on WARN, ask the user; if the check fails, treat it as DENY.
 
 ## Connect
