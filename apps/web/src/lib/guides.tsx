@@ -230,6 +230,121 @@ const { hash } = await guardedSend(wallet, { to, data, value }, { shield }); // 
       </>
     ),
   },
+  {
+    slug: "address-poisoning-robinhood-chain",
+    title: "Address poisoning: the copy-paste scam, and how to stop it",
+    description: "How attackers plant look-alike addresses in your wallet history on Robinhood Chain, why the first and last characters are not enough, and how Shield catches a poisoned recipient before you send.",
+    updated: "2026-11-24",
+    minutes: 5,
+    tag: "Wallet safety",
+    steps: [
+      "Never copy a recipient from your transaction history or a block explorer list.",
+      "Save the addresses you pay often in your wallet's address book, or in your agent's policy as trustedRecipients.",
+      "Compare the whole address, not only the start and the end, before sending.",
+      "Let Shield check the send: a recipient that looks like one you use but is not it is denied.",
+    ],
+    body: (
+      <>
+        <p>Wallets shorten addresses to the first and last few characters: <C>0xA1b2…5678</C>. Address poisoning abuses exactly that. The attacker generates an address that starts and ends like one you really use, then sends you a tiny or zero-value transfer from it, so it shows up in your history right next to the real one. The next time you copy &quot;that address from last week&quot;, you may copy theirs.</p>
+        <p>Nothing is hacked. You send the funds yourself, and a transfer on Robinhood Chain cannot be reversed.</p>
+
+        <h2 id="how">How the look-alike is made</h2>
+        <p>Matching 4 characters at the start and 4 at the end is a search over about 4 billion possibilities, which a graphics card finishes in minutes. Matching 6 and 6 takes longer but is still cheap. The middle of the address, which nobody reads, is completely different.</p>
+        <p>Vanity contracts such as Permit2 or the Uniswap v4 PoolManager also share a prefix of zeros on purpose. That is not poisoning; the trick is matching <em>both ends</em> of an address you trust.</p>
+
+        <h2 id="shield">What Shield checks</h2>
+        <p>Before a send, <A href="/shield">Shield</A> compares every recipient, spender and target with the addresses it knows: Heimdall&apos;s list of known contracts and tokens, the <C>trustedRecipients</C>, <C>trustedSpenders</C> and <C>allowTargets</C> in your agent&apos;s policy, and the addresses this wallet already sent to through Shield in checks that came back clean. If a destination shares at least 3 characters at each end and 8 in total with one of them, but is a different address, the check is denied with <C>LOOKALIKE_ADDRESS</C>.</p>
+        <p>A poisoned address is never added to the wallet&apos;s history: only clean checks count, so the attacker cannot make their address &quot;familiar&quot; by tricking you once.</p>
+
+        <h2 id="habits">Habits that make it useless</h2>
+        <ul>
+          <li>Pay from an address book, not from history. For agents, put the addresses they may pay in <C>trustedRecipients</C>.</li>
+          <li>Ignore zero-value and dust transfers from strangers: they exist to plant an address.</li>
+          <li>For a large amount, send a small test first and confirm it arrived where you meant.</li>
+        </ul>
+      </>
+    ),
+  },
+  {
+    slug: "fake-tokens-real-ticker-robinhood-chain",
+    title: "Fake tokens with a real ticker: how to spot a copy of USDG or NVDA",
+    description: "Anyone can deploy a token called USDG or NVDA on Robinhood Chain. How fake tickers work, the look-alike letters that hide them, and how to check a token's address before you buy.",
+    updated: "2026-11-24",
+    minutes: 4,
+    tag: "Stock tokens",
+    steps: [
+      "Take the token address from the issuer's own page or from a list you trust, never from a chat or a trending list.",
+      "Paste it into Token Check: a known ticker at the wrong address is denied as a fake.",
+      "If a swap app shows two tokens with the same name, compare their contract addresses, not their logos.",
+    ],
+    sources: [
+      ["Robinhood Chain documentation: contracts", "https://docs.robinhood.com/chain/contracts"],
+    ],
+    body: (
+      <>
+        <p>Robinhood Chain is permissionless: anyone can deploy a token and give it any name and ticker, including <C>USDG</C>, <C>NVDA</C> or <C>TSLA</C>. A copy looks the same in a wallet and on a chart. Only its contract address is different, and that is the one thing that matters: a token with a matching name or ticker at another address is not the real one.</p>
+        <p>This is not theoretical. When we tested <A href="/token-check">Token Check</A> on live Uniswap v4 pools on 24 November 2026, a liquid ETH pool on the chain was trading a token that calls itself USDG and is not the real USDG.</p>
+
+        <h2 id="tricks">The tricks</h2>
+        <ul>
+          <li><strong>The exact ticker</strong> at a new address, often with a pool and a few fake trades so it looks alive.</li>
+          <li><strong>Look-alike letters</strong>: a Cyrillic &quot;А&quot; or &quot;Ѕ&quot; instead of the Latin one, so <C>NVDА</C> reads as NVDA but does not match it in a search.</li>
+          <li><strong>Invisible characters</strong> such as a zero-width space inside the name.</li>
+          <li><strong>The real name, another ticker</strong>: &quot;Tesla&quot; or &quot;NVIDIA&quot; as the name, with a ticker like TSLA2.</li>
+        </ul>
+
+        <h2 id="shield">What Heimdall checks</h2>
+        <p>Shield and Token Check fold case, spaces, punctuation, invisible characters and look-alike letters, then compare the token&apos;s symbol and name with the tokens Heimdall knows: USDG, WETH and the Robinhood stock tokens NVDA, TSLA, GOOGL, AAPL, MSFT and AMZN. The same symbol at a different address is denied with <C>FAKE_TOKEN</C>; the same name with another symbol is a warning. The check runs on everything a transaction touches, on Permit signatures and in Token Check.</p>
+
+        <h2 id="real">Finding the real address</h2>
+        <p>Use the issuer&apos;s own published contract list, such as Robinhood&apos;s documentation for its stock tokens, and bookmark it. For agents, keep the real addresses in the policy. Then a fake has nowhere to hide.</p>
+      </>
+    ),
+  },
+  {
+    slug: "vanishing-tokens-honeypots-robinhood-chain",
+    title: "Tokens that vanish after you buy them: honeypots and clawbacks on Robinhood Chain",
+    description: "Why some Robinhood Chain tokens disappear from your wallet right after a buy or can never be sold, how the hidden-allowance backdoor works, and how to test a token before buying.",
+    updated: "2026-11-24",
+    minutes: 6,
+    tag: "Wallet safety",
+    steps: [
+      "Before buying a new token, paste its address into Token Check.",
+      "Read the four results: buy, sell, transfer and clawback.",
+      "Do not buy on DENY: a sell that reverts, a tax of 50% or more, or a token anyone can pull from your wallet.",
+      "For agents, let Shield check the swap: the same tests run on every token the agent would receive.",
+    ],
+    sources: [
+      ["Relay Protocol warning reported by Our Crypto Talk (RIALTO, World)", "https://ourcryptotalk.com/news/robinhood-chain-scam-tokens"],
+      ["Bitcoin.com News: Relay Protocol warns of Robinhood Chain honeypot coins", "https://news.bitcoin.com/new-chain-hype-meets-old-scam-tactics-relay-protocol-warns-of-robinhood-chain-honeypot-coins/"],
+    ],
+    body: (
+      <>
+        <p>Days after Robinhood Chain opened in July 2026, buyers started reporting tokens that left their wallet right after a swap, and tokens they could buy but never sell. Relay Protocol, one of the bridges into the chain, warned that this was not a wallet hack but the token contracts themselves.</p>
+
+        <h2 id="kinds">Three traps, one look</h2>
+        <ul>
+          <li><strong>The honeypot</strong>: buying works, selling reverts. The contract allows transfers from the pool but refuses transfers to it, so you hold a balance you cannot turn back into ETH.</li>
+          <li><strong>The tax</strong>: selling works, but the contract keeps most of what you sell. Some set it to 99% after the first buyers arrive.</li>
+          <li><strong>The clawback</strong>: the token keeps a hidden list of privileged addresses that can move anyone&apos;s tokens without an approval. That is how RIALTO tokens were pulled back out of buyers&apos; wallets after the purchase. Others take the tokens back inside the buy itself.</li>
+        </ul>
+        <p>A chart shows none of this: the price looks fine and the pool has liquidity.</p>
+
+        <h2 id="test">How Token Check tests a token</h2>
+        <p><A href="/token-check">Token Check</A> finds the token&apos;s deepest Uniswap pool against ETH or WETH, v3 or v4, and simulates on the current block with a throwaway wallet:</p>
+        <ol>
+          <li><strong>Buy</strong> 0.001 ETH worth. If the tokens do not stay in the wallet, it is a vanishing token.</li>
+          <li><strong>Sell</strong> them back through the same pool. A revert is a honeypot; the tax is measured from the transfers, not read from the contract.</li>
+          <li><strong>Transfer</strong> them to another wallet, which some traps also block or tax.</li>
+          <li><strong>Pull</strong> them out of the buyer&apos;s wallet as a stranger and as the token&apos;s owner, with no approval. If either works, the token has a clawback backdoor.</li>
+        </ol>
+        <p>Nothing is sent to the chain. For v4 pools, the pool&apos;s hook is read too: a hook that can change swap amounts can charge a hidden fee.</p>
+
+        <h2 id="agents">For agents</h2>
+        <p>When an agent swaps, <A href="/shield">Shield</A> runs the same tests on every token the agent would receive and denies the swap on <C>HONEYPOT</C>, <C>VANISHING_TOKEN</C>, <C>ALLOWANCE_BYPASS</C> or a tax of 50% or more. A clean result is a snapshot: an owner can still change a token later, so a token with an owner deserves a second look before a large buy.</p>
+      </>
+    ),
+  },
 ];
 
 export const guide = (slug: string) => GUIDES.find((g) => g.slug === slug);

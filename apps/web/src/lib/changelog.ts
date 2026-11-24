@@ -13,6 +13,7 @@ export const CHANGELOG: ChangeEntry[] = [
       { tag: "Shield", text: "EIP-7702 delegations, the newest drainer trick: signing one hands a contract full control of the wallet. Shield allows only known wallet implementations and denies any other, plus authorizations valid on every chain." },
       { tag: "Shield", text: "Catches the three scams Robinhood Chain is known for: honeypots that cannot be sold back to their pool, tokens that vanish or can be pulled out of your wallet after you buy, and fake tokens with a real ticker such as USDG or NVDA." },
       { tag: "Shield", text: "Address poisoning: a recipient that starts and ends like an address you already use, but is not it, is denied." },
+      { tag: "Docs", text: "Three new guides: address poisoning, fake tokens with a real ticker, and tokens that vanish or cannot be sold after you buy them." },
       { tag: "Docs", text: "llms-full.txt holds every docs page in one file, and each docs page has a Markdown twin: add .md to its URL." },
       { tag: "Docs", text: "Python SDK: pip install heimdallfund, with check, guard, signature checks and lookups, sync and async." },
       { tag: "Agents", text: "Agent2Agent (A2A v1.0): other agents can hand Heimdall a check as a task; the agent card is at /.well-known/agent-card.json." },
