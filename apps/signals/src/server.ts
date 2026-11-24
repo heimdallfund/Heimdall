@@ -1,3 +1,4 @@
+/// <reference path="../node_modules/@types/node/index.d.ts" />
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { serve } from "@hono/node-server";
