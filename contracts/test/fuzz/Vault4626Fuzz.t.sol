@@ -25,7 +25,7 @@ contract Vault4626FuzzTest is Test {
         assets[0] = HeimdallVault.AssetInit(address(nvda), address(feed), 7 days);
         vault = new HeimdallVault(HeimdallVault.InitConfig({
             baseAsset: IERC20(address(usdg)), name: "V", symbol: "hV", owner: address(this), manager: address(0xBEEF),
-            feeRecipient: address(0xFEE), shieldSigner: address(0x5), maxTradeBps: 2500, maxLossBps: 300, maxDailyLossBps: 500,
+            feeRecipient: address(0xFEE), shieldSigner: address(0x5), guardian: address(0), maxTradeBps: 2500, maxLossBps: 300, maxDailyLossBps: 500,
             depositCap: type(uint256).max, heimToken: address(0), holderMin: 0, calls: calls, spenders: spenders, assets: assets
         }));
         usdg.mint(user, 1e15);

@@ -48,7 +48,7 @@ export default function Page() {
       <ul className="list-disc space-y-2 pl-5">
         <li>If the agent key leaks, a thief still needs a Shield ALLOW receipt for each call and can move at most one day of budget.</li>
         <li>If the Shield signer also leaks, the limits still hold: they live in the module. In stateful tests, a hostile agent with every receipt granted never moved more than the budget.</li>
-        <li>The module is reviewed in Heimdall&apos;s internal security review 4. It has not had an external audit yet.</li>
+        <li>The module is reviewed in Heimdall&apos;s internal security reviews 4, 5 and 6. It has not had an external audit yet.</li>
       </ul>
       <p>The module address is published at launch on the <Link className="text-brand" href="/docs/contracts">Contracts</Link> page.</p>
     </>

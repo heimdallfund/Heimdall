@@ -23,6 +23,8 @@ type Config = {
   heim: { token: string; holderMin: string; signalsHolderFeeBps: number };
   /** Hot key of the Risk Oracle sync job (monitor `riskSync`). Optional: the Safe can add it later. */
   riskReporter?: string;
+  /** Monitor key that may pause a vault (nothing else). Optional: the Safe can set it later with factory.setGuardian. */
+  guardian?: string;
 };
 
 const DRY = process.env.DRY_RUN === "1";
@@ -117,6 +119,7 @@ if (cfg.heim.token && !cfg.heim.token.startsWith("<SET")) {
 }
 
 if (cfg.riskReporter && !cfg.riskReporter.startsWith("<SET")) await wait(riskOracle.write.setReporter([addr(cfg.riskReporter, "riskReporter"), true]));
+if (cfg.guardian && !cfg.guardian.startsWith("<SET")) await wait(factory.write.setGuardian([addr(cfg.guardian, "guardian")]));
 
 // ── hand over to the Safe (2-step) ─────────────────────────
 await wait(factory.write.transferOwnership([admin]));

@@ -47,8 +47,8 @@
   ],
   "caps": {
     "tradeBps": 2500,
-    "lossBps": 300,
-    "dailyLossBps": 500,
+    "lossBps": 200,
+    "dailyLossBps": 300,
     "depositCap": "10000000000"
   },
   "heim": {
@@ -56,5 +56,6 @@
     "holderMin": "100000000000000000000000",
     "signalsHolderFeeBps": 500
   },
-  "riskReporter": "<SET: hot key of the risk sync job>"
+  "riskReporter": "<SET: hot key of the risk sync job>",
+  "guardian": "<SET: monitor key that may pause a vault whose losses look like theft>"
 }

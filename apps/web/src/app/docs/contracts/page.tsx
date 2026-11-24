@@ -49,7 +49,7 @@ export default function Page() {
         ["Guard module owner", "Heimdall multisig", "Choose the default Shield signers. Nothing in any Safe."],
       ]} />
       <H2 id="security">Security</H2>
-      <p>Four internal reviews, 140+ tests including fuzz and stateful invariant tests, and static analysis. Every finding is fixed and kept as a regression test. There has been no external audit yet. See <Link className="text-brand" href="/security">Security</Link>.</p>
+      <p>Six internal reviews, 150+ tests including fuzz and stateful invariant tests, and static analysis. Every finding is fixed and kept as a regression test. There has been no external audit yet. See <Link className="text-brand" href="/security">Security</Link>.</p>
     </>
   );
 }

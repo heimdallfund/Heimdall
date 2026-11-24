@@ -6,7 +6,7 @@
 import { createPublicClient, createWalletClient, defineChain, fallback, getAddress, http, type Address } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { collect } from "./collect.js";
-import { DEFAULTS, diff, evaluate, format } from "./rules.js";
+import { DEFAULTS, PAUSE_DEFAULTS, diff, evaluate, format, toPause } from "./rules.js";
 import { webhook } from "./notify.js";
 import { arenaRows, corporateActions, heartbeat, type HeartbeatAuth, watchAll, depositSnapshot, distributeFees, formatCorporateAction, postArena, postSnapshot, publishPassports, riskSync, runAutoInvest, sweepAutoInvestFees } from "./jobs.js";
 
@@ -34,6 +34,8 @@ export type State = {
 export const emptyState = (env: Env): State => ({
   active: [], lastBlock: env.FROM_BLOCK ?? null, lastDaily: "", lastArenaHour: "", seenActions: [], lastWatch: 0, lastRisk: 0, lastPassportDay: "",
 });
+
+const PAUSE_ABI = [{ type: "function", name: "pause", inputs: [], outputs: [], stateMutability: "nonpayable" }] as const;
 
 export function rpcFor(env: Env) {
   /** RPC_URL, then RPC_URL_BACKUP, then the public endpoint: a provider outage does not stop the monitor or the keeper. */
@@ -71,6 +73,21 @@ export async function runOnce(env: Env, state: State, log: (s: string) => void =
     };
     const { snapshot, toBlock } = await collect(client, factory, shield, state.lastBlock ? BigInt(state.lastBlock) : null);
     state.lastBlock = toBlock === null || toBlock === undefined ? state.lastBlock : String(toBlock);
+    // the guardian key may only pause: it stops a vault whose losses look like theft, the Safe reviews and unpauses
+    if (env.GUARDIAN_KEY) {
+      const rules = { tradeLossBps: Number(env.PAUSE_TRADE_LOSS_BPS ?? PAUSE_DEFAULTS.tradeLossBps), budgetUsedPct: Number(env.PAUSE_BUDGET_PCT ?? PAUSE_DEFAULTS.budgetUsedPct) };
+      for (const p of toPause(snapshot, rules)) {
+        try {
+          const w = wallet(env.GUARDIAN_KEY);
+          const hash = await w.writeContract({ address: getAddress(p.address), abi: PAUSE_ABI, functionName: "pause", chain: robinhoodChain, account: w.account! });
+          await client.waitForTransactionReceipt({ hash });
+          for (const v of snapshot.vaults) if (v.address === p.address) v.paused = true;
+          await send(`🛑 Vault paused by the guardian: ${p.address}\nReason: ${p.reason}. Trading and deposits are stopped; withdrawals keep working. Review the manager, then unpause from the Safe (OP=unpause) or replace the manager.`);
+        } catch (e) {
+          await send(`🔴 Guardian could not pause ${p.address}\n${(e as Error).message.split("\n")[0]}`);
+        }
+      }
+    }
     const d = diff(new Set(state.active), evaluate(snapshot, thresholds));
     state.active = [...d.active];
     for (const a of d.fire) await send(format(a));

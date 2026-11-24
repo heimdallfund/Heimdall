@@ -92,7 +92,8 @@ contract MockStockToken {
     }
 }
 
-/// @notice Uniswap SwapRouter02.exactInputSingle stand-in with a fixed rate (out per 1e18 in), honouring amountOutMinimum.
+/// @notice Uniswap SwapRouter02 look-alike: exactInputSingle / exactInput with a recipient, at a fixed rate.
+///         recipient address(1) means msg.sender, like the real router's MSG_SENDER constant.
 contract MockSwapRouter02 {
     struct ExactInputSingleParams {
         address tokenIn;
@@ -104,16 +105,43 @@ contract MockSwapRouter02 {
         uint160 sqrtPriceLimitX96;
     }
 
-    mapping(address => mapping(address => uint256)) public rate;
+    struct ExactInputParams {
+        bytes path;
+        address recipient;
+        uint256 amountIn;
+        uint256 amountOutMinimum;
+    }
+
+    mapping(address => mapping(address => uint256)) public rate; // tokenIn => tokenOut => out per 1e18 in
 
     function setRate(address tokenIn, address tokenOut, uint256 outPer1e18) external {
         rate[tokenIn][tokenOut] = outPer1e18;
     }
 
     function exactInputSingle(ExactInputSingleParams calldata p) external payable returns (uint256 out) {
-        IERC20(p.tokenIn).transferFrom(msg.sender, address(this), p.amountIn);
-        out = p.amountIn * rate[p.tokenIn][p.tokenOut] / 1e18;
+        out = _swap(p.tokenIn, p.tokenOut, p.amountIn, p.recipient);
         require(out >= p.amountOutMinimum, "Too little received");
-        MockERC20(p.tokenOut).mint(p.recipient, out);
+    }
+
+    function exactInput(ExactInputParams calldata p) external payable returns (uint256 out) {
+        address tokenIn = address(bytes20(p.path[:20]));
+        address tokenOut = address(bytes20(p.path[p.path.length - 20:]));
+        out = _swap(tokenIn, tokenOut, p.amountIn, p.recipient);
+        require(out >= p.amountOutMinimum, "Too little received");
+    }
+
+    function _swap(address tokenIn, address tokenOut, uint256 amountIn, address recipient) internal returns (uint256 out) {
+        IERC20(tokenIn).transferFrom(msg.sender, address(this), amountIn);
+        out = amountIn * rate[tokenIn][tokenOut] / 1e18;
+        MockERC20(tokenOut).mint(recipient == address(1) ? msg.sender : recipient, out);
+    }
+
+    function multicall(bytes[] calldata data) external payable returns (bytes[] memory results) {
+        results = new bytes[](data.length);
+        for (uint256 i; i < data.length; ++i) {
+            (bool ok, bytes memory r) = address(this).delegatecall(data[i]);
+            require(ok, "multicall");
+            results[i] = r;
+        }
     }
 }

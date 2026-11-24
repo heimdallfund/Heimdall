@@ -41,6 +41,7 @@ contract HeimdallVault is ERC4626, Ownable2Step, Pausable, ReentrancyGuard, Shie
         address manager;
         address feeRecipient;
         address shieldSigner;
+        address guardian; // may only pause (the monitor's key); zero = none
         uint16 maxTradeBps;
         uint16 maxLossBps;
         uint16 maxDailyLossBps;
@@ -72,9 +73,19 @@ contract HeimdallVault is ERC4626, Ownable2Step, Pausable, ReentrancyGuard, Shie
 
     bytes4 private constant APPROVE = 0x095ea7b3;
     bytes4 private constant PERMIT2_APPROVE = 0x87517c45;
+    // Uniswap SwapRouter02 swaps whose output goes to a `recipient` the vault checks (see _checkRecipient)
+    bytes4 private constant EXACT_INPUT_SINGLE = 0x04e45aaf;
+    bytes4 private constant EXACT_OUTPUT_SINGLE = 0x5023b4df;
+    bytes4 private constant V2_EXACT_IN = 0x472b43f3; // swapExactTokensForTokens(uint256,uint256,address[],address)
+    bytes4 private constant V2_EXACT_OUT = 0x42712a67; // swapTokensForExactTokens(uint256,uint256,address[],address)
+    bytes4 private constant EXACT_INPUT = 0xb858183f;
+    bytes4 private constant EXACT_OUTPUT = 0x09b81346;
 
     address public manager;
     address public feeRecipient;
+    /// @notice Can pause trading and deposits, nothing else (the monitor's key, for losses that look like theft).
+    ///         Only the owner can unpause. Withdrawals and in-kind exits keep working while paused.
+    address public guardian;
     uint16 public maxTradeBps;
     uint16 public maxLossBps;
     uint16 public maxDailyLossBps;
@@ -98,6 +109,7 @@ contract HeimdallVault is ERC4626, Ownable2Step, Pausable, ReentrancyGuard, Shie
 
     event ManagerSet(address indexed manager);
     event FeeRecipientSet(address indexed recipient);
+    event GuardianSet(address indexed guardian);
     event LimitsSet(uint16 maxTradeBps, uint16 maxLossBps, uint16 maxDailyLossBps);
     event DepositCapSet(uint256 cap);
     event CallSet(address indexed target, bytes4 indexed selector, bool allowed);
@@ -138,6 +150,7 @@ contract HeimdallVault is ERC4626, Ownable2Step, Pausable, ReentrancyGuard, Shie
         _baseDecimals = IERC20Metadata(address(c.baseAsset)).decimals();
         manager = c.manager;
         feeRecipient = c.feeRecipient;
+        guardian = c.guardian;
         heimToken = c.heimToken;
         holderMin = c.holderMin;
         _setShieldSigner(c.shieldSigner, true);
@@ -204,10 +217,22 @@ contract HeimdallVault is ERC4626, Ownable2Step, Pausable, ReentrancyGuard, Shie
             return selector;
         }
         if (target == address(this) || !allowedCall[target][selector]) revert CallNotAllowed(target, selector);
+        if (!_recipientOk(selector, data)) revert CallNotAllowed(target, selector);
         if (selector == PERMIT2_APPROVE) {
             (, address spender, uint160 amount,) = abi.decode(data[4:], (address, address, uint160, uint48));
             if (amount != 0 && !allowedSpender[spender]) revert SpenderNotAllowed(spender);
         }
+    }
+
+    /// @dev Swap output may only go to the vault (or MSG_SENDER = address(1), which the router maps to the vault).
+    ///      Single-hop and V2 swaps carry the recipient in the 4th head word; path swaps in the 2nd word of the tuple.
+    function _recipientOk(bytes4 sel, bytes calldata data) internal view returns (bool) {
+        uint256 at;
+        if (sel == EXACT_INPUT_SINGLE || sel == EXACT_OUTPUT_SINGLE || sel == V2_EXACT_IN || sel == V2_EXACT_OUT) at = 100;
+        else if (sel == EXACT_INPUT || sel == EXACT_OUTPUT) at = 36 + uint256(bytes32(data[4:36]));
+        else return true;
+        address r = address(uint160(uint256(bytes32(data[at:at + 32]))));
+        return r == address(this) || r == address(1);
     }
 
     // ───────────────────────────── Valuation ─────────────────────────────
@@ -504,8 +529,14 @@ contract HeimdallVault is ERC4626, Ownable2Step, Pausable, ReentrancyGuard, Shie
         emit AssetRemoved(token);
     }
 
-    function pause() external onlyOwner {
+    function pause() external {
+        if (msg.sender != owner() && msg.sender != guardian) revert OwnableUnauthorizedAccount(msg.sender);
         _pause();
+    }
+
+    function setGuardian(address g) external onlyOwner {
+        guardian = g;
+        emit GuardianSet(g);
     }
 
     function unpause() external onlyOwner {
@@ -525,6 +556,8 @@ contract HeimdallVault is ERC4626, Ownable2Step, Pausable, ReentrancyGuard, Shie
 
     function _setCall(address target, bytes4 selector, bool allowed) internal {
         if (target == address(0) || target == address(this) || target == asset()) revert InvalidConfig();
+        // multicall wraps arbitrary calls, so no recipient or selector check could see inside it
+        if (allowed && (selector == 0xac9650d8 || selector == 0x5ae401dc || selector == 0x1f0464d1)) revert InvalidConfig();
         allowedCall[target][selector] = allowed;
         emit CallSet(target, selector, allowed);
     }

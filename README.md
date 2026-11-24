@@ -101,7 +101,7 @@ cd apps/web && cp .env.local-demo .env.local && npm run build && npm start
 
 ## Security
 
-Four internal reviews found 3 serious and 8 medium issues, all fixed with a regression test each ([contracts/SECURITY_REVIEW_4.md](contracts/SECURITY_REVIEW_4.md) and the three before it). 143 contract tests run with 15 fuzz properties and 14 stateful invariants, and a launch rehearsal replays every product with real money on a mainnet fork. An independent audit comes next; its report will be published in full.
+Six internal reviews found 4 serious and 10 medium issues, all fixed with a regression test each ([contracts/SECURITY_REVIEW_6.md](contracts/SECURITY_REVIEW_6.md) and the five before it). 156 contract tests run with 15 fuzz properties and 14 stateful invariants, and a launch rehearsal replays every product with real money on a mainnet fork. An independent audit comes next; its report will be published in full.
 
 Found something? Email **security@heimdall.fund**. We reply within 48 hours.
 

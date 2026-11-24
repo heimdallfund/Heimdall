@@ -106,7 +106,8 @@ contract GuardModuleTest is GuardBase {
         _agentExec(address(usdg), 0, abi.encodeCall(usdg.approve, (bob, 700e6)));
         assertEq(module.remaining(address(safe), address(usdg)), 300e6);
         _agentExec(address(usdg), 0, abi.encodeCall(usdg.approve, (bob, 0)));
-        // transferFrom pulling from the Safe counts too
+        // transferFrom pulling from the Safe counts too (measured after the call; the Safe allows itself here)
+        _ownerExec(address(usdg), abi.encodeCall(usdg.approve, (address(safe), type(uint256).max)));
         _agentExecExpect(address(usdg), 0, abi.encodeWithSignature("transferFrom(address,address,uint256)", address(safe), bob, 301e6),
             abi.encodeWithSelector(HeimdallGuardModule.LimitExceeded.selector, address(usdg), 301e6, 300e6));
     }

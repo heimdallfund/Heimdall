@@ -6,6 +6,14 @@ import {ShieldGuarded} from "../../contracts/ShieldGuarded.sol";
 import {HeimdallGuardModule} from "../../contracts/HeimdallGuardModule.sol";
 
 /// A compromised agent (with every Shield receipt granted) tries transfers, approvals, pulls and ETH sends.
+/// A router that pulls from its caller with an allowance the Safe's owners gave it earlier.
+contract InvRouter {
+    function pull(address token, address to, uint256 amount) external {
+        (bool ok,) = token.call(abi.encodeWithSignature("transferFrom(address,address,uint256)", msg.sender, to, amount));
+        require(ok, "pull failed");
+    }
+}
+
 contract GuardHandler {
     GuardInvariantTest t;
     constructor(GuardInvariantTest t_) { t = t_; }
@@ -13,6 +21,7 @@ contract GuardHandler {
     function approve(uint256 amt) external { t.agentTry(1, amt); }
     function pull(uint256 amt) external { t.agentTry(2, amt); }
     function sendEth(uint256 amt) external { t.agentTry(3, amt); }
+    function routerPull(uint256 amt) external { t.agentTry(4, amt); }
     function warp(uint256 dt) external { t.warpBy(dt); }
 }
 
@@ -23,11 +32,16 @@ contract GuardInvariantTest is GuardBase {
     uint256 usdgAtWindow;
     uint256 ethAtWindow;
     uint256 public succeeded;
+    InvRouter router;
 
     function setUp() public override {
         super.setUp();
         usdg.mint(address(safe), 1_000_000e6);
         vm.deal(address(safe), 1_000 ether);
+        router = new InvRouter();
+        // the owners swapped through this router before: it holds an unlimited allowance, and is allowlisted
+        _ownerExec(address(usdg), abi.encodeCall(usdg.approve, (address(router), type(uint256).max)));
+        _ownerExec(address(module), abi.encodeCall(module.setTarget, (address(router), true)));
         h = new GuardHandler(this);
         targetContract(address(h));
         _startWindow();
@@ -51,11 +65,12 @@ contract GuardInvariantTest is GuardBase {
 
     function agentTry(uint8 kind, uint256 amt) external {
         amt = bound(amt, 0, kind == 3 ? 2 ether : 1_500e6);
-        address to = kind == 3 ? thief : address(usdg);
+        address to = kind == 3 ? thief : kind == 4 ? address(router) : address(usdg);
         uint256 value = kind == 3 ? amt : 0;
         bytes memory data = kind == 0 ? abi.encodeCall(usdg.transfer, (thief, amt))
             : kind == 1 ? abi.encodeCall(usdg.approve, (thief, amt))
             : kind == 2 ? abi.encodeWithSignature("transferFrom(address,address,uint256)", address(safe), thief, amt)
+            : kind == 4 ? abi.encodeCall(router.pull, (address(usdg), thief, amt))
             : bytes("");
         (ShieldGuarded.Receipt memory r, bytes memory sig) = _receipt(to, value, data, 0, SHIELD_PK);
         vm.prank(agent);

@@ -73,6 +73,6 @@ Windows are fixed 24-hour windows that start with the first spend after the last
 
 - If the agent key leaks, a thief still needs a Shield ALLOW receipt for each call and can move at most one day of budget.
 - If the Shield signer also leaks, the limits still hold: they live in the module. In stateful tests, a hostile agent with every receipt granted never moved more than the budget.
-- The module is reviewed in Heimdall's internal security review 4. It has not had an external audit yet.
+- The module is reviewed in Heimdall's internal security reviews 4, 5 and 6. It has not had an external audit yet.
 
 The module address is published at launch on the [Contracts](../build/contracts.md) page.

@@ -8,6 +8,7 @@ export const CHANGELOG: ChangeEntry[] = [
     title: "Agents can find and use Heimdall on their own",
     summary: "A hosted MCP server, an OpenAPI spec and discovery files mean an agent or a developer tool can connect without anyone setting it up. Plus a live status page, a bigger sourced blocklist and a security pass on the Shield API.",
     changes: [
+      { tag: "Security", text: "Review 6, before the contracts go to mainnet: a vault now refuses any swap whose output goes to anyone but the vault, so a manager can never route trades to itself even inside the loss limits. Stakers' rewards are passed on once a day, so nobody can stretch them out with dust. Report on the Security page." },
       { tag: "Web", text: "Token Check reports can be shared: a preview card with the verdict for X, a copy-link button, and your recent checks kept on the Token Check page." },
       { tag: "Web", text: "Wallet Check now looks at the tokens you hold too: fake tokens with a real ticker, blocklisted tokens and traps such as honeypots are listed at the top of the report." },
       { tag: "Shield", text: "Uniswap v4 hooks: a swap through a pool whose hook can change the amounts, set the fee at swap time, or does not exist is flagged before you sign." },

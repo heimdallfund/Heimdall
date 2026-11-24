@@ -6,6 +6,10 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {ShieldGuarded} from "./ShieldGuarded.sol";
 
+interface IERC20Balance {
+    function balanceOf(address account) external view returns (uint256);
+}
+
 interface ISafeModuleTarget {
     function execTransactionFromModuleReturnData(address to, uint256 value, bytes calldata data, uint8 operation)
         external
@@ -17,8 +21,10 @@ interface ISafeModuleTarget {
 ///         the Safe's owners set. The owners keep full control of the Safe; the agent never becomes an owner.
 ///
 ///         Every agent call needs a fresh Shield ALLOW receipt for exactly that call, and is checked against:
-///         - ETH per 24 h, and per-token limits per 24 h (transfers and approvals count; unlimited approvals of a
-///           limited token are impossible),
+///         - ETH per 24 h, and per-token limits per 24 h. For a limited token the module measures the Safe's balance
+///           before and after every call, so tokens count however they leave (a direct transfer, or a router pulling
+///           them with an allowance the Safe gave earlier). Approvals count in full when given, except approvals to
+///           an allowlisted target, whose pulls are measured when they happen,
 ///         - optional allowlists of targets and tokens,
 ///         - an expiry per agent, and a pause.
 ///         The agent can never call the Safe itself or this module, so it cannot add owners, enable modules or raise
@@ -45,6 +51,8 @@ contract HeimdallGuardModule is ShieldGuarded, Ownable2Step, ReentrancyGuard {
     }
 
     uint256 public constant WINDOW = 1 days;
+    /// @notice Most tokens one Safe can put a limit on (each is read before and after every agent call).
+    uint256 public constant MAX_LIMITED_TOKENS = 16;
     uint8 private constant OP_CALL = 0;
 
     bytes4 private constant TRANSFER = 0xa9059cbb; // transfer(address,uint256)
@@ -64,6 +72,8 @@ contract HeimdallGuardModule is ShieldGuarded, Ownable2Step, ReentrancyGuard {
     mapping(address safe => bool) public paused;
     /// @notice A Safe may require receipts from one specific signer instead of the default Shield signers.
     mapping(address safe => address) public signerOverride;
+    /// @dev The limited tokens of each Safe, for the before/after balance check.
+    mapping(address safe => address[]) internal _limitedTokens;
 
     event AgentSet(address indexed safe, address indexed agent, bool active, uint64 expiresAt);
     event PolicySet(address indexed safe, uint128 ethPerDay, bool strictTokens, bool strictTargets);
@@ -81,6 +91,7 @@ contract HeimdallGuardModule is ShieldGuarded, Ownable2Step, ReentrancyGuard {
     error TokenNotAllowed(address token);
     error LimitExceeded(address asset, uint256 wanted, uint256 left);
     error CallFailed(bytes returnData);
+    error TooManyLimitedTokens();
 
     constructor(address owner_, address shieldSigner) Ownable(owner_) {
         if (shieldSigner != address(0)) _setShieldSigner(shieldSigner, true);
@@ -100,9 +111,28 @@ contract HeimdallGuardModule is ShieldGuarded, Ownable2Step, ReentrancyGuard {
 
     /// @notice Limit a token (raw units per 24 h). `listed = false` removes the limit and the listing.
     function setTokenLimit(address token, uint256 perDay, bool listed) external {
+        bool was = tokenListed[msg.sender][token];
+        if (listed && !was) {
+            if (_limitedTokens[msg.sender].length >= MAX_LIMITED_TOKENS) revert TooManyLimitedTokens();
+            _limitedTokens[msg.sender].push(token);
+        } else if (!listed && was) {
+            address[] storage list = _limitedTokens[msg.sender];
+            for (uint256 i; i < list.length; ++i) {
+                if (list[i] == token) {
+                    list[i] = list[list.length - 1];
+                    list.pop();
+                    break;
+                }
+            }
+        }
         tokenPerDay[msg.sender][token] = listed ? perDay : 0;
         tokenListed[msg.sender][token] = listed;
         emit TokenLimitSet(msg.sender, token, perDay, listed);
+    }
+
+    /// @notice Tokens `safe` has a daily limit on.
+    function limitedTokens(address safe) external view returns (address[] memory) {
+        return _limitedTokens[safe];
     }
 
     function setTarget(address target, bool allowed) external {
@@ -144,6 +174,19 @@ contract HeimdallGuardModule is ShieldGuarded, Ownable2Step, ReentrancyGuard {
         nonReentrant
         returns (bytes memory result)
     {
+        _authorize(safe, to, value, data, receipt, signature);
+        (address[] memory tokens, uint256[] memory before) = _snapshot(safe);
+        bool ok;
+        (ok, result) = ISafeModuleTarget(safe).execTransactionFromModuleReturnData(to, value, data, OP_CALL);
+        if (!ok) revert CallFailed(result);
+        _settle(safe, tokens, before);
+        emit Executed(safe, msg.sender, to, value, data.length >= 4 ? bytes4(data[:4]) : bytes4(0), receipt.checkId);
+    }
+
+    // ── internal ─────────────────────────────────────────
+
+    /// @dev Everything checked before the call: pause, agent, targets, receipt, ETH and direct token calls.
+    function _authorize(address safe, address to, uint256 value, bytes calldata data, Receipt calldata receipt, bytes calldata signature) internal {
         if (paused[safe]) revert SafePaused();
         AgentConfig memory a = agentOf[safe][msg.sender];
         if (!a.active) revert NotAgent(msg.sender);
@@ -157,43 +200,68 @@ contract HeimdallGuardModule is ShieldGuarded, Ownable2Step, ReentrancyGuard {
         _consumeReceiptFor(safe, to, data, value, receipt, signature);
 
         if (value > 0) _spend(safe, address(0), value, p.ethPerDay);
-        bytes4 selector = data.length >= 4 ? bytes4(data[:4]) : bytes4(0);
-        _checkTokenCall(safe, to, data, selector, listed, p.strictTokens);
-
-        bool ok;
-        (ok, result) = ISafeModuleTarget(safe).execTransactionFromModuleReturnData(to, value, data, OP_CALL);
-        if (!ok) revert CallFailed(result);
-        emit Executed(safe, msg.sender, to, value, selector, receipt.checkId);
+        _checkTokenCall(safe, to, data, listed, p.strictTokens);
     }
 
-    // ── internal ─────────────────────────────────────────
+    function _snapshot(address safe) internal view returns (address[] memory tokens, uint256[] memory before) {
+        tokens = _limitedTokens[safe];
+        before = new uint256[](tokens.length);
+        for (uint256 i; i < tokens.length; ++i) before[i] = IERC20Balance(tokens[i]).balanceOf(safe);
+    }
 
-    function _checkTokenCall(address safe, address token, bytes calldata data, bytes4 selector, bool listed, bool strict) internal {
-        uint256 amount;
-        bool moves;
-        if ((selector == TRANSFER || selector == APPROVE || selector == INCREASE_ALLOWANCE) && data.length >= 68) {
+    /// @dev Whatever left the Safe counts, by whichever path it left.
+    function _settle(address safe, address[] memory tokens, uint256[] memory before) internal {
+        for (uint256 i; i < tokens.length; ++i) {
+            uint256 afterBal = IERC20Balance(tokens[i]).balanceOf(safe);
+            if (afterBal < before[i]) _spend(safe, tokens[i], before[i] - afterBal, tokenPerDay[safe][tokens[i]]);
+        }
+    }
+
+    /// @dev Direct token calls. Movements of limited tokens are counted by the balance check after the call; here
+    ///      only approvals are counted (they let someone pull later, outside this module), and calls that could move
+    ///      a token in a way nothing counts are refused.
+    function _checkTokenCall(address safe, address token, bytes calldata data, bool listed, bool strict) internal {
+        (bool moves, bool isApproval, address spender, uint256 amount) = _parseTokenCall(safe, token, data, listed, strict);
+        if (!moves || amount == 0) return;
+        if (!listed) {
+            if (strict) revert TokenNotAllowed(token);
+            return;
+        }
+        if (isApproval) _countApproval(safe, token, spender, amount);
+    }
+
+    /// @dev An allowance to an allowlisted target (a router that pulls from its caller) is counted when it is used.
+    function _countApproval(address safe, address token, address spender, uint256 amount) internal {
+        if (!targetAllowed[safe][spender]) _spend(safe, token, amount, tokenPerDay[safe][token]);
+    }
+
+    function _parseTokenCall(address safe, address token, bytes calldata data, bool listed, bool strict)
+        internal
+        pure
+        returns (bool moves, bool isApproval, address spender, uint256 amount)
+    {
+        bytes4 selector = data.length >= 4 ? bytes4(data[:4]) : bytes4(0);
+        if ((selector == APPROVE || selector == INCREASE_ALLOWANCE) && data.length >= 68) {
+            (spender, amount) = abi.decode(data[4:68], (address, uint256));
+            return (true, true, spender, amount);
+        }
+        if (selector == TRANSFER && data.length >= 68) {
             (, amount) = abi.decode(data[4:68], (address, uint256));
-            moves = true;
-        } else if (selector == TRANSFER_FROM && data.length >= 100) {
+            return (true, false, address(0), amount);
+        }
+        if (selector == TRANSFER_FROM && data.length >= 100) {
             (address from,, uint256 amt) = abi.decode(data[4:100], (address, address, uint256));
-            if (from == safe) (amount, moves) = (amt, true);
-        } else if (selector == SET_APPROVAL_FOR_ALL && data.length >= 68) {
+            return (from == safe, false, address(0), amt);
+        }
+        if (selector == SET_APPROVAL_FOR_ALL && data.length >= 68) {
             (, bool approved) = abi.decode(data[4:68], (address, bool));
             if (approved && (strict || listed)) revert TokenNotAllowed(token);
-            return;
-        } else if (selector == DECREASE_ALLOWANCE) {
-            return; // only ever lowers what can be taken
-        } else if (listed) {
-            // a limited token only takes the calls the limit can count: no transferAndCall, burn, permit-style or
-            // unknown functions that could move it uncounted
-            revert TokenNotAllowed(token);
+            return (false, false, address(0), 0);
         }
-        if (!moves) return;
-        if (listed) {
-            if (amount > 0) _spend(safe, token, amount, tokenPerDay[safe][token]);
-        } else if (strict && amount > 0) {
-            revert TokenNotAllowed(token);
-        }
+        if (selector == DECREASE_ALLOWANCE) return (false, false, address(0), 0); // only ever lowers what can be taken
+        // a limited token only takes the calls the limit can count: no transferAndCall, burn, permit-style or
+        // unknown functions that could move it uncounted
+        if (listed) revert TokenNotAllowed(token);
     }
 
     function _spend(address safe, address asset, uint256 amount, uint256 limit) internal {

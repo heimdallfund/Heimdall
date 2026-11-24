@@ -78,9 +78,11 @@ describe("Robinhood Chain mainnet fork", { skip: !RUN && "set FORK=1 to run agai
     assert.ok(nvdaBal > 0n);
     assert.ok(nav > U(4_975), `swap cost should be fees + impact only, NAV ${nav}`);
 
-    // limits: a 2,000 USDG trade is above 25% of NAV; a swap paying a third party is a >3% loss
+    // limits: a 2,000 USDG trade is above 25% of NAV; a swap paying anyone but the vault is refused outright,
+    // even a small one that would fit inside the 3% loss limit (review 6, R6-01)
     await viem.assertions.revertWithCustomError(exec(ROUTER, swap(U(2_000))), vault, "TradeTooLarge");
-    await viem.assertions.revertWithCustomError(exec(ROUTER, swap(U(500), admin.account.address)), vault, "LossTooLarge");
+    await viem.assertions.revertWithCustomError(exec(ROUTER, swap(U(500), admin.account.address)), vault, "CallNotAllowed");
+    await viem.assertions.revertWithCustomError(exec(ROUTER, swap(U(100), admin.account.address)), vault, "CallNotAllowed");
     // routers only accept the reviewed selector
     const multicall = encodeFunctionData({ abi: parseAbi(["function multicall(bytes[] data) payable returns (bytes[])"]), functionName: "multicall", args: [[]] });
     await viem.assertions.revertWithCustomError(exec(ROUTER, multicall), vault, "CallNotAllowed");
@@ -92,8 +94,12 @@ describe("Robinhood Chain mainnet fork", { skip: !RUN && "set FORK=1 to run agai
     const gotUsdg = (await pc.readContract({ address: USDG, abi: ERC20, functionName: "balanceOf", args: [user.account.address] })) - before;
     const gotNvda = await pc.readContract({ address: NVDA, abi: ERC20, functionName: "balanceOf", args: [user.account.address] });
     console.log(`      in-kind exit: ${(Number(gotUsdg) / 1e6).toFixed(2)} USDG + ${(Number(gotNvda) / 1e18).toFixed(4)} NVDA`);
-    assert.equal(gotUsdg, U(4_000));
-    assert.equal(gotNvda, nvdaBal);
-    assert.equal(await vault.read.totalSupply(), 0n);
+    // the exit first crystallises any performance fee (when the oracle values the NVDA above what the pool charged),
+    // so the user gets their slice net of fee shares; what is left belongs to the manager and the fee recipient
+    const left = await vault.read.totalSupply();
+    const feeHolders = (await vault.read.balanceOf([manager.account.address])) + (await vault.read.balanceOf([await vault.read.feeRecipient()]));
+    assert.equal(left, feeHolders);
+    assert.ok(gotUsdg <= U(4_000) && gotUsdg >= U(3_990), `in-kind USDG ${gotUsdg}`);
+    assert.ok(gotNvda <= nvdaBal && gotNvda * 1000n >= nvdaBal * 997n, `in-kind NVDA ${gotNvda}`);
   });
 });

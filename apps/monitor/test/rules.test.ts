@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { diff, evaluate, format, type Snapshot, type VaultSnapshot } from "../src/rules.js";
+import { diff, evaluate, format, toPause, type Snapshot, type VaultSnapshot } from "../src/rules.js";
 import { webhook } from "../src/notify.js";
 
 const U = (n: number) => BigInt(Math.round(n * 1e6));
@@ -70,5 +70,15 @@ describe("daily jobs", () => {
     const f = vi.fn(async () => new Response(JSON.stringify({ awarded: 25 }), { status: 200 }));
     expect(await postSnapshot("https://api.x", "k", "2026-11-23", snap, f as unknown as typeof fetch)).toEqual({ awarded: 25 });
     expect(((f.mock.calls[0] as unknown as [string, RequestInit])[1].headers as Record<string, string>)["x-admin-key"]).toBe("k");
+  });
+
+  it("guardian pauses on a theft-sized trade or a mostly used loss budget, never twice", () => {
+    expect(toPause(snap([vault()]))).toEqual([]);
+    const trade = toPause(snap([vault({ execs: [{ tx: "0xaa", navBefore: U(5_000), navAfter: U(4_890) }] })]));
+    expect(trade).toHaveLength(1);
+    expect(trade[0].reason).toMatch(/2\.20%/);
+    expect(toPause(snap([vault({ execs: [{ tx: "0xaa", navBefore: U(5_000), navAfter: U(4_960) }] })]))).toEqual([]);
+    expect(toPause(snap([vault({ lossWindowLoss: U(160) })]))[0].reason).toMatch(/64% of the 24h loss budget/);
+    expect(toPause(snap([vault({ lossWindowLoss: U(160), paused: true })]))).toEqual([]);
   });
 });

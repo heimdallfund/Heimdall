@@ -31,7 +31,7 @@ async function Metrics() {
         <Stat label="Open security findings" value={0} tone="text-allow" />
         <Stat label="Max vault loss per day" value={5} suffix="%" />
         <Stat label="Receipt lifetime (s)" value={120} />
-        <Stat label="Contract tests" value={143} />
+        <Stat label="Contract tests" value={156} />
       </>
     );
   }
@@ -231,7 +231,7 @@ export default function Home() {
         <SectionHead n="07" kicker="SECURITY" id="review" title={<>Reviewed before<br />a single deposit.</>}>Four reviews of every contract found 3 serious and 8 medium issues before launch. All are fixed and kept as regression tests next to fuzzing and stateful invariant tests. An independent audit comes next.</SectionHead>
         <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
           <dl className="grid grid-cols-2 border-l border-t border-ink bg-panel">
-            {[["11 / 11", "Serious & medium fixed"], ["143", "Contract tests"], ["29", "Fuzz & invariant properties"], ["10,000", "USDG cap per vault"]].map(([v, l]) => (
+            {[["14 / 14", "Serious & medium fixed"], ["156", "Contract tests"], ["29", "Fuzz & invariant properties"], ["10,000", "USDG cap per vault"]].map(([v, l]) => (
               <div key={l} className="border-b border-r border-ink p-6"><dt className="label">{l}</dt><dd className="display mt-3 text-[56px]">{v}</dd></div>
             ))}
           </dl>

@@ -52,7 +52,7 @@ contract HeimdallFuzzTest is Test {
                 owner: address(this),
                 manager: manager,
                 feeRecipient: fees,
-                shieldSigner: vm.addr(SHIELD_PK),
+                shieldSigner: vm.addr(SHIELD_PK), guardian: address(0),
                 maxTradeBps: 2500,
                 maxLossBps: 300,
                 maxDailyLossBps: 500,

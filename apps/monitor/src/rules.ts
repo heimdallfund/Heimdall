@@ -49,6 +49,27 @@ export function evaluate(s: Snapshot, t: Thresholds = DEFAULTS): Alert[] {
   return out;
 }
 
+export interface PauseRules { tradeLossBps: number; budgetUsedPct: number }
+/** Loss that looks like theft rather than slippage: a single trade losing this much, or this share of the day's budget. */
+export const PAUSE_DEFAULTS: PauseRules = { tradeLossBps: 150, budgetUsedPct: 60 };
+
+/** Vaults the guardian key should pause now, with the reason. Already-paused vaults are skipped. */
+export function toPause(s: Snapshot, t: PauseRules = PAUSE_DEFAULTS): { address: string; reason: string }[] {
+  const out: { address: string; reason: string }[] = [];
+  for (const v of s.vaults) {
+    if (v.paused) continue;
+    const worst = v.execs.reduce((m, e) => (e.navBefore > 0n && e.navAfter < e.navBefore ? Math.max(m, Number(((e.navBefore - e.navAfter) * 10_000n) / e.navBefore)) : m), 0);
+    if (worst >= t.tradeLossBps) { out.push({ address: v.address, reason: `a trade lost ${(worst / 100).toFixed(2)}% of NAV` }); continue; }
+    const windowOpen = s.now < v.lossWindowStart + 86_400;
+    if (windowOpen && v.lossWindowNav > 0n && v.maxDailyLossBps > 0) {
+      const budget = (v.lossWindowNav * BigInt(v.maxDailyLossBps)) / 10_000n;
+      const usedPct = budget === 0n ? 0 : Number((v.lossWindowLoss * 100n) / budget);
+      if (usedPct >= t.budgetUsedPct) out.push({ address: v.address, reason: `${usedPct}% of the 24h loss budget used` });
+    }
+  }
+  return out;
+}
+
 /** Alert once when a condition starts, once when it clears; trade alerts are one-shot. */
 export function diff(prevActive: Set<string>, alerts: Alert[]): { fire: Alert[]; resolved: string[]; active: Set<string> } {
   const active = new Set(alerts.filter((a) => !a.key.includes(":trade:")).map((a) => a.key));

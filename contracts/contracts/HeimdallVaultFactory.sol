@@ -17,6 +17,7 @@ contract HeimdallVaultFactory is Ownable2Step {
     address public vaultAdmin;
     address public feeRecipient;
     address public shieldSigner;
+    address public guardian; // set on every new vault: may only pause it
     uint16 public maxTradeBpsCap = 2_500; // a manager may not ask for more than 25% per trade
     uint16 public maxLossBpsCap = 300; // or more than 3% loss per trade
     uint16 public dailyLossBps = 500; // every vault: at most 5% of NAV lost to trades per 24h
@@ -36,6 +37,7 @@ contract HeimdallVaultFactory is Ownable2Step {
     event RolesUpdated(address vaultAdmin, address feeRecipient, address shieldSigner);
     event CapsUpdated(uint16 tradeCap, uint16 lossCap, uint16 dailyLoss, uint256 depositCap);
     event HolderTermsUpdated(address indexed token, uint256 minBalance);
+    event GuardianUpdated(address guardian);
 
     error LimitAboveCap();
     error ZeroAddress();
@@ -66,6 +68,7 @@ contract HeimdallVaultFactory is Ownable2Step {
             manager: msg.sender,
             feeRecipient: feeRecipient,
             shieldSigner: shieldSigner,
+            guardian: guardian,
             maxTradeBps: maxTradeBps,
             maxLossBps: maxLossBps,
             maxDailyLossBps: dailyLossBps > maxLossBps ? dailyLossBps : maxLossBps,
@@ -130,6 +133,11 @@ contract HeimdallVaultFactory is Ownable2Step {
         dailyLossBps = dailyLoss;
         defaultDepositCap = depositCap_;
         emit CapsUpdated(tradeCap, lossCap, dailyLoss, depositCap_);
+    }
+
+    function setGuardian(address g) external onlyOwner {
+        guardian = g;
+        emit GuardianUpdated(g);
     }
 
     function setHolderTerms(address token, uint256 minBalance) external onlyOwner {
