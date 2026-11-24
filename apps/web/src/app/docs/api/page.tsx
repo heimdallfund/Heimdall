@@ -46,17 +46,17 @@ const sampleBody = (op: Op) => {
 };
 const samplePath = (path: string) => path.replace("{address}", "0x281FF81dF0Eca1F3F7Ba2A48499c7A83D216a2A8").replace("{id}", "1");
 
-async function loadSpec(): Promise<Spec> {
+async function loadSpec(): Promise<Spec | null> {
   "use cache";
-  cacheLife("hours");
-  // a failure throws, so it is never cached: the next visit tries again
-  const r = await fetch(`${SHIELD_API_URL}/openapi.json`, { signal: AbortSignal.timeout(6_000) });
-  if (!r.ok) throw new Error(`spec ${r.status}`);
-  return (await r.json()) as Spec;
+  // A miss is cached only for minutes, so the page recovers soon after Shield answers again.
+  const spec = await fetch(`${SHIELD_API_URL}/openapi.json`, { signal: AbortSignal.timeout(6_000) })
+    .then((r) => (r.ok ? (r.json() as Promise<Spec>) : null)).catch(() => null);
+  if (spec) cacheLife("hours"); else cacheLife("minutes");
+  return spec;
 }
 
 export default async function Page() {
-  const spec = await loadSpec().catch(() => null);
+  const spec = await loadSpec();
   const ops = spec ? Object.entries(spec.paths).flatMap(([path, m]) => (Object.entries(m) as ["get" | "post", Op][]).map(([method, op]) => ({ path, method, op }))) : [];
   return (
     <>
