@@ -9,7 +9,7 @@ export default function Page() {
       <H1 lead={<>Stakers earn a share of the USDG fees Heimdall collects. There are no emissions: rewards come only from fees people paid.</>}>Staking $HEIM</H1>
       <H2 id="how-fees-reach-stakers">How fees reach stakers</H2>
       <ol className="list-decimal space-y-2 pl-5">
-        <li>Signals fees and the vault platform fee go to <strong>HeimdallFeeSplitter</strong>.</li>
+        <li>Every protocol fee goes to <strong>HeimdallFeeSplitter</strong>: the vault platform fee (5% of profit above the high-water mark, 2.5% for holder managers), the Signals fee (10%, 5% for holders), the Pay fee (1% of what a provider earns), the Auto-Invest fee (0.25% per buy) and Shield API payments made over x402. Vault fees arrive as vault shares, which the treasury redeems and sends back as USDG.</li>
         <li>Once a day, anyone (the monitor does it) calls <C>{"distribute(USDG)"}</C>. The stakers&apos; share (50% at launch, capped at 80% by the contract) goes to <strong>HeimdallStaking</strong>. The rest goes to the treasury.</li>
         <li>Each payout streams to stakers over 7 days, pro rata to their stake. Claim at any time.</li>
       </ol>

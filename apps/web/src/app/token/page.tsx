@@ -73,7 +73,7 @@ export default function TokenPage() {
 
       <section aria-labelledby="value" className="flex flex-col gap-6">
         <div className="text-center"><span className="eyebrow">Real yield</span><h2 id="value" className="display mt-2 text-[46px]">Where staking rewards come from</h2>
-          <p className="mx-auto mt-3 max-w-[600px] leading-relaxed text-muted">No emissions. Every reward is a fee someone paid in USDG. Once a day the fee splitter sends 50% to $HEIM stakers (the contract caps it at 80%) and the rest to the treasury.</p></div>
+          <p className="mx-auto mt-3 max-w-[600px] leading-relaxed text-muted">No emissions. Every reward is a fee someone paid in USDG: vaults, Signals, Pay, Auto-Invest and the Shield API all pay into one fee splitter. Once a day the fee splitter sends 50% to $HEIM stakers (the contract caps it at 80%) and the rest to the treasury.</p></div>
         <div className="overflow-x-auto rounded-xl border border-line bg-panel">
           <table className="w-full min-w-[560px] border-collapse text-left text-[15px]">
             <thead><tr className="bg-ice text-[13px]"><th scope="col" className="px-6 py-4 font-semibold">Product</th><th scope="col" className="px-6 py-4 font-semibold">Fee</th><th scope="col" className="px-6 py-4 font-semibold text-muted">Note</th></tr></thead>

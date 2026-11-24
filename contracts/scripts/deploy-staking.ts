@@ -57,5 +57,5 @@ const batch = {
 };
 writeFileSync(`deployments/${networkName}.safe-route-fees.json`, JSON.stringify(batch, null, 2));
 writeFileSync(`deployments/${networkName}.json`, JSON.stringify({ ...dep, contracts: { ...dep.contracts, HeimdallStaking: staking.address, HeimdallFeeSplitter: splitter.address, HeimdallHolderBalance: holderBalance.address } }, null, 2));
-console.log(`\nwrote deployments/${networkName}.safe-route-fees.json — import it in the Safe.\nWeb env:\nNEXT_PUBLIC_STAKING_ADDRESS=${staking.address}\nNEXT_PUBLIC_SPLITTER_ADDRESS=${splitter.address}\nNEXT_PUBLIC_HEIM_HOLDER_ADDRESS=${holderBalance.address}\nShield env:\nHEIM_HOLDER_ADDRESS=${holderBalance.address}`);
+console.log(`\nwrote deployments/${networkName}.safe-route-fees.json — import it in the Safe.\nShield x402 payments: set X402_PAY_TO=${splitter.address} on heimdall-shield.\nWeb env:\nNEXT_PUBLIC_STAKING_ADDRESS=${staking.address}\nNEXT_PUBLIC_SPLITTER_ADDRESS=${splitter.address}\nNEXT_PUBLIC_HEIM_HOLDER_ADDRESS=${holderBalance.address}\nShield env:\nHEIM_HOLDER_ADDRESS=${holderBalance.address}`);
 console.log("Anyone can then call HeimdallFeeSplitter.distribute(USDG) (the monitor does it daily).");

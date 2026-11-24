@@ -8,7 +8,7 @@ Stakers earn a share of the USDG fees Heimdall collects. There are no emissions:
 
 ## How fees reach stakers
 
-1. Signals fees and the vault platform fee go to **HeimdallFeeSplitter**.
+1. Every protocol fee goes to **HeimdallFeeSplitter**: the vault platform fee (5% of profit above the high-water mark, 2.5% for holder managers), the Signals fee (10%, 5% for holders), the Pay fee (1% of what a provider earns), the Auto-Invest fee (0.25% per buy) and Shield API payments made over x402. Vault fees arrive as vault shares, which the treasury redeems and sends back as USDG.
 2. Once a day, anyone (the monitor does it) calls `distribute(USDG)`. The stakers' share (50% at launch, capped at 80% by the contract) goes to **HeimdallStaking**. The rest goes to the treasury.
 3. Each payout streams to stakers over 7 days, pro rata to their stake. Claim at any time.
 
