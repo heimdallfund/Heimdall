@@ -12,7 +12,7 @@ const social = [
 const cols: [string, [string, string][]][] = [
   ["Products", [["/check", "Wallet Check"], ["/shield", "Shield"], ["/vaults", "Vaults"], ["/pay", "Pay"], ["/token", "$HEIM"]]],
   ["Build", [["/integrate", "Integrate"], ["/docs", "Docs"], ["/docs/sdk", "SDK"], ["/docs/mcp", "MCP server"], ["/docs/contracts", "Contracts"]]],
-  ["Trust", [["/security", "Security"], ["/status", "Status"], ["/trust", "Trust center"], ["/threats", "Threat Board"], ["/brand", "Brand kit"]]],
+  ["Trust", [["/security", "Security"], ["/status", "Status"], ["/trust", "Trust center"], ["/threats", "Threat Board"], ["/changelog", "Changelog"], ["/brand", "Brand kit"]]],
 ];
 const legal: [string, string][] = [["/legal/terms", "Terms"], ["/legal/privacy", "Privacy"], ["/legal/risk", "Risk disclosure"]];
 
