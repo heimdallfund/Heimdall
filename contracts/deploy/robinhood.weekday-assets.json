@@ -1,0 +1,84 @@
+{
+  "$note": "Robinhood Stock Tokens with a 24/5 Chainlink feed and a USDG pool on Uniswap v3, picked 2026-11-24 by USDG liquidity (13 deepest). Feed vs pool price checked within 0.7%. Wrapped in HeimdallWeekdayFeed: closed Sat 00:00 to Mon 01:00 UTC.",
+  "heartbeat": 90000,
+  "assets": [
+    {
+      "symbol": "AMZN",
+      "token": "0x12f190a9F9d7D37a250758b26824B97CE941bF54",
+      "chainlinkFeed": "0xD5a1508ceD74c084eBf3cBe853e2C968fB2a651C",
+      "poolFee": 3000
+    },
+    {
+      "symbol": "AAPL",
+      "token": "0xaF3D76f1834A1d425780943C99Ea8A608f8a93f9",
+      "chainlinkFeed": "0x6B22A786bAa607d76728168703a39Ea9C99f2cD0",
+      "poolFee": 500
+    },
+    {
+      "symbol": "MSFT",
+      "token": "0xe93237C50D904957Cf27E7B1133b510C669c2e74",
+      "chainlinkFeed": "0x45C3C877C15E6BA2EBB19eA114Ea508d14C1Af2E",
+      "poolFee": 3000
+    },
+    {
+      "symbol": "META",
+      "token": "0xc0D6457C16Cc70d6790Dd43521C899C87ce02f35",
+      "chainlinkFeed": "0x7C38C00C30BEe9378381E7B6135d7283356D71b1",
+      "poolFee": 3000
+    },
+    {
+      "symbol": "COIN",
+      "token": "0x6330D8C3178a418788dF01a47479c0ce7CCF450b",
+      "chainlinkFeed": "0xA3a468A452940B7D6b69991207B508c609a98Ef2",
+      "poolFee": 500
+    },
+    {
+      "symbol": "QQQ",
+      "token": "0xD5f3879160bc7c32ebb4dC785F8a4F505888de68",
+      "chainlinkFeed": "0x80901d846d5D7B030F26B480776EE3b29374C2ae",
+      "poolFee": 500
+    },
+    {
+      "symbol": "SPCX",
+      "token": "0x4a0E65A3EcceC6dBe60AE065F2e7bb85Fae35eEa",
+      "chainlinkFeed": "0xB265810950ba6c5C0Ff821c9963014a56fD8Bffb",
+      "poolFee": 3000
+    },
+    {
+      "symbol": "GME",
+      "token": "0x1b0E319c6A659F002271B69dB8A7df2F911c153E",
+      "chainlinkFeed": "0x27C71df6A64fB476468EdF256CF72c038baB5B67",
+      "poolFee": 10000
+    },
+    {
+      "symbol": "MU",
+      "token": "0xfF080c8ce2E5feadaCa0Da81314Ae59D232d4afD",
+      "chainlinkFeed": "0x425EEFdCf05ed6526C3cE61Af99429A228a6d596",
+      "poolFee": 3000
+    },
+    {
+      "symbol": "CRCL",
+      "token": "0xdF0992E440dD0be65BD8439b609d6D4366bf1CB5",
+      "chainlinkFeed": "0x6652eDf64bA3731C4F2D3ce821A0Fb1f1f6b482a",
+      "poolFee": 3000
+    },
+    {
+      "symbol": "DELL",
+      "token": "0x941AE714EC6D8130c7B75d67160Ca08f1e7d11Dd",
+      "chainlinkFeed": "0x1C6c8cADBe02E19129c39dDB92281cE4c0bf206b",
+      "poolFee": 10000
+    },
+    {
+      "symbol": "USO",
+      "token": "0xa30FA36Db767ad9eD3f7a60fC79526fB4d56D344",
+      "chainlinkFeed": "0x75a9c76Ef439e2C7c2E5a34Ab105EcFe3766431c",
+      "poolFee": 3000
+    },
+    {
+      "symbol": "SGOV",
+      "token": "0x92FD66527192E3e61d4DDd13322Aa222DE86F9B5",
+      "chainlinkFeed": "0xa0DF4ee0fFf975306345875E3548Fcc519577A11",
+      "poolFee": 3000
+    }
+  ]
+}
