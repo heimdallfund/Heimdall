@@ -20,8 +20,8 @@ export interface Holding { token: Address; symbol: string; name: string | null; 
 export async function explorerHoldings(owner: Address, fetcher: typeof fetch = fetch, env: NodeJS.ProcessEnv = process.env): Promise<Holding[]> {
   const base = (env.EXPLORER_API_URL ?? "https://robinhoodchain.blockscout.com").replace(/\/$/, "");
   try {
-    const r = await fetcher(`${base}/api/v2/addresses/${owner}/token-balances`, { signal: AbortSignal.timeout(6_000) });
-    if (!r.ok) return [];
+    const r = await fetcher(`${base}/api/v2/addresses/${owner}/token-balances`, { signal: AbortSignal.timeout(6_000), headers: { accept: "application/json", "user-agent": "heimdall-shield/1 (+https://heimdall.fund)" } });
+    if (!r.ok) { console.warn(JSON.stringify({ level: "warn", msg: "explorer holdings", status: r.status })); return []; }
     const j = (await r.json()) as { value?: string; token?: { address?: string; address_hash?: string; type?: string; symbol?: string | null; name?: string | null; decimals?: string | null } }[];
     if (!Array.isArray(j)) return [];
     return j.flatMap((x) => {
@@ -32,7 +32,7 @@ export async function explorerHoldings(owner: Address, fetcher: typeof fetch = f
       if (value === 0n) return [];
       return [{ token: getAddress(a), symbol: x.token?.symbol ?? "UNKNOWN", name: x.token?.name ?? null, decimals: Number(x.token?.decimals ?? 18) || 0, value }];
     });
-  } catch { return []; }
+  } catch (e) { console.warn(JSON.stringify({ level: "warn", msg: "explorer holdings", error: (e as Error).message })); return []; }
 }
 
 /** Token Check findings that are worth a warning on a wallet page. Missing pools and owners are normal for small tokens. */
