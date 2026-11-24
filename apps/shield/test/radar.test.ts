@@ -43,7 +43,7 @@ describe("Launch Radar", () => {
       client: { multicall: async () => [] } as unknown as PublicClient, logs: mockLogs(), now: 1_000_000,
       check: async (token) => { checked.push(token); return { verdict: "ALLOW", riskScore: 0, findings: [], checkedAt: 1, launch: null, holders: null } as unknown as TokenCheck; },
       getCheck: async (token) => (token.toLowerCase() === TOKEN_B ? { verdict: "DENY", riskScore: 95, flags: ["HONEYPOT"], holders: 2, top10Pct: 100, devSoldPct: null, progressPct: 3, checkedAt: 1 } : null),
-      putCheck: async () => {},
+      putCheck: async () => {}, minLaunches: 0,
     });
     expect(snap.tokens[0]!.check).toBeNull();
     expect(await runChecks(snap, { check: async (token) => { checked.push(token); return { verdict: "ALLOW", riskScore: 0, findings: [], checkedAt: 1, launch: null, holders: null } as unknown as TokenCheck; }, putCheck: async () => {} })).toBe(1);

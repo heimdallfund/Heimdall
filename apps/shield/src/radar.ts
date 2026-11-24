@@ -139,6 +139,8 @@ export interface RadarDeps {
   /** How many tokens to check per refresh, and how many to show. */
   maxChecks?: number;
   size?: number;
+  /** Fewer launches than this in 24 hours means the read failed (tests set 0). */
+  minLaunches?: number;
 }
 
 /** Runs Token Check on the busiest tokens that have no fresh verdict, a few at a time, and fills them into the snapshot. */
@@ -165,7 +167,7 @@ export async function buildRadar(d: RadarDeps): Promise<RadarSnapshot> {
   const all = await launches(d.logs, head - day, head);
   const stats = await activity(d.logs, all, head - hour, head);
   // an empty hour on a chain with hundreds of launches a day means the log queries failed: keep the last snapshot
-  if (all.size < 100 || stats.size === 0) throw new Error(`radar read incomplete: ${all.size} launches, ${stats.size} with activity`);
+  if (all.size < (d.minLaunches ?? 100) || stats.size === 0) throw new Error(`radar read incomplete: ${all.size} launches, ${stats.size} with activity`);
   const ranked = [...all.values()]
     .map((l) => ({ l, s: stats.get(l.token.toLowerCase()) }))
     .filter((x) => x.s && x.s.buyers.size > 0 && !TOKENS[x.l.token.toLowerCase()]) // known tokens (USDG, stocks) are not launches

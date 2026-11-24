@@ -184,18 +184,24 @@ export async function tokenCheck(rawClient: PublicClient, raw: Address, now = Da
     return finish(out);
   }
   // holder and dev signals run beside the trade simulations; known tokens (USDG, stocks) skip them
+  const sigT0 = Date.now();
   const signals = TOKENS[token.toLowerCase()] ? Promise.resolve(null) : memecoinSignals(client, logs, token, { supply, decimals, launch, pool: pool?.address ?? null }).catch(() => null);
   // deeper tests (owner powers, time-locked and size-limited selling, liquidity owners) run beside the main ones
   type Extra = { findings: Finding[]; powers: Powers | null; liquidity: Liquidity | null };
   let extra: Promise<Extra> = Promise.resolve({ findings: [], powers: null, liquidity: null });
   const startExtra = (route: Route | null, liq: Promise<Liquidity | null> = Promise.resolve(null)) => {
     if (TOKENS[token.toLowerCase()]) return;
-    extra = Promise.all([deepTests(client, token, code!, out.owner, route).catch(() => null), liq.catch(() => null)])
+    const t0 = Date.now(), lap: Record<string, number> = {};
+    const timed = <T,>(k: string, p: Promise<T>) => p.finally(() => { lap[k] = Date.now() - t0; });
+    extra = Promise.all([timed("deep", deepTests(client, token, code!, out.owner, route)).catch(() => null), timed("lp", liq).catch(() => null)])
+      .finally(() => { if (Date.now() - t0 > 8_000) console.log(JSON.stringify({ level: "info", path: "tokencheck", token, slow: lap })); })
       .then(([d, l]) => ({ findings: [...(d?.findings ?? []), ...(l ? liquidityFindings(l, launch?.dev ?? null) : [])], powers: d?.powers ?? null, liquidity: l }));
   };
   const done = async (r: TokenCheck | Promise<TokenCheck>) => {
     const res = await r;
-    const [m, x] = await Promise.all([signals, extra]);
+    const mainMs = Date.now() - sigT0;
+    const [m, x] = await Promise.all([signals.finally(() => { const ms = Date.now() - sigT0; if (ms > 8_000) console.log(JSON.stringify({ level: "info", path: "tokencheck", token, holdersMs: ms })); }), extra]);
+    if (mainMs > 8_000) console.log(JSON.stringify({ level: "info", path: "tokencheck", token, mainMs }));
     if (m) { res.holders = m.holders; res.findings.push(...m.findings); }
     res.powers = x.powers; res.liquidity = x.liquidity; res.findings.push(...x.findings);
     // a launchpad's own fee hook is shared by every token it launched: a fact about the launchpad, not this token's dev
