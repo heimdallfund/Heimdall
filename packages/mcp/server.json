@@ -4,6 +4,11 @@
   "title": "Heimdall Shield",
   "description": "Firewall for AI agents on Robinhood Chain: check transactions and signatures (ALLOW, WARN, DENY) before signing.",
   "websiteUrl": "https://heimdall.fund/docs/mcp",
+  "repository": {
+    "url": "https://github.com/heimdallfund/Heimdall",
+    "source": "github",
+    "subfolder": "packages/mcp"
+  },
   "version": "0.2.0",
   "packages": [
     {
