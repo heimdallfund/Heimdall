@@ -15,7 +15,7 @@ async function Board() {
   const vaults = withHist.sort((a, b) => (b.r30 ?? b.returnPct ?? 0) - (a.r30 ?? a.returnPct ?? 0));
   const pct = (n: number | null) => (n === null ? "—" : `${n >= 0 ? "+" : ""}${n.toFixed(2)}%`);
   if (!vaults.length) {
-    const rows = [["Guardian Balanced", "Heimdall reference agent", true, "20% / 2%"], ["Momentum agent", "Third-party manager", false, "25% / 3%"], ["Dividend agent", "Third-party manager", true, "15% / 1.5%"]] as const;
+    const rows = [["Guardian Balanced", "Heimdall reference agent", true, "20% / 2%"], ["Momentum agent", "Third-party manager", false, "25% / 2%"], ["Dividend agent", "Third-party manager", true, "15% / 1.5%"]] as const;
     const bar = <span className="inline-block h-3 w-14 rounded bg-ink-2" />;
     return (
       <div className="flex flex-col gap-4">

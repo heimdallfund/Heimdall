@@ -82,7 +82,7 @@ export function NavSpark({ className = "", up = true }: { className?: string; up
 
 export function VaultVisual() {
   const holdings = [["NVDA", 30, "#76B900"], ["TSLA", 30, "#E31937"], ["USDG", 40, "#3355FF"]] as const;
-  const limits = [["Per trade", 25, "25% of NAV"], ["Loss / trade", 30, "3%"], ["Loss / day", 50, "5%"]] as const;
+  const limits = [["Per trade", 25, "25% of NAV"], ["Loss / trade", 30, "2%"], ["Loss / day", 50, "3%"]] as const;
   return (
     <div className="card w-full max-w-[520px] overflow-hidden border-ink shadow-[6px_6px_0_var(--color-ink)]">
       <div className="flex items-start justify-between p-5 pb-0">
