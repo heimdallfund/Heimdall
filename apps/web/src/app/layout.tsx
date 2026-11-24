@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { PageViews } from "@/components/PageViews";
 import { Suspense } from "react";
 import { Header, HeaderFallback } from "@/components/Header";
@@ -49,6 +51,8 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
         <main>{children}</main>
         <Suspense fallback={null}><PageViews /></Suspense>
+        <Analytics />
+        <SpeedInsights />
         <Suspense fallback={null}><LiveBar /></Suspense>
         <Footer />
       </body>
