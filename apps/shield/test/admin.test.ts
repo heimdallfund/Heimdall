@@ -7,7 +7,8 @@ import { normalizePath } from "../src/admin.js";
 import { isBlocklisted, resetBlocklist } from "../src/blocklist.js";
 
 const KEY = "admin-secret-for-tests";
-const env = { NODE_ENV: "test", SHIELD_ADMIN_KEY_SHA256: createHash("sha256").update(KEY).digest("hex"), ARENA_SEASONS: JSON.stringify([{ id: 1, name: "From env", start: 0, end: 4_000_000_000_000, minTvl: 0, minDepositors: 0 }]) } as NodeJS.ProcessEnv;
+const HB = "heartbeat-only-key";
+const env = { NODE_ENV: "test", SHIELD_ADMIN_KEY_SHA256: createHash("sha256").update(KEY).digest("hex"), SHIELD_HEARTBEAT_KEY_SHA256: createHash("sha256").update(HB).digest("hex"), ARENA_SEASONS: JSON.stringify([{ id: 1, name: "From env", start: 0, end: 4_000_000_000_000, minTvl: 0, minDepositors: 0 }]) } as NodeJS.ProcessEnv;
 function setup() {
   const store = new MemoryStore();
   const app = buildApp({ env, getClient: () => ({}) as never, store, limits: limitsFromEnv(env), log: () => {} });
@@ -18,6 +19,19 @@ function setup() {
 const ADDR = "0x9999999999999999999999999999999999999999";
 
 describe("admin panel API", () => {
+  it("lets the narrow heartbeat key post status heartbeats and nothing else", async () => {
+    const { req } = setup();
+    const hb = (key: string) => req("/v1/admin/heartbeat", { admin: false, method: "POST", headers: { "x-heartbeat-key": key }, body: JSON.stringify({ service: "monitor", probes: { shield: true, rpc: true } }) });
+    expect((await hb(HB)).status).toBe(204);
+    expect((await hb("wrong")).status).toBe(403);
+    expect((await hb(KEY)).status).toBe(403);
+    expect((await req("/v1/admin/launch", { admin: false, headers: { "x-heartbeat-key": HB } })).status).toBe(403);
+    expect((await req("/v1/admin/blocklist", { admin: false, headers: { "x-heartbeat-key": HB } })).status).toBe(403);
+    expect((await req("/v1/admin/heartbeat", { method: "POST", body: JSON.stringify({ service: "keeper" }) })).status).toBe(204);
+    const st = await (await req("/v1/status", { admin: false })).json() as { services: { id: string; state: string }[] };
+    expect(st.services.find((s) => s.id === "monitor")!.state).toBe("ok");
+  });
+
   it("keeps the launch-day checklist, admin only, and drops anything malformed", async () => {
     const { req } = setup();
     expect((await req("/v1/admin/launch", { admin: false })).status).toBe(403);

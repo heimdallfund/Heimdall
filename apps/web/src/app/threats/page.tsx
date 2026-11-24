@@ -9,6 +9,7 @@ import { PreviewBadge } from "@/components/Preview";
 import { TimeAgo } from "@/components/TimeAgo";
 
 export const metadata: Metadata = { title: "Threat Board", description: "Drainers, malicious contracts and attack patterns Heimdall Shield is catching on Robinhood Chain, updated live." };
+const hostOf = (u: string) => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch { return "link"; } };
 
 
 async function Board() {
@@ -46,7 +47,7 @@ async function Board() {
         </section>
       </div>
       <section className="card overflow-hidden">
-        <div className="flex items-center justify-between border-b border-line px-6 py-4"><h2 className="text-[18px] font-semibold">Most denied addresses</h2><span className="text-[12px] text-muted">Targets and spenders behind denied checks</span></div>
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-6 py-4"><h2 className="text-[18px] font-semibold">Most denied addresses</h2><span className="text-[12px] text-muted">Targets and spenders behind denied checks</span></div>
         {t?.targets.length ? (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[560px] text-left text-[14px]">
@@ -61,9 +62,18 @@ async function Board() {
       </section>
       <section className="card p-6">
         <h2 className="text-[18px] font-semibold">Known malicious addresses</h2>
-        <p className="mt-1 text-[14px] text-muted">Shield denies any transaction or signature that touches these. Report one: security@heimdall.fund.</p>
+        <p className="mt-1 text-[14px] text-muted">Shield denies any transaction or signature that touches these. Each one comes from a public report, linked, and was checked onchain before it was added. Report one: security@heimdall.fund.</p>
         {t?.blocklist.length ? (
-          <ul className="mt-4 grid gap-2 sm:grid-cols-2">{t.blocklist.map((b) => <li key={b.address} className="flex items-center justify-between gap-3 rounded-lg border border-line px-3 py-2"><span className="truncate font-mono text-[13px]">{b.address}</span><span className="shrink-0 text-[12px] text-muted">{b.label ?? "reported"}</span></li>)}</ul>
+          <ul className="mt-4 grid gap-3 sm:grid-cols-2">{t.blocklist.map((b) => (
+            <li key={b.address} className="flex min-w-0 flex-col gap-2 rounded-lg border border-line p-4">
+              <span className="text-[14px] font-medium leading-snug">{b.label ?? "Reported malicious address"}</span>
+              <a href={explorerAddress(b.address)} className="break-all font-mono text-[12.5px] text-muted hover:text-brand">{b.address}</a>
+              <span className="mt-auto flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-muted">
+                {b.source && <a href={b.source} target="_blank" rel="noopener noreferrer nofollow" className="inline-flex items-center gap-1 font-medium text-brand hover:underline">Source: {hostOf(b.source)} <span aria-hidden>↗</span></a>}
+                {b.addedAt && <span className="font-mono">added {b.addedAt}</span>}
+              </span>
+            </li>
+          ))}</ul>
         ) : <p className="mt-4 text-[14px] text-muted">The list is published with the launch.</p>}
       </section>
     </>

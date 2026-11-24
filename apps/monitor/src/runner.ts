@@ -8,7 +8,7 @@ import { privateKeyToAccount } from "viem/accounts";
 import { collect } from "./collect.js";
 import { DEFAULTS, diff, evaluate, format } from "./rules.js";
 import { webhook } from "./notify.js";
-import { arenaRows, corporateActions, heartbeat, watchAll, depositSnapshot, distributeFees, formatCorporateAction, postArena, postSnapshot, publishPassports, riskSync, runAutoInvest, sweepAutoInvestFees } from "./jobs.js";
+import { arenaRows, corporateActions, heartbeat, type HeartbeatAuth, watchAll, depositSnapshot, distributeFees, formatCorporateAction, postArena, postSnapshot, publishPassports, riskSync, runAutoInvest, sweepAutoInvestFees } from "./jobs.js";
 
 export type Env = Record<string, string | undefined>;
 
@@ -47,6 +47,8 @@ export async function runOnce(env: Env, state: State, log: (s: string) => void =
   const client = createPublicClient({ chain: robinhoodChain, transport: rpc() });
   const send = webhook(env.ALERT_WEBHOOK_URL);
   const shield = env.SHIELD_API_URL, admin = env.SHIELD_ADMIN_KEY;
+  // The status heartbeat prefers SHIELD_HEARTBEAT_KEY, which can do nothing but report status.
+  const hbAuth: HeartbeatAuth | null = env.SHIELD_HEARTBEAT_KEY ? { heartbeatKey: env.SHIELD_HEARTBEAT_KEY } : admin ?? null;
   const errors: string[] = [];
   const wallet = (key: string) => createWalletClient({ chain: robinhoodChain, transport: rpc(), account: privateKeyToAccount(key as `0x${string}`) });
   const factory: Address | null = env.FACTORY ? getAddress(env.FACTORY) : null;
@@ -98,9 +100,9 @@ export async function runOnce(env: Env, state: State, log: (s: string) => void =
     const r = await runAutoInvest(wallet(env.KEEPER_KEY!), client as never, getAddress(env.AUTOINVEST!));
     if (r.done.length) log(`auto-invest: executed ${r.done.length} buy(s)`);
     for (const s of r.skipped) if (!/NotDue|Inactive/.test(s.reason)) log(`auto-invest: plan ${s.id} skipped: ${s.reason}`);
-    if (shield && admin) await heartbeat(shield, admin, "keeper", null);
+    if (shield && hbAuth) await heartbeat(shield, hbAuth, "keeper", null);
   });
-  if (shield && admin) await heartbeat(shield, admin, "monitor", client as never).catch(() => {});
+  if (shield && hbAuth) await heartbeat(shield, hbAuth, "monitor", client as never).catch(() => {});
 
   // hourly: corporate actions on stock tokens, then the Agent Arena snapshot
   const hour = new Date().toISOString().slice(0, 13);

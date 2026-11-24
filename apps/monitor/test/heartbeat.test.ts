@@ -3,11 +3,13 @@ import { heartbeat } from "../src/jobs.js";
 
 describe("status heartbeat", () => {
   it("probes Shield and the RPC and posts the result with the admin key", async () => {
-    const calls: { url: string; body?: string; key?: string }[] = [];
-    const f = vi.fn(async (url: string, init?: RequestInit) => { calls.push({ url, body: init?.body as string, key: (init?.headers as Record<string, string>)?.["x-admin-key"] }); return new Response(null, { status: url.endsWith("/health") ? 200 : 204 }); });
+    const calls: { url: string; body?: string; key?: string; hb?: string }[] = [];
+    const f = vi.fn(async (url: string, init?: RequestInit) => { calls.push({ url, body: init?.body as string, key: (init?.headers as Record<string, string>)?.["x-admin-key"], hb: (init?.headers as Record<string, string>)?.["x-heartbeat-key"] }); return new Response(null, { status: url.endsWith("/health") ? 200 : 204 }); });
     const client = { getBlock: async () => ({ timestamp: BigInt(Math.floor(Date.now() / 1000) - 3) }) };
     expect(await heartbeat("https://s", "k", "monitor", client as never, undefined, f as never)).toEqual({ shield: true, rpc: true });
     expect(calls.at(-1)).toMatchObject({ url: "https://s/v1/admin/heartbeat", key: "k" });
+    await heartbeat("https://s", { heartbeatKey: "hb" }, "monitor", client as never, undefined, f as never);
+    expect(calls.at(-1)).toMatchObject({ url: "https://s/v1/admin/heartbeat", hb: "hb", key: undefined });
     expect(JSON.parse(calls.at(-1)!.body!)).toMatchObject({ service: "monitor", probes: { shield: true, rpc: true } });
     const stale = { getBlock: async () => ({ timestamp: 1n }) };
     expect((await heartbeat("https://s", "k", "monitor", stale as never, undefined, f as never)).rpc).toBe(false);

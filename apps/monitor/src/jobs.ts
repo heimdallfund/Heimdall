@@ -160,13 +160,16 @@ export async function watchAll(shieldUrl: string, adminKey: string, limit = 200,
 }
 
 /** Status page heartbeat: the monitor reports itself and whether Shield and the RPC answered this tick. */
-export async function heartbeat(shieldUrl: string, adminKey: string, service: "monitor" | "keeper", client: PublicClient | null, detail?: string, fetcher: typeof fetch = fetch) {
+/** Credential for the heartbeat: the narrow heartbeat key when set (it can only report status), else the admin key. */
+export type HeartbeatAuth = string | { heartbeatKey: string };
+export async function heartbeat(shieldUrl: string, auth: HeartbeatAuth, service: "monitor" | "keeper", client: PublicClient | null, detail?: string, fetcher: typeof fetch = fetch) {
+  const authHeader: Record<string, string> = typeof auth === "string" ? { "x-admin-key": auth } : { "x-heartbeat-key": auth.heartbeatKey };
   const probes: Record<string, boolean> = {};
   if (service === "monitor") {
     probes.shield = await fetcher(`${shieldUrl}/health`, { signal: AbortSignal.timeout(5_000) }).then((r) => r.ok).catch(() => false);
     probes.rpc = client ? await client.getBlock().then((b) => Date.now() / 1000 - Number(b.timestamp) < 300).catch(() => false) : false;
   }
-  await fetcher(`${shieldUrl}/v1/admin/heartbeat`, { method: "POST", headers: { "content-type": "application/json", "x-admin-key": adminKey }, body: JSON.stringify({ service, probes, detail }), signal: AbortSignal.timeout(5_000) }).catch(() => {});
+  await fetcher(`${shieldUrl}/v1/admin/heartbeat`, { method: "POST", headers: { "content-type": "application/json", ...authHeader }, body: JSON.stringify({ service, probes, detail }), signal: AbortSignal.timeout(5_000) }).catch(() => {});
   return probes;
 }
 

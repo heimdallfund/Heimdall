@@ -784,13 +784,21 @@ export function buildApp(opts: AppOptions = {}) {
       },
     }));
   }));
-  app.post("/v1/admin/heartbeat", limitBody, admin(async (c) => {
+  /** The monitor's status heartbeat. Takes the admin key or the narrow heartbeat key (SHIELD_HEARTBEAT_KEY_SHA256), which opens nothing else. */
+  const isHeartbeat = (c: any) => {
+    const want = env.SHIELD_HEARTBEAT_KEY_SHA256, got = c.req.header("x-heartbeat-key");
+    if (!want || !got) return false;
+    const a = createHash("sha256").update(got).digest(), b = Buffer.from(want, "hex");
+    return a.length === b.length && timingSafeEqual(a, b);
+  };
+  app.post("/v1/admin/heartbeat", limitBody, async (c) => {
+    if (!isAdmin(c) && !isHeartbeat(c)) return c.json({ error: "forbidden" }, 403);
     const b = (await c.req.json().catch(() => ({}))) as { service?: string; probes?: Record<string, boolean>; detail?: string };
     if (b.service !== "monitor" && b.service !== "keeper") return c.json({ error: "invalid_service" }, 400);
     const probes = Object.fromEntries(Object.entries(b.probes ?? {}).filter(([k, v]) => (k === "shield" || k === "rpc") && typeof v === "boolean"));
     await recordHeartbeat(store, b.service, probes, b.detail);
     return c.body(null, 204);
-  }));
+  });
   /** Launch-day checklist (admin/launch on the web): which steps are done, by whom and when. Kept for a year. */
   app.get("/v1/admin/launch", admin(async (c) => c.json(JSON.parse((await store.fetch("launch:checklist")) ?? "{}"))));
   app.put("/v1/admin/launch", limitBody, admin(async (c) => {
