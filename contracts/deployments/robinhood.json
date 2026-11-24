@@ -19,5 +19,98 @@
     "NVDA": "0x1b8a95850fe344ddf67b98b61de9b5a1417edc8f",
     "TSLA": "0xf7d7b2f8b73a5b2828625f23c2a892baf50d6d34",
     "GOOGL": "0x51196319a3108269fe7f14d7a05b846f27be63f7"
+  },
+  "weekdayFeeds": {
+    "AMZN": {
+      "token": "0x12f190a9F9d7D37a250758b26824B97CE941bF54",
+      "chainlinkFeed": "0xD5a1508ceD74c084eBf3cBe853e2C968fB2a651C",
+      "poolFee": 3000,
+      "stockFeed": "0xae1a504e8dd2fb196db99129dc99031949e7e240",
+      "feed": "0x4cb68ac957a2485e01c313a4422bb40bd420e224"
+    },
+    "AAPL": {
+      "token": "0xaF3D76f1834A1d425780943C99Ea8A608f8a93f9",
+      "chainlinkFeed": "0x6B22A786bAa607d76728168703a39Ea9C99f2cD0",
+      "poolFee": 500,
+      "stockFeed": "0xa459d8f9969e57b36996de5bfa6958de4c1e6042",
+      "feed": "0x7f6a012be52d3d5108648b1fc9e4ed0cf29a5666"
+    },
+    "MSFT": {
+      "token": "0xe93237C50D904957Cf27E7B1133b510C669c2e74",
+      "chainlinkFeed": "0x45C3C877C15E6BA2EBB19eA114Ea508d14C1Af2E",
+      "poolFee": 3000,
+      "stockFeed": "0xc54d0a4a6caf36f8f09789f733532803404958ee",
+      "feed": "0x1bd6f9067c9ff8738ec02fb540fcca688d461a92"
+    },
+    "META": {
+      "token": "0xc0D6457C16Cc70d6790Dd43521C899C87ce02f35",
+      "chainlinkFeed": "0x7C38C00C30BEe9378381E7B6135d7283356D71b1",
+      "poolFee": 3000,
+      "stockFeed": "0x9468803ff88e5972aa5c1dd57007b258333e3ed5",
+      "feed": "0xedba6246ce68390fd8d03a2e776e06b88e11c8c1"
+    },
+    "COIN": {
+      "token": "0x6330D8C3178a418788dF01a47479c0ce7CCF450b",
+      "chainlinkFeed": "0xA3a468A452940B7D6b69991207B508c609a98Ef2",
+      "poolFee": 500,
+      "stockFeed": "0xdaabcd0bdd4b6710167090bdf336f7f818dd4ded",
+      "feed": "0x935b7a429d2fe4fea460ce28cc7d96005b119c0b"
+    },
+    "QQQ": {
+      "token": "0xD5f3879160bc7c32ebb4dC785F8a4F505888de68",
+      "chainlinkFeed": "0x80901d846d5D7B030F26B480776EE3b29374C2ae",
+      "poolFee": 500,
+      "stockFeed": "0xba129dc99a89739dcfa57f474651a41e28a0007f",
+      "feed": "0x172545fc5e1ab84f95f16c7ee5d20c57a2134068"
+    },
+    "SPCX": {
+      "token": "0x4a0E65A3EcceC6dBe60AE065F2e7bb85Fae35eEa",
+      "chainlinkFeed": "0xB265810950ba6c5C0Ff821c9963014a56fD8Bffb",
+      "poolFee": 3000,
+      "stockFeed": "0xc9d5895a4c3861fff82ab463de16cc92f61b973a",
+      "feed": "0x404776bd5c27f2450f62aa346e0d01f8f88c3843"
+    },
+    "GME": {
+      "token": "0x1b0E319c6A659F002271B69dB8A7df2F911c153E",
+      "chainlinkFeed": "0x27C71df6A64fB476468EdF256CF72c038baB5B67",
+      "poolFee": 10000,
+      "stockFeed": "0x6d860b345fbb19bfd17613539fee107abd415117",
+      "feed": "0x2648b4778c0c9e9b07a84ac9a9f1484b5d2fe2e5"
+    },
+    "MU": {
+      "token": "0xfF080c8ce2E5feadaCa0Da81314Ae59D232d4afD",
+      "chainlinkFeed": "0x425EEFdCf05ed6526C3cE61Af99429A228a6d596",
+      "poolFee": 3000,
+      "stockFeed": "0x000889d8ac0770560efbfa6aae25090b7326f9a1",
+      "feed": "0x898ceae594b4664f5254233f7138b2975e52741f"
+    },
+    "CRCL": {
+      "token": "0xdF0992E440dD0be65BD8439b609d6D4366bf1CB5",
+      "chainlinkFeed": "0x6652eDf64bA3731C4F2D3ce821A0Fb1f1f6b482a",
+      "poolFee": 3000,
+      "stockFeed": "0xde50f31cc59ab30e1eaa6737ea81e4c216c3a8d0",
+      "feed": "0xe0630690fd714351bf981fcb3be9246584a4dd83"
+    },
+    "DELL": {
+      "token": "0x941AE714EC6D8130c7B75d67160Ca08f1e7d11Dd",
+      "chainlinkFeed": "0x1C6c8cADBe02E19129c39dDB92281cE4c0bf206b",
+      "poolFee": 10000,
+      "stockFeed": "0x288e8ddc3f14e1ef9b94cf7505c22a50dc64e2c7",
+      "feed": "0xbc7959386bef93115cd2fd43af9d41d1e5c1237c"
+    },
+    "USO": {
+      "token": "0xa30FA36Db767ad9eD3f7a60fC79526fB4d56D344",
+      "chainlinkFeed": "0x75a9c76Ef439e2C7c2E5a34Ab105EcFe3766431c",
+      "poolFee": 3000,
+      "stockFeed": "0xf79f17eaa9b635840eb17c5a3c754bbf4feab29f",
+      "feed": "0x4de17a3a0b10cafe8ba4e87b9ee7a69b379a94a9"
+    },
+    "SGOV": {
+      "token": "0x92FD66527192E3e61d4DDd13322Aa222DE86F9B5",
+      "chainlinkFeed": "0xa0DF4ee0fFf975306345875E3548Fcc519577A11",
+      "poolFee": 3000,
+      "stockFeed": "0x703035f4a43b87cdf6a8fbda028c0d6c48104cfb",
+      "feed": "0xa4bc3aeaef4712c622f5c18f7a73d78e5cf4a460"
+    }
   }
 }
