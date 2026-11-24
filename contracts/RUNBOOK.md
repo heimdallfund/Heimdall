@@ -195,3 +195,13 @@ Other stocks only have 24/5 feeds, which hold their last price through weekends 
 **Multiplier:** Robinhood's feeds already return the price of one token, share price × `uiMultiplier()` (dividends and splits, ERC-8056). Never multiply again. The adapter also reports stale when the token's `effectiveAt()` is newer than the feed's last update, so a price from before a multiplier change is never used.
 
 **Corporate actions:** the monitor posts an alert when a stock token's oracle is paused or a multiplier change is scheduled. When a stock token's oracle is paused, its vaults go stale on their own. No action is needed; watch the monitor and tell depositors that in-kind exit stays available. If a feed is retired, deploy a new adapter and call `setFeed(token, adapter, 90000)` from the Safe (`OP=set-feed`).
+
+## Hot keys (2026-11-24)
+
+| Key | Address | Holds | Used for |
+| --- | --- | --- | --- |
+| Deployer / x402 facilitator | `0xA9326286E8c62b95acA20d4973d1962a7D06e147` | a little ETH | Deployed the contracts (owns nothing now); pays gas for x402 settlements (`X402_FACILITATOR_KEY` on Shield) |
+| Monitor | `0x82D0b3B0c56175Cb3318Fcf64B5185d63CAD7De6` | a little ETH | Keeper, Risk Oracle reporter, Agent Passport publisher and vault guardian (may only pause) |
+| Shield signer | `0xa6ce235055039a55aa438aFFAD18F7d0Ccf092d9` | nothing | Signs receipts (`SHIELD_SIGNER_KEY` on Shield) |
+
+All three are Sensitive env vars on Vercel and never in the repo. Top up the two ETH keys when the monitor or the status page warns.
