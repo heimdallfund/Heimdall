@@ -9,10 +9,11 @@ import { explorerAddress, short } from "@/lib/config";
 import { fetchTokenCheck, legState, VERDICT_HEAD, type Leg } from "@/lib/tokencheck";
 import { TokenCheckForm } from "../TokenCheckForm";
 import { TokenCheckShare } from "../TokenCheckShare";
+import { TokenAiSummary } from "../TokenAiSummary";
 
 export async function generateMetadata({ params }: { params: Promise<{ address: string }> }): Promise<Metadata> {
   const { address } = await params;
-  return { title: `Token Check · ${isAddress(address) ? short(address) : "invalid"}`, description: "Simulated buy, sell and transfer of this Robinhood Chain token, with honeypot, tax, clawback and fake-ticker checks.", robots: { index: false } };
+  return { title: `Token Check · ${isAddress(address) ? short(address) : "invalid"}`, description: "Simulated buy, sell and transfer of this Robinhood Chain token on its launchpad curve or Uniswap pool, with honeypot, tax, clawback, fake-ticker, dev and holder checks.", robots: { index: false } };
 }
 
 export default function Page({ params }: { params: Promise<{ address: string }> }) {
@@ -72,6 +73,7 @@ async function Content({ params }: { params: Promise<{ address: string }> }) {
         <div className="min-w-0 flex-1"><p className={`text-[18px] font-semibold ${color}`}>{head}</p><p className="text-[14.5px] text-ink [overflow-wrap:anywhere]">{notable[0]?.message ?? "Buying, selling and moving it worked in the simulation, without a tax or a clawback."}</p></div>
         <span className="font-mono text-[13px] text-muted">risk {r.riskScore}/100</span>
       </section>
+      <TokenAiSummary address={a} />
       <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <LegCard title="Buy" leg={r.buy} good="Works, no tax" />
         <LegCard title="Sell" leg={r.sell} good="Works, no tax" />
@@ -86,8 +88,14 @@ async function Content({ params }: { params: Promise<{ address: string }> }) {
       )}
       <section className="grid gap-3 text-[14px] md:grid-cols-2">
         <div className="card flex flex-col gap-1.5 p-4">
-          <span className="label">Pool</span>
-          {r.pool ? (r.pool.version === 4 ? (
+          <span className="label">Market</span>
+          {r.launch?.model === "curve" && r.launch.graduated === false ? (
+            <>
+              <span className="font-semibold">{r.launch.launchpad} bonding curve{r.launch.feePct ? <span className="font-normal text-muted"> · {r.launch.feePct}% fee</span> : null}</span>
+              {r.launch.progressPct !== null && <><span className="text-muted">{r.launch.progressPct.toFixed(1)}% of the way to graduating to Uniswap</span><span className="h-1.5 w-full overflow-hidden rounded-full bg-ink-2"><span className="block h-full bg-brand" style={{ width: `${Math.min(100, r.launch.progressPct)}%` }} /></span></>}
+              {r.launch.curve && <a href={explorerAddress(r.launch.curve)} target="_blank" rel="noopener" className="font-mono text-[12.5px] text-muted hover:text-brand">curve {short(r.launch.curve)}</a>}
+            </>
+          ) : r.pool ? (r.pool.version === 4 ? (
             <><span className="break-all font-mono text-[12.5px]">{r.pool.address.slice(0, 18)}…</span><span className="text-muted">Uniswap v4 · {r.pool.pair} · {r.pool.fee === 0x800000 ? "dynamic fee" : `${(r.pool.fee / 10_000).toFixed(2)}% fee`}{r.pool.hooks && !/^0x0{40}$/i.test(r.pool.hooks) ? <> · hook <a href={explorerAddress(r.pool.hooks)} target="_blank" rel="noopener" className="font-mono hover:text-brand">{short(r.pool.hooks)}</a></> : " · no hook"}</span></>
           ) : <><a href={explorerAddress(r.pool.address)} target="_blank" rel="noopener" className="font-mono hover:text-brand">{short(r.pool.address)}</a><span className="text-muted">Uniswap v3 · {r.pool.pair} · {(r.pool.fee / 10_000).toFixed(2)}% fee</span></>) : <span className="text-muted">No Uniswap v3 or v4 pool against ETH or WETH</span>}
         </div>
@@ -97,7 +105,28 @@ async function Content({ params }: { params: Promise<{ address: string }> }) {
           {info.filter((f) => f.code !== "HAS_OWNER").map((f, i) => <span key={i} className="text-muted">{f.message}</span>)}
         </div>
       </section>
-      <p className="text-[13px] text-muted">Simulated on the Robinhood Chain block at {new Date(r.checkedAt).toISOString().slice(0, 16).replace("T", " ")} UTC with a throwaway wallet. A clean result shows what the token does now, not what its owner can change later.</p>
+      {(r.launch || r.holders) && (
+        <section className="grid gap-3 text-[14px] md:grid-cols-2">
+          {r.launch && (
+            <div className="card flex flex-col gap-1.5 p-4">
+              <span className="label">Launch</span>
+              <span className="font-semibold">{r.launch.url ? <a href={r.launch.url} target="_blank" rel="noopener" className="hover:text-brand">{r.launch.launchpad}</a> : r.launch.launchpad}<span className="font-normal text-muted"> · {r.launch.graduated === false ? "on the bonding curve" : r.launch.graduated ? "graduated" : r.launch.model === "curve" ? "bonding curve" : `Uniswap ${r.launch.model}`}</span></span>
+              {r.launch.dev && <span className="text-muted">Dev <a href={`/check/${r.launch.dev}`} className="font-mono hover:text-brand">{short(r.launch.dev)}</a>{r.holders?.devPct != null ? ` · holds ${r.holders.devPct.toFixed(1)}%` : ""}{r.holders?.devSoldPct != null ? ` · sold or moved ${r.holders.devSoldPct.toFixed(0)}% of what they got` : ""}</span>}
+              {r.holders?.devLaunches != null && <span className="text-muted">{r.holders.devLaunches === 0 ? "No other launches by this dev in about a month" : `${r.holders.devLaunches} other launch${r.holders.devLaunches === 1 ? "" : "es"} by this dev in about a month`}</span>}
+            </div>
+          )}
+          {r.holders && (
+            <div className="card flex flex-col gap-1.5 p-4">
+              <span className="label">Holders</span>
+              <span className="font-semibold">{r.holders.count.toLocaleString("en-US")} wallet{r.holders.count === 1 ? "" : "s"}{r.holders.top10Pct !== null ? <span className="font-normal text-muted"> · top 10 hold {r.holders.top10Pct.toFixed(1)}%</span> : null}</span>
+              <ul className="flex flex-col gap-0.5">{r.holders.top.slice(0, 5).map((h) => <li key={h.address} className="flex justify-between gap-3 font-mono text-[12.5px]"><a href={`/check/${h.address}`} className="text-muted hover:text-brand">{short(h.address)}{h.address === r.holders?.dev ? " (dev)" : ""}</a><span>{h.pct.toFixed(2)}%</span></li>)}</ul>
+              {r.holders.launchBuyers && r.holders.launchBuyers.wallets > 0 && <span className="text-muted">{r.holders.launchBuyers.wallets} wallet{r.holders.launchBuyers.wallets === 1 ? "" : "s"} bought in the first blocks; they hold {r.holders.launchBuyers.pct.toFixed(1)}% now</span>}
+              <span className="text-[12px] text-muted">Pools, the curve and burn addresses are not counted.{r.holders.window === "recent" ? " Older than a month: based on wallets active in the last month." : ""}</span>
+            </div>
+          )}
+        </section>
+      )}
+      <p className="text-[13px] text-muted">Simulated on the Robinhood Chain block at {new Date(r.checkedAt).toISOString().slice(0, 16).replace("T", " ")} UTC with a throwaway wallet. A clean result shows what the token does now, not what its owner can change later. Holder and dev figures are read from the token&apos;s transfers on chain.</p>
       <section className="flex flex-col gap-3 border-t border-line pt-6"><h2 className="text-[18px] font-semibold">Check another token</h2><TokenCheckForm compact /></section>
     </>
   );

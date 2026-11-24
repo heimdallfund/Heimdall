@@ -4,6 +4,7 @@ import { currentSeason, recordSnapshots, standings, type Snapshot } from "./aren
 import { openApi } from "./openapi.js";
 import { agentCard, handleA2A } from "./a2a.js";
 import { tokenCheck } from "./tokencheck.js";
+import { AI_MODEL, summarizeTokenCheck } from "./ai.js";
 import { alchemyHoldings, explorerHoldings, flagHoldings } from "./holdings.js";
 import { countVerdict, listIncidents, recordHeartbeat, status, upsertIncident } from "./status.js";
 import { runWatch, subscribe, unsubscribe, validSubscription, webPushSender } from "./watch.js";
@@ -443,6 +444,28 @@ export function buildApp(opts: AppOptions = {}) {
     } catch (e) {
       log({ level: "error", path: "/v1/token", message: (e as Error).message });
       return c.json({ error: "check_failed", message: "Token Check could not complete. Treat the token as unsafe." }, 500);
+    }
+  });
+
+  /** Plain-language summary of a Token Check, written by AI from the check's results only (the verdict stays Heimdall's). */
+  app.get("/v1/token/:address/summary", async (c) => {
+    const a = c.req.param("address");
+    if (!isAddress(a)) return c.json({ error: "invalid_address" }, 400);
+    const key = `tokensummary:${a.toLowerCase()}`;
+    c.header("cache-control", "public, max-age=300");
+    const hit = await store.fetch(key).catch(() => null);
+    if (hit) return c.json(JSON.parse(hit));
+    const denied = await admit(c, PRICE.check);
+    if (denied) return denied;
+    try {
+      const r = await cachedTokenCheck(a as `0x${string}`);
+      const summary = await summarizeTokenCheck(r, { oidc: c.req.header("x-vercel-oidc-token") }).catch((e) => { log({ level: "warn", path: "/v1/token/summary", message: (e as Error).message }); return null; });
+      const body = { token: r.token, verdict: r.verdict, summary, model: summary ? AI_MODEL : null, checkedAt: r.checkedAt };
+      if (summary) await store.put(key, JSON.stringify(body), 600).catch(() => {});
+      return c.json(body);
+    } catch (e) {
+      log({ level: "error", path: "/v1/token/summary", message: (e as Error).message });
+      return c.json({ error: "summary_failed" }, 500);
     }
   });
 

@@ -5,6 +5,8 @@ import { fakeTokenCheck } from "./impersonation.js";
 import { TOKENS } from "./registry.js";
 import { parseLogs, decodeRevert, probeReceivedToken, STRANGER, type RawLog } from "./simulate.js";
 import type { Finding, Verdict } from "./types.js";
+import { detectLaunch, LAUNCHPAD_HOOKS, type Launch } from "./launchpad.js";
+import { memecoinSignals, type Holders } from "./memecoin.js";
 
 /**
  * Token Check: is a token safe to buy? Finds its Uniswap v3 pool against WETH, then simulates on the current chain
@@ -55,7 +57,9 @@ async function findV4Pool(client: PublicClient, token: Address, logs: PublicClie
   const cands = found.filter((l) => [NATIVE.toLowerCase(), WETH.toLowerCase()].includes(pair(l))).sort((a, b) => Number((b.blockNumber ?? 0n) - (a.blockNumber ?? 0n))).slice(0, 25);
   const SV = parseAbi(["function getLiquidity(bytes32 poolId) view returns (uint128)"]);
   const measured = await Promise.all(cands.map(async (l) => ({ l, liquidity: await client.readContract({ address: STATE_VIEW, abi: SV, functionName: "getLiquidity", args: [l.args.id!] }).catch(() => 0n) })));
-  const best = measured.filter((m) => m.liquidity > 0n).sort((a, b) => (b.liquidity > a.liquidity ? 1 : -1))[0];
+  // launchpad pools (Klik and others) start with one-sided liquidity above the price: zero in range until the first buy,
+  // so with no pool in range the newest one is still tried
+  const best = measured.filter((m) => m.liquidity > 0n).sort((a, b) => (b.liquidity > a.liquidity ? 1 : -1))[0] ?? measured[0];
   const pool = best ? { id: best.l.args.id!, currency0: getAddress(best.l.args.currency0!), currency1: getAddress(best.l.args.currency1!), fee: Number(best.l.args.fee), tickSpacing: Number(best.l.args.tickSpacing), hooks: getAddress(best.l.args.hooks!), liquidity: best.liquidity } : null;
   if (v4Cache.size > 2_000) v4Cache.delete(v4Cache.keys().next().value!);
   v4Cache.set(k, { at: Date.now(), pool });
@@ -87,6 +91,10 @@ export interface TokenCheck {
   riskScore: number;
   findings: Finding[];
   pool: { version: 3 | 4; address: Address | Hex; fee: number; pair: "WETH" | "ETH"; liquidity: string; hooks?: Address } | null;
+  /** The launchpad the token came from, its dev wallet, and whether it still trades on the launchpad's bonding curve. */
+  launch: Launch | null;
+  /** Who holds the supply: top holders, the dev's share, launch-block buyers. Null when it could not be read. */
+  holders: Holders | null;
   buy: { ok: boolean; taxPct: number | null; reason?: string } | null;
   sell: { ok: boolean; taxPct: number | null; reason?: string } | null;
   transfer: { ok: boolean; taxPct: number | null; reason?: string } | null;
@@ -124,22 +132,38 @@ export async function tokenCheck(client: PublicClient, raw: Address, now = Date.
   const read = <T>(functionName: "symbol" | "name" | "decimals" | "totalSupply" | "owner") =>
     client.readContract({ address: token, abi: ERC20, functionName } as never).then((v) => v as T).catch(() => null);
 
-  const [code, symbol, name, decimals, supply, owner, pool, fake] = await Promise.all([
+  const [code, symbol, name, decimals, supply, owner, pool, fake, launch] = await Promise.all([
     client.getCode({ address: token }).catch(() => undefined),
     read<string>("symbol"), read<string>("name"), read<number>("decimals"), read<bigint>("totalSupply"), read<Address>("owner"),
     findPool(client, token),
     fakeTokenCheck(client, token).catch(() => undefined),
+    detectLaunch(client, token).catch(() => null),
   ]);
   const out: TokenCheck = {
     token, symbol, name, decimals: decimals === null ? null : Number(decimals), totalSupply: supply === null ? null : supply.toString(),
     owner: owner && !/^0x0{40}$/i.test(owner) ? getAddress(owner) : null,
     verdict: "ALLOW", riskScore: 0, findings: F, pool: null, buy: null, sell: null, transfer: null, pullableBy: [], checkedAt: now,
+    launch, holders: null,
   };
 
   if (!code || code === "0x") {
     add("NOT_A_CONTRACT", "deny", "There is no contract at this address, so it is not a token.");
     return finish(out);
   }
+  // holder and dev signals run beside the trade simulations; known tokens (USDG, stocks) skip them
+  const signals = TOKENS[token.toLowerCase()] ? Promise.resolve(null) : memecoinSignals(client, logs, token, { supply, decimals, launch, pool: pool?.address ?? null }).catch(() => null);
+  const done = async (r: TokenCheck | Promise<TokenCheck>) => {
+    const res = await r;
+    const m = await signals;
+    if (m) { res.holders = m.holders; res.findings.push(...m.findings); }
+    // a launchpad's own fee hook is shared by every token it launched: a fact about the launchpad, not this token's dev
+    const hook = res.pool?.hooks?.toLowerCase();
+    if (hook && LAUNCHPAD_HOOKS[hook]) for (const f of res.findings) if (f.code === "HOOK_TAKES_DELTA") {
+      f.severity = "info";
+      f.message = `Trades go through ${LAUNCHPAD_HOOKS[hook]}'s fee hook, shared by all its tokens. It sets the swap fee; the simulated amounts above include it.`;
+    }
+    return finish(res);
+  };
   if (TOKENS[token.toLowerCase()]) add("KNOWN_TOKEN", "info", `This is the real ${TOKENS[token.toLowerCase()]!.symbol}.`);
   if (symbol === null || decimals === null) add("NOT_ERC20", "warn", "The contract does not answer symbol() or decimals(), so wallets cannot treat it as a normal token.");
   if (isBlocklisted(token)) {
@@ -152,11 +176,20 @@ export async function tokenCheck(client: PublicClient, raw: Address, now = Date.
   }
   if (out.owner) add("HAS_OWNER", "info", `Has an owner (${out.owner}) who may hold special powers over the contract.`);
 
+  if (launch) {
+    const where = launch.graduated === false ? `still on its ${launch.launchpad} bonding curve${launch.progressPct === null ? "" : ` (${launch.progressPct.toFixed(1)}% to graduation)`}` : launch.graduated ? `graduated from ${launch.launchpad}` : `launched on ${launch.launchpad}`;
+    add("LAUNCHPAD", "info", `Memecoin ${where}${launch.dev ? `, launched by ${launch.dev}` : ""}.`);
+  }
+  if (launch?.simulate === "ponsV2" && launch.curve) return done(finishCurve(client, out, token, launch.curve, add, launch.pairToken));
+  if (launch?.model === "curve" && launch.graduated === false) {
+    add("CURVE_NOT_SIMULATED", "warn", `Still trades on the ${launch.launchpad} bonding curve, which Heimdall cannot simulate yet: whether it can be sold back was not tested.`);
+    return done(out);
+  }
   if (!pool) {
     const v4 = await findV4Pool(client, token, logs).catch(() => null);
-    if (v4) return finishV4(client, out, token, v4, add);
+    if (v4) return done(finishV4(client, out, token, v4, add));
     add("NO_POOL", "warn", "No Uniswap v3 or v4 pool against ETH or WETH with liquidity: it cannot be bought or sold there, and the buy and sell could not be simulated.");
-    return finish(out);
+    return done(out);
   }
   out.pool = { version: 3, address: pool.address, fee: pool.fee, pair: "WETH", liquidity: pool.liquidity.toString() };
 
@@ -169,17 +202,17 @@ export async function tokenCheck(client: PublicClient, raw: Address, now = Date.
     if (!b || b.status !== "0x1") {
       out.buy = { ok: false, taxPct: null, reason: decodeRevert(b?.error?.data ?? b?.returnData, b?.error?.message) };
       add("BUY_FAILS", "deny", `Buying reverts: ${out.buy.reason}.`);
-      return finish(out);
+      return done(out);
     }
     const tr = parseLogs(b.logs ?? []).transfers.filter((t) => t.asset.toLowerCase() === token.toLowerCase());
     const fromPool = tr.filter((t) => t.from.toLowerCase() === pool.address.toLowerCase()).reduce((a, t) => a + t.amount, 0n);
     bought = tr.filter((t) => t.to.toLowerCase() === BUYER.toLowerCase()).reduce((a, t) => a + t.amount, 0n) - tr.filter((t) => t.from.toLowerCase() === BUYER.toLowerCase()).reduce((a, t) => a + t.amount, 0n);
     out.buy = { ok: true, taxPct: pct(fromPool, bought > 0n ? bought : 0n) };
-    if (bought <= 0n) { add("VANISHING_TOKEN", "deny", "The buy goes through, but the tokens do not stay in the buyer's wallet."); return finish(out); }
+    if (bought <= 0n) { add("VANISHING_TOKEN", "deny", "The buy goes through, but the tokens do not stay in the buyer's wallet."); return done(out); }
     taxFinding(add, "BUY", out.buy.taxPct);
   } catch (e) {
     add("SIM_UNAVAILABLE", "warn", `Could not simulate: ${(e as Error).message.split("\n")[0]}.`);
-    return finish(out);
+    return done(out);
   }
 
   // Sell, transfer and backdoors, each after the same buy
@@ -218,7 +251,7 @@ export async function tokenCheck(client: PublicClient, raw: Address, now = Date.
   }
   out.pullableBy = deep.pulledBy.map((a) => (a.toLowerCase() === STRANGER.toLowerCase() ? "anyone" : "owner"));
   if (out.pullableBy.length) add("ALLOWANCE_BYPASS", "deny", `${out.pullableBy.includes("anyone") ? "Anyone" : "The owner"} can take the tokens out of a holder's wallet without an approval: what you buy can be clawed back.`);
-  return finish(out);
+  return done(out);
 }
 
 /** Buy and sell through the Universal Router on a v4 pool, then the same transfer and clawback tests. */
@@ -293,6 +326,96 @@ async function finishV4(client: PublicClient, out: TokenCheck, token: Address, p
   out.pullableBy = deep.pulledBy.map((a) => (a.toLowerCase() === STRANGER.toLowerCase() ? "anyone" : "owner"));
   if (out.pullableBy.length) add("ALLOWANCE_BYPASS", "deny", `${out.pullableBy.includes("anyone") ? "Anyone" : "The owner"} can take the tokens out of a holder's wallet without an approval: what you buy can be clawed back.`);
   return finish(out);
+}
+
+/**
+ * Pons V2 bonding curve: buy with ETH, then transfer and sell back (after an approval), exactly as a trader would.
+ * The curve emits nothing Heimdall depends on: amounts come from the token's Transfer events.
+ */
+const PONS_CURVE = parseAbi(["function buy(uint256 ethIn, uint256 minTokensOut, address to) payable returns (uint256)", "function sell(uint256 tokensIn, uint256 minEthOut, address to) returns (uint256)"]);
+async function finishCurve(client: PublicClient, out: TokenCheck, token: Address, curve: Address, add: (c: string, s: Finding["severity"], m: string) => void, pair?: Address): Promise<TokenCheck> {
+  // a curve priced in another token: the buyer first gets that token with ETH (its own Pons curve, or a Uniswap v3 pool)
+  let prep: { from: Address; to: Address; data: Hex; value?: bigint }[] = [];
+  let pairIn = BUY_WEI;
+  if (pair) {
+    const got = await acquire(client, pair).catch(() => null);
+    if (!got) {
+      add("CURVE_NOT_SIMULATED", "warn", `The curve is priced in another token (${pair}) that Heimdall could not buy in the simulation, so buying and selling were not tested.`);
+      return out;
+    }
+    prep = [...got.calls, { from: BUYER, to: pair, data: encodeFunctionData({ abi: ERC20, functionName: "approve", args: [curve, maxUint256] }) }];
+    pairIn = got.amount;
+  }
+  const buyCall = { from: BUYER, to: curve, data: encodeFunctionData({ abi: PONS_CURVE, functionName: "buy", args: [pairIn, 0n, BUYER] }), value: pair ? 0n : BUY_WEI };
+  let bought = 0n;
+  try {
+    const all = await sim(client, [...prep, buyCall]);
+    const b = all[prep.length];
+    if (!b || b.status !== "0x1") {
+      out.buy = { ok: false, taxPct: null, reason: decodeRevert(b?.error?.data ?? b?.returnData, b?.error?.message) };
+      add("BUY_FAILS", "deny", `Buying on the bonding curve reverts: ${out.buy.reason}.`);
+      return out;
+    }
+    const tr = parseLogs(b.logs ?? []).transfers.filter((t) => t.asset.toLowerCase() === token.toLowerCase());
+    const fromCurve = tr.filter((t) => t.from.toLowerCase() === curve.toLowerCase()).reduce((a, t) => a + t.amount, 0n);
+    bought = tr.filter((t) => t.to.toLowerCase() === BUYER.toLowerCase()).reduce((a, t) => a + t.amount, 0n) - tr.filter((t) => t.from.toLowerCase() === BUYER.toLowerCase()).reduce((a, t) => a + t.amount, 0n);
+    out.buy = { ok: true, taxPct: pct(fromCurve, bought > 0n ? bought : 0n) };
+    if (bought <= 0n) { add("VANISHING_TOKEN", "deny", "The buy goes through, but the tokens do not stay in the buyer's wallet."); return out; }
+    taxFinding(add, "BUY", out.buy.taxPct);
+  } catch (e) {
+    add("SIM_UNAVAILABLE", "warn", `Could not simulate: ${(e as Error).message.split("\n")[0]}.`);
+    return out;
+  }
+  const approve = { from: BUYER, to: token, data: encodeFunctionData({ abi: ERC20, functionName: "approve", args: [curve, maxUint256] }) };
+  const sellCall = { from: BUYER, to: curve, data: encodeFunctionData({ abi: PONS_CURVE, functionName: "sell", args: [bought, 0n, BUYER] }) };
+  const transferCall = { from: BUYER, to: token, data: encodeFunctionData({ abi: ERC20, functionName: "transfer", args: [STRANGER, bought] }) };
+  const [sellRes, transferRes, deep] = await Promise.all([
+    sim(client, [...prep, buyCall, approve, sellCall]).catch(() => null),
+    sim(client, [...prep, buyCall, transferCall]).catch(() => null),
+    pair ? Promise.resolve({ pulledBy: [] as Address[] }) : probeReceivedToken(client, { chainId: 4663, from: BUYER, to: curve, data: buyCall.data, value: BUY_WEI, overrides: { [BUYER]: { balance: toHex(10n ** 18n) } } }, token, bought),
+  ]);
+  const s = sellRes?.[prep.length + 2];
+  if (s) {
+    if (s.status !== "0x1") {
+      out.sell = { ok: false, taxPct: null, reason: decodeRevert(s.error?.data ?? s.returnData, s.error?.message) };
+      add("HONEYPOT", "deny", `Buying on the curve works but selling back reverts (${out.sell.reason}). This is a honeypot.`);
+    } else {
+      const toCurve = parseLogs(s.logs ?? []).transfers.filter((t) => t.asset.toLowerCase() === token.toLowerCase() && t.to.toLowerCase() === curve.toLowerCase()).reduce((a, t) => a + t.amount, 0n);
+      out.sell = { ok: true, taxPct: pct(bought, toCurve) };
+      taxFinding(add, "SELL", out.sell.taxPct);
+    }
+  }
+  const t = transferRes?.[prep.length + 1];
+  if (t) {
+    if (t.status !== "0x1") {
+      out.transfer = { ok: false, taxPct: null, reason: decodeRevert(t.error?.data ?? t.returnData, t.error?.message) };
+      add("TRANSFER_BLOCKED", "deny", `Tokens cannot be sent to another wallet after buying (${out.transfer.reason}).`);
+    } else {
+      const got = parseLogs(t.logs ?? []).transfers.filter((x) => x.asset.toLowerCase() === token.toLowerCase() && x.to.toLowerCase() === STRANGER.toLowerCase()).reduce((a, x) => a + x.amount, 0n);
+      out.transfer = { ok: true, taxPct: pct(bought, got) };
+      taxFinding(add, "TRANSFER", out.transfer.taxPct);
+    }
+  }
+  out.pullableBy = deep.pulledBy.map((a) => (a.toLowerCase() === STRANGER.toLowerCase() ? "anyone" : "owner"));
+  if (out.pullableBy.length) add("ALLOWANCE_BYPASS", "deny", `${out.pullableBy.includes("anyone") ? "Anyone" : "The owner"} can take the tokens out of a holder's wallet without an approval: what you buy can be clawed back.`);
+  return out;
+}
+
+/** Calls that give the simulated buyer some `pair` token for ETH, and how much arrives. */
+async function acquire(client: PublicClient, pair: Address): Promise<{ calls: { from: Address; to: Address; data: Hex; value?: bigint }[]; amount: bigint } | null> {
+  const launch = await detectLaunch(client, pair).catch(() => null);
+  let call: { from: Address; to: Address; data: Hex; value?: bigint } | null = null;
+  if (launch?.simulate === "ponsV2" && launch.curve && !launch.pairToken) {
+    call = { from: BUYER, to: launch.curve, data: encodeFunctionData({ abi: PONS_CURVE, functionName: "buy", args: [BUY_WEI, 0n, BUYER] }), value: BUY_WEI };
+  } else {
+    const pool = await findPool(client, pair);
+    if (pool) call = { from: BUYER, to: SWAP_ROUTER_02, data: encodeFunctionData({ abi: ROUTER_ABI, functionName: "exactInputSingle", args: [{ tokenIn: WETH, tokenOut: pair, fee: pool.fee, recipient: BUYER, amountIn: BUY_WEI, amountOutMinimum: 0n, sqrtPriceLimitX96: 0n }] }), value: BUY_WEI };
+  }
+  if (!call) return null;
+  const [r] = await sim(client, [call]);
+  if (!r || r.status !== "0x1") return null;
+  const amount = parseLogs(r.logs ?? []).transfers.filter((t) => t.asset.toLowerCase() === pair.toLowerCase() && t.to.toLowerCase() === BUYER.toLowerCase()).reduce((a, t) => a + t.amount, 0n);
+  return amount > 0n ? { calls: [call], amount } : null;
 }
 
 function F_push(out: TokenCheck, f: Finding[]) { out.findings.push(...f); }
