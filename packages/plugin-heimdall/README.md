@@ -39,4 +39,4 @@ To let the agent send only what Shield allows, build the plugin in code with a w
 | `HEIMDALL_API_URL` | Defaults to the public Shield API |
 | `HEIMDALL_PAY_ADDRESS` | HeimdallPay contract, for the Pay actions |
 
-MIT licence.
+Business Source License 1.1: free to use with Heimdall's own contracts and services (see LICENSE).

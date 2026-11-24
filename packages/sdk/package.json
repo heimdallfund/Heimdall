@@ -24,7 +24,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "prepublishOnly": "npm run build && npm test"
   },
-  "license": "MIT",
+  "license": "BUSL-1.1",
   "dependencies": {
     "viem": "^2.58.4"
   },

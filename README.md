@@ -20,4 +20,8 @@ cd apps/shield && npm start                                       # :8787
 cd apps/web && cp .env.local-demo .env.local && npm run build && npm start
 ```
 
-Launch goes straight to mainnet (no testnet): vaults start with a 10,000 USDG deposit cap. Before launch: security review of the vault, a funded Shield signer key in KMS, reviewed router/feed defaults for the factory, and paid RPC (Alchemy).
+Launch goes straight to mainnet (no testnet): vaults start with a 10,000 USDG deposit cap. Before launch: an independent audit of the contracts (four internal reviews are in `contracts/`), a Shield signer key in AWS KMS, and paid RPC.
+
+## License
+
+Business Source License 1.1 (see `LICENSE`). You can read, audit and build on Heimdall: the SDK, MCP server, agent kit and ElizaOS plugin are free to use with Heimdall's own contracts and services. Running a competing service from this code is not allowed until the Change Date (2029-11-24), when the code becomes MIT. Contract interfaces and integration helpers (`IHeimdallRisk`, `IPriceFeed`, `HeimdallRiskAware`, `ShieldGuarded`) are MIT, so any contract can use them.

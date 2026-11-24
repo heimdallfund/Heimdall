@@ -17,19 +17,19 @@ Everything an external auditor needs to scope, build and test the Heimdall contr
 
 | File | nSLOC | SHA-256 | What it does |
 | --- | ---: | --- | --- |
-| `contracts/HeimdallVault.sol` | 439 | `af191fc9842e` | ERC-4626 vault in USDG. An AI agent (the manager) trades tokenized stocks, but only through calls Shield has signed off on. Per-trade and rolling 24 h loss caps, high-water-mark fees, in-kind exit |
-| `contracts/HeimdallPay.sol` | 198 | `4c56adcbcf9a` | USDG escrow between agents: create, submit, release, dispute, arbiter resolve, 14-day dispute timeout, pull fallback for frozen addresses |
-| `contracts/HeimdallSignals.sol` | 190 | `9be7871d975d` | Pay-per-call data market: payers fund a balance and sign cumulative EIP-712 vouchers that providers redeem |
-| `contracts/HeimdallAutoInvest.sol` | 142 | `4e2119cfc2fa` | Recurring stock buys from the user's own wallet. Anyone can execute a due buy within the user's oracle price bound |
-| `contracts/HeimdallVaultFactory.sol` | 121 | `b9da0a8def19` | Deploys vaults with default limits, calls and caps |
-| `contracts/HeimdallStaking.sol` | 101 | `8471382cd477` | Stake $HEIM, earn USDG streamed over 7 days (Synthetix style) |
+| `contracts/HeimdallVault.sol` | 439 | `79ef64579bb1` | ERC-4626 vault in USDG. An AI agent (the manager) trades tokenized stocks, but only through calls Shield has signed off on. Per-trade and rolling 24 h loss caps, high-water-mark fees, in-kind exit |
+| `contracts/HeimdallPay.sol` | 198 | `589c67ef7805` | USDG escrow between agents: create, submit, release, dispute, arbiter resolve, 14-day dispute timeout, pull fallback for frozen addresses |
+| `contracts/HeimdallSignals.sol` | 190 | `de9a3c9f10a8` | Pay-per-call data market: payers fund a balance and sign cumulative EIP-712 vouchers that providers redeem |
+| `contracts/HeimdallAutoInvest.sol` | 142 | `288b05a713f5` | Recurring stock buys from the user's own wallet. Anyone can execute a due buy within the user's oracle price bound |
+| `contracts/HeimdallVaultFactory.sol` | 121 | `707853a97ff7` | Deploys vaults with default limits, calls and caps |
+| `contracts/HeimdallStaking.sol` | 101 | `1eff4a64b202` | Stake $HEIM, earn USDG streamed over 7 days (Synthetix style) |
 | `contracts/ShieldGuarded.sol` | 56 | `af73648dc64e` | Verifies one-time EIP-712 Shield receipts (domain "Heimdall Shield", version 1) |
-| `contracts/HeimdallFeeSplitter.sol` | 54 | `1d0a923947a5` | Splits protocol fees between the stakers and the treasury |
-| `contracts/HeimdallStockFeed.sol` | 58 | `9d1b6ecadff5` | Price adapter: Chainlink stock/USD ÷ USDG/USD; reports stale while the token's oracle is paused, after a multiplier change newer than the price, or while USDG is off peg |
-| `contracts/HeimdallHolderBalance.sol` | 19 | `454dc24b2b67` | `balanceOf` = $HEIM held + staked, read by vaults, Signals, Shield and the web for holder status |
-| `contracts/HeimdallVaultDeployer.sol` | 18 | `a18fc5523050` | Holds the vault creation code for the factory |
-| `contracts/HeimdallGuardModule.sol` | 165 | `decd837e3ca2` | Safe module: an AI agent spends from a Safe only with a Shield receipt, within daily ETH and per-token limits; the owners keep full control |
-| `contracts/HeimdallRiskOracle.sol` | 80 | `1813049b67cc` | Onchain risk list (drainers, phishing, honeypots) written by a reporter, readable by any contract; the owner can pin entries |
+| `contracts/HeimdallFeeSplitter.sol` | 54 | `6c42a58f18eb` | Splits protocol fees between the stakers and the treasury |
+| `contracts/HeimdallStockFeed.sol` | 58 | `64ea05f8667f` | Price adapter: Chainlink stock/USD ÷ USDG/USD; reports stale while the token's oracle is paused, after a multiplier change newer than the price, or while USDG is off peg |
+| `contracts/HeimdallHolderBalance.sol` | 19 | `775e4fbe45c1` | `balanceOf` = $HEIM held + staked, read by vaults, Signals, Shield and the web for holder status |
+| `contracts/HeimdallVaultDeployer.sol` | 18 | `f4fe199a25fc` | Holds the vault creation code for the factory |
+| `contracts/HeimdallGuardModule.sol` | 165 | `061142122de6` | Safe module: an AI agent spends from a Safe only with a Shield receipt, within daily ETH and per-token limits; the owners keep full control |
+| `contracts/HeimdallRiskOracle.sol` | 80 | `9948f0cc2196` | Onchain risk list (drainers, phishing, honeypots) written by a reporter, readable by any contract; the owner can pin entries |
 | `contracts/HeimdallRiskAware.sol` | 23 | `dc315f55b3d9` | Abstract helper: `notBlocked` modifier with a gas-capped oracle read |
 | `contracts/interfaces/IHeimdallRisk.sol` | 19 | `bd33869fcc18` | Risk Oracle interface and level/flag constants |
 | `contracts/interfaces/IPriceFeed.sol` | 8 | `7a2bae928384` | Chainlink-style interface |

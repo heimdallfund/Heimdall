@@ -6,7 +6,7 @@
   "homepage": "https://heimdall.fund/docs/frameworks",
   "bugs": { "url": "https://heimdall.fund/security" },
   "author": "Heimdall <hello@heimdall.fund>",
-  "license": "MIT",
+  "license": "BUSL-1.1",
   "repository": { "type": "git", "url": "git+https://github.com/<GITHUB_ORG>/plugin-heimdall.git" },
   "type": "module",
   "main": "dist/index.js",

@@ -118,7 +118,7 @@ After any emergency action:
 
 The Markdown in `docs/` is the source of the docs; `.gitbook.yaml` points GitBook at it (`README.md` home, `SUMMARY.md` table of contents).
 
-1. In GitBook, create a space, then **Configure → GitHub Sync**, install the GitBook app on the `heimdallfund` org with access to `Heimdall` only, branch `main`, direction **GitHub → GitBook**. The private repo stays private.
+1. In GitBook, create a space, then **Configure → GitHub Sync**, install the GitBook app on the `heimdallfund` org with access to `Heimdall` only, branch `main`, direction **GitHub → GitBook**. GitBook only reads the repo; nothing is published from it except `docs/`.
 2. Customize → domain `docs.heimdall.fund`, then add the CNAME GitBook shows to the DNS of `heimdall.fund`.
 3. Set `NEXT_PUBLIC_DOCS_URL=https://docs.heimdall.fund` on the web and redeploy: every `/docs/*` page redirects to the same page on GitBook (map in `apps/web/next.config.ts`), and unknown docs paths go to the GitBook home.
 4. Edit docs in `docs/` only. When a page is added, add it to `docs/SUMMARY.md` and to `DOCS_MAP`.

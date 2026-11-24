@@ -18,7 +18,7 @@
   },
   "author": "Heimdall <hello@heimdall.fund>",
   "type": "module",
-  "license": "MIT",
+  "license": "BUSL-1.1",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
