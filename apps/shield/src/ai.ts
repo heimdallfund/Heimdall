@@ -29,7 +29,7 @@ function facts(r: TokenCheck) {
 
 export async function summarizeTokenCheck(r: TokenCheck, opts: { oidc?: string; fetcher?: typeof fetch; timeoutMs?: number } = {}): Promise<string | null> {
   const token = process.env.AI_GATEWAY_API_KEY ?? process.env.VERCEL_OIDC_TOKEN ?? opts.oidc;
-  if (!token) return null;
+  if (!token) { console.warn(JSON.stringify({ level: "warn", path: "ai", message: "no AI Gateway credential (AI_GATEWAY_API_KEY or OIDC)" })); return null; }
   const res = await (opts.fetcher ?? fetch)("https://ai-gateway.vercel.sh/v1/chat/completions", {
     method: "POST",
     headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
@@ -41,7 +41,10 @@ export async function summarizeTokenCheck(r: TokenCheck, opts: { oidc?: string; 
     }),
     signal: AbortSignal.timeout(opts.timeoutMs ?? 12_000),
   });
-  if (!res.ok) return null;
+  if (!res.ok) {
+    console.warn(JSON.stringify({ level: "warn", path: "ai", message: `gateway ${res.status}: ${(await res.text().catch(() => "")).slice(0, 200)}` }));
+    return null;
+  }
   const j = await res.json() as { choices?: { message?: { content?: string } }[] };
   const text = j.choices?.[0]?.message?.content?.trim();
   return text ? text.slice(0, 900) : null;
