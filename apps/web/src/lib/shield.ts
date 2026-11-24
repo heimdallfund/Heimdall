@@ -43,6 +43,8 @@ export const CODE_LABEL: Record<string, string> = {
   UNLIMITED_APPROVAL_TO_EOA: "Unlimited approval to a plain wallet",
   APPROVAL_TO_EOA: "Approval to a plain wallet",
   UNLIMITED_APPROVAL: "Unlimited approval to an untrusted contract",
+  APPROVAL_LAUNCHPAD: "Approval to a launchpad curve",
+  APPROVAL_LAUNCHPAD_UNUSED: "Approval a launchpad never needs",
   SIM_REVERTED: "Transaction would revert",
   HONEYPOT: "Honeypot token (cannot be sold)",
   VANISHING_TOKEN: "Token taken back right after you buy",
@@ -72,6 +74,14 @@ export const CODE_LABEL: Record<string, string> = {
   DENYLISTED_TARGET: "Target on the deny list",
 };
 export const label = (code: string) => CODE_LABEL[code] ?? code.replace(/_/g, " ").toLowerCase();
+
+/** Short title for a verdict: the name of its most severe finding, never an address. */
+export function verdictTitle(r: { verdict: string; findings: { code: string; severity: string }[] }): string {
+  const top = r.findings.find((f) => f.severity === "deny") ?? r.findings.find((f) => f.severity === "warn");
+  if (!top) return r.verdict === "ALLOW" ? "Nothing risky found" : "Checked by Heimdall Shield";
+  const t = label(top.code);
+  return t.charAt(0).toUpperCase() + t.slice(1);
+}
 
 /** Best one-line headline for a verdict: the most severe finding, else the first summary line. */
 export function headline(r: { summary: string[]; findings: { severity: string; message: string }[] }): string {
