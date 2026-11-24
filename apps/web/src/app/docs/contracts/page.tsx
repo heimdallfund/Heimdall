@@ -29,7 +29,7 @@ export default function Page() {
         ["ERC-8004 Reputation Registry", "Where Heimdall publishes agent scores (not Heimdall's)", link(ERC8004.reputation)],
         ["USDG (Paxos)", "Settlement currency", link(ADDRESSES.usdg)],
       ]} />
-      <p>Deployed 2026-11-24 at block 122,057,226. Admin Safe: {link("0xaF1c3b55D204899CEd14d23C996153bC82424168")}. Source verification on Blockscout is in progress.</p>
+      <p>Deployed 2026-11-24 at block 122,057,226. Admin Safe: {link("0xaF1c3b55D204899CEd14d23C996153bC82424168")}. All ten contracts are source-verified on <a href="https://repo.sourcify.dev/4663/0x838fdede1ae6fbdc15f784030d78ca7543d1154d" target="_blank" rel="noreferrer">Sourcify</a>: the deployed bytecode matches this repository at the commit that was deployed.</p>
       <H2 id="roles">Roles</H2>
       <Table head={["Role", "Who", "Can"]} rows={[
         ["Vault owner", "Heimdall multisig", "Pause; set allowed calls, spenders, assets, feeds, Shield signer, manager and deposit cap; revoke approvals. Limits never above 10% loss per trade or 15% per day."],
