@@ -38,6 +38,7 @@ import { keysRoutes, lookupStoredKey } from "./keys.js";
 import { background, deliver, hookOwnersOf } from "./webhooks.js";
 import { buildRadar, runChecks, type RadarCheck, type RadarSnapshot } from "./radar.js";
 import { learnSmartMoney, smartCount } from "./smart.js";
+import { evaluateDue, recordPrediction, scorecard } from "./bench.js";
 import { storeFromEnv, type CounterStore } from "./store.js";
 import { checkDailyQuota, checkRate, identify, limitsFromEnv, type Caller, type LimitsConfig } from "./limits.js";
 
@@ -469,13 +470,26 @@ export function buildApp(opts: AppOptions = {}) {
     });
     await store.put(RADAR_KEY, JSON.stringify(snap), 86_400);
     // verdicts for the busiest unchecked tokens, then the snapshot again with them filled in
-    if (await runChecks(snap, { check: (t) => cachedTokenCheck(t as `0x${string}`), putCheck: (t, ck) => store.put(`radar:check:${t.toLowerCase()}`, JSON.stringify(ck), 2_700) })) {
+    // every fresh radar check is also a prediction for the accuracy scorecard (first verdict only)
+    const predict = async (t: string) => {
+      const r = await cachedTokenCheck(t as `0x${string}`);
+      if (!r.findings.some((f) => f.code === "SIM_UNAVAILABLE")) await recordPrediction(store, t, r).catch(() => {});
+      return r;
+    };
+    if (await runChecks(snap, { check: predict, putCheck: (t, ck) => store.put(`radar:check:${t.toLowerCase()}`, JSON.stringify(ck), 2_700) })) {
       await store.put(RADAR_KEY, JSON.stringify(snap), 86_400);
     }
     // smart money learns from the day's graduations, a few tokens per refresh
     await learnSmartMoney(store, client, radarLogs).catch(() => 0);
+    // and a day later, what actually happened to the tokens it predicted
+    await evaluateDue(store, (t) => cachedTokenCheck(t as `0x${string}`)).catch(() => 0);
     return snap;
   };
+  /** Measured accuracy: Radar verdicts against what happened to the same tokens a day later. */
+  app.get("/v1/bench", async (c) => {
+    c.header("cache-control", "public, max-age=60");
+    return c.json(await memo("bench", 60, () => scorecard(store)));
+  });
   app.get("/v1/radar", async (c) => {
     c.header("cache-control", "public, max-age=30");
     const raw = await store.fetch(RADAR_KEY).catch(() => null);

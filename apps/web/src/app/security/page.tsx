@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { IconTile, type IconName } from "@/components/Icons";
 import { ADDRESSES, explorerAddress } from "@/lib/config";
+import { Accuracy } from "./Accuracy";
 
 export const metadata: Metadata = {
   title: "Security",
@@ -54,6 +55,7 @@ export default function SecurityPage() {
         ))}</div>
       </section>
 
+      <Accuracy />
       <section aria-labelledby="reviews" className="flex flex-col gap-5">
         <h2 id="reviews" className="display text-[41px]">Reviews and testing</h2>
         <div className="overflow-x-auto rounded-xl border border-line bg-panel">

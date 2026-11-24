@@ -8,6 +8,7 @@ export const CHANGELOG: ChangeEntry[] = [
     title: "Agents can find and use Heimdall on their own",
     summary: "A hosted MCP server, an OpenAPI spec and discovery files mean an agent or a developer tool can connect without anyone setting it up. Plus a live status page, a bigger sourced blocklist and a security pass on the Shield API.",
     changes: [
+      { tag: "Security", text: "Token Check accuracy, measured forward: every Radar verdict is recorded, the token is checked again a day later, and the Security page scores the two (bad tokens flagged beforehand, passed tokens that went bad anyway). Rug checks were also tested against a purpose-built scam token with every trick: mint, blacklist, pause, tax raise and a time-locked sell; all were caught." },
       { tag: "Shield", text: "Dev track record: Token Check looks up a Pons dev's other launches in the last month and what happened to each (graduated, dumped by the dev, died on the curve, still trading). A dev who dumped most earlier tokens gets a warning, five or more a DENY." },
       { tag: "Shield", text: "Holder clusters: when several top holders got their tokens sent from one wallet instead of buying them, Token Check says so and how much they hold together." },
       { tag: "Shield", text: "Early-winner wallets: wallets that were among the first 30 buyers of two or more Pons tokens that later graduated. Token Check and the Radar show how many hold a token. It is a fact about timing, not a promise of profit." },
