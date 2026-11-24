@@ -89,7 +89,7 @@ async function Content({ params }: { params: Promise<{ address: string }> }) {
     );
   }
   const [box, color, head] = TONE[r.verdict];
-  const notable = r.findings.filter((f) => f.severity !== "info");
+  const notable = r.findings.filter((f) => f.severity !== "info").sort((a, b) => (a.severity === b.severity ? 0 : a.severity === "deny" ? -1 : 1));
   const info = r.findings.filter((f) => f.severity === "info");
   const pulled = r.pullableBy.length ? `${r.pullableBy.includes("anyone") ? "Anyone" : "The owner"} can take it from your wallet` : "No one could pull it without approval";
   return (
@@ -110,7 +110,7 @@ async function Content({ params }: { params: Promise<{ address: string }> }) {
         <LegCard title="Buy" leg={r.buy} good="Works, no tax" />
         <LegCard title="Sell" leg={r.sell} good="Works, no tax" />
         <LegCard title="Transfer" leg={r.transfer} good="Works, no tax" />
-        <LegCard title="Clawback" leg={r.buy ? { ok: r.pullableBy.length === 0, taxPct: null, reason: r.pullableBy.length ? pulled.toLowerCase() : undefined } : null} good={pulled} />
+        <LegCard title="Clawback" leg={r.buy?.ok ? { ok: r.pullableBy.length === 0, taxPct: null, reason: r.pullableBy.length ? pulled.toLowerCase() : undefined } : null} good={pulled} />
       </section>
       <SafetyTests r={r} />
       {notable.length > 0 && (
