@@ -28,6 +28,8 @@ const nextConfig: NextConfig = {
       { source: "/llms.txt", headers: open },
       { source: "/llms-full.txt", headers: open },
       { source: "/docs/:page*.md", headers: [...open, { key: "content-type", value: "text/markdown; charset=utf-8" }] },
+      // the Token Check widget loader is meant to be loaded by any site
+      { source: "/embed.js", headers: [{ key: "access-control-allow-origin", value: "*" }, { key: "cache-control", value: "public, max-age=3600" }, { key: "content-type", value: "text/javascript; charset=utf-8" }] },
     ];
   },
   cacheComponents: true,

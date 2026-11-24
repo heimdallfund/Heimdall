@@ -8,6 +8,8 @@ export const CHANGELOG: ChangeEntry[] = [
     title: "Agents can find and use Heimdall on their own",
     summary: "A hosted MCP server, an OpenAPI spec and discovery files mean an agent or a developer tool can connect without anyone setting it up. Plus a live status page, a bigger sourced blocklist and a security pass on the Shield API.",
     changes: [
+      { tag: "Integrations", text: "Token Check widget: launchpads, explorers and wallets can put a live verdict card (two lines of HTML, light or dark) or a badge on any token page. Free, no cookies, links to the full report. heimdall.fund/widget" },
+      { tag: "Integrations", text: "SDK 0.3.0 (TypeScript and Python) and MCP 0.3.0: Launch Radar, AI token summaries and the accuracy scorecard; Token Check results carry the rug checks, liquidity owners, the dev's earlier launches and holder clusters. New MCP tool heimdall_launch_radar." },
       { tag: "Web", text: "Launch Radar shows ETH volume: ETH paid in to buy and paid out to sellers in the last hour, in ETH and dollars, with the net flow, read from the Pons curve and Uniswap pool trade events. New sort: Volume." },
       { tag: "Shield", text: "Dev track record now covers Klik too. Klik launches most tokens from its own launcher account; that account is recognised as the platform and is no longer shown as the token's dev." },
       { tag: "Security", text: "Token Check accuracy, measured forward: every Radar verdict is recorded, the token is checked again a day later, and the Security page scores the two (bad tokens flagged beforehand, passed tokens that went bad anyway). Rug checks were also tested against a purpose-built scam token with every trick: mint, blacklist, pause, tax raise and a time-locked sell; all were caught." },

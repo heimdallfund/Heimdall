@@ -110,8 +110,22 @@ class Shield(_Base):
         return result
 
     def token_check(self, token: str) -> dict[str, Any]:
-        """Token Check: simulated buy, sell and transfer through the token's Uniswap pool, taxes, clawbacks, fake tickers."""
+        """Token Check: a simulated buy, sell and transfer on the token's bonding curve or Uniswap pool, taxes, clawbacks,
+        fake tickers, rug checks (owner powers, selling a week later, a 0.1 ETH trade, liquidity owners), the dev's
+        earlier launches and who holds the supply."""
         return self._get(f"/v1/token/{token}")
+
+    def token_summary(self, token: str) -> dict[str, Any]:
+        """A plain-language summary of a Token Check, written by AI from the check's own results."""
+        return self._get(f"/v1/token/{token}/summary")
+
+    def radar(self) -> dict[str, Any]:
+        """Launch Radar: the last 24 hours of launches, ranked by buyers in the last hour, with ETH volume and verdicts."""
+        return self._get("/v1/radar")
+
+    def accuracy(self) -> dict[str, Any]:
+        """Measured accuracy: Radar verdicts against what happened to the same tokens a day later."""
+        return self._get("/v1/bench")
 
     def risk(self, address: str) -> RiskReport:
         """Risk level and flags of an address, as the Risk Oracle holds them."""
@@ -177,6 +191,15 @@ class AsyncShield(_Base):
 
     async def token_check(self, token: str) -> dict[str, Any]:
         return await self._get(f"/v1/token/{token}")
+
+    async def token_summary(self, token: str) -> dict[str, Any]:
+        return await self._get(f"/v1/token/{token}/summary")
+
+    async def radar(self) -> dict[str, Any]:
+        return await self._get("/v1/radar")
+
+    async def accuracy(self) -> dict[str, Any]:
+        return await self._get("/v1/bench")
 
     async def risk(self, address: str) -> RiskReport:
         return await self._get(f"/v1/risk/{address}")

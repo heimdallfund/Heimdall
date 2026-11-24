@@ -22,6 +22,7 @@ const MORE: [string, string, string][] = [
   ["/docs/mcp", "MCP server", "Claude, Cursor and any MCP client: check transactions, risk and passports."],
   ["/docs/frameworks", "Agent frameworks", "Native tools for the Vercel AI SDK, LangChain and ElizaOS."],
   ["/docs/webhooks", "Webhooks", "Shield DENY, WARN and risky approvals pushed to your server, signed."],
+  ["/widget", "Token Check widget", "A live verdict card or badge on any token page: launchpads, explorers, wallets."],
   ["/badges", "Badges", "Show users your agent or vault is checked by Heimdall, live."],
   ["/docs/shield", "HTTP API", "Plain HTTP for everything else. Free tier, API keys or x402."],
 ];

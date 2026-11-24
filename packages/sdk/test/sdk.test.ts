@@ -31,6 +31,14 @@ describe("HeimdallShield client", () => {
     expect(r.verdict).toBe("ALLOW");
   });
 
+  it("reads the Launch Radar, token summaries and the accuracy scorecard", async () => {
+    const seen: string[] = [];
+    const f = (async (url: string) => { seen.push(new URL(url).pathname); return new Response(JSON.stringify({ tokens: [], summary: "ok", evaluated: 0 }), { status: 200 }); }) as unknown as typeof fetch;
+    const shield = new HeimdallShield({ baseUrl: "https://x", fetch: f });
+    await shield.radar(); await shield.tokenSummary(account.address); await shield.accuracy();
+    expect(seen).toEqual(["/v1/radar", `/v1/token/${account.address}/summary`, "/v1/bench"]);
+  });
+
   it("guardedSend refuses to sign when Shield denies", async () => {
     const shield = new HeimdallShield({ baseUrl: "https://x", fetch: fakeShield("DENY") });
     const data = encodeFunctionData({ abi: ERC20, functionName: "approve", args: [account.address, maxUint256] });

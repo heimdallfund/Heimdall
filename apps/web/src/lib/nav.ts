@@ -36,6 +36,7 @@ export const SEARCH: SearchEntry[] = [
   { title: "Token Check", section: "Products", href: "/token-check", keywords: "honeypot checker rug check token scan sell tax buy tax scam fake token clawback" },
   { title: "Guardian Points", section: "Products", href: "/points", keywords: "points leaderboard rewards season report drainer" },
   { title: "Stake $HEIM", section: "Products", href: "/stake", keywords: "staking yield usdg fees heim" },
+  { title: "Token Check widget", section: "Build", href: "/widget", keywords: "embed widget launchpad explorer badge iframe token check card" },
   { title: "Badges", section: "Build", href: "/badges", keywords: "verified badge embed readme agent vault" },
   { title: "Brand kit", section: "Press", href: "/brand", keywords: "logo press media kit colors token icon download" },
   { title: "Early access", section: "Products", href: "/early", keywords: "early access waitlist invite referral points" },

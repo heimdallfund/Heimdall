@@ -252,9 +252,28 @@ export class HeimdallShield {
     return this.request("/v1/passport/link", { method: "POST", body: JSON.stringify({ address, agentId: agentId.toString() }) });
   }
 
-  /** Token Check: simulated buy, sell and transfer through the token's Uniswap pool, taxes, clawback backdoors and fake tickers. */
+  /**
+   * Token Check: a simulated buy, sell and transfer on the token's bonding curve or Uniswap pool, taxes, clawback
+   * backdoors and fake tickers, plus rug checks (owner powers tested as the owner, selling a week later, a 0.1 ETH
+   * trade, who holds the liquidity), the launchpad, the dev's earlier launches and who holds the supply.
+   */
   tokenCheck(token: Address): Promise<TokenCheckResult> {
     return this.request<TokenCheckResult>(`/v1/token/${token}`);
+  }
+
+  /** A plain-language summary of a Token Check, written by AI from the check's own results. The verdict stays Heimdall's. */
+  tokenSummary(token: Address): Promise<{ token: Address; verdict: TokenCheckResult["verdict"]; summary: string | null; model: string | null; checkedAt: number }> {
+    return this.request(`/v1/token/${token}/summary`);
+  }
+
+  /** Launch Radar: tokens launched in the last 24 hours, ranked by distinct buyers in the last hour, with ETH volume and verdicts. */
+  radar(): Promise<RadarSnapshot> {
+    return this.request<RadarSnapshot>("/v1/radar");
+  }
+
+  /** Measured accuracy: Radar verdicts against what happened to the same tokens a day later. */
+  accuracy(): Promise<Scorecard> {
+    return this.request<Scorecard>("/v1/bench");
   }
 
   /** Risk data for an address: what Shield knows, and what the onchain Risk Oracle holds right now. */
@@ -278,7 +297,60 @@ export interface TokenCheckResult {
   sell: { ok: boolean; taxPct: number | null; reason?: string } | null;
   transfer: { ok: boolean; taxPct: number | null; reason?: string } | null;
   pullableBy: ("anyone" | "owner")[];
+  /** The launchpad, its dev wallet and bonding-curve progress, when the token came from one. */
+  launch?: { launchpad: string; url?: string; model: "curve" | "v3" | "v4"; dev: Address | null; curve?: Address; pool?: Address; graduated: boolean | null; progressPct: number | null; feePct?: number; pairToken?: Address } | null;
+  /** Who holds the supply, the dev's share and sales, the dev's earlier launches, holder clusters and early-winner wallets. */
+  holders?: TokenHolders | null;
+  /** What the owner can do to holders, each tested by acting as the owner in the simulation. */
+  powers?: { renounced: boolean; upgradeable: boolean; mint: boolean; blacklist: boolean; pause: boolean; maxSellTaxPct: number | null; sellLater: boolean | null; bigTrade: boolean | null; ownerTested: boolean } | null;
+  /** Pool depth in ETH (v3) and who holds the liquidity positions; `removed` when it was all pulled. */
+  liquidity?: { pairEth: number | null; lp: { positions: number; burnedPct: number; lockedPct: number; contractPct: number; walletPct: number; topWallet: Address | null } | null; removed?: boolean } | null;
   checkedAt: number;
+}
+
+export interface TokenHolders {
+  count: number;
+  top10Pct: number | null;
+  top: { address: Address; pct: number }[];
+  dev: Address | null;
+  devPct: number | null;
+  devSoldPct: number | null;
+  launchBuyers: { wallets: number; pct: number } | null;
+  devLaunches: number | null;
+  window: "full" | "recent";
+  devHistory?: { launchpad: string; launches: number; checked: number; graduated: number; dumped: number; dead: number; active: number; recent: { token: Address; symbol: string | null; outcome: "graduated" | "dumped" | "dead" | "active" }[] } | null;
+  cluster?: { from: Address; wallets: number; pct: number; isDev: boolean } | null;
+  smart?: number | null;
+}
+
+export interface RadarToken {
+  token: Address;
+  symbol: string | null;
+  name: string | null;
+  venue: string;
+  launchedAt: number;
+  buyers1h: number;
+  buys1h: number;
+  sells1h: number;
+  /** ETH paid in to buy and paid out to sellers in the last hour; null when not readable. */
+  buyEth1h: number | null;
+  sellEth1h: number | null;
+  check: { verdict: "ALLOW" | "WARN" | "DENY"; riskScore: number; flags: string[]; holders: number | null; top10Pct: number | null; devSoldPct: number | null; progressPct: number | null; smart?: number | null; devLaunches?: number | null; devDumped?: number | null; checkedAt: number } | null;
+}
+export interface RadarSnapshot { generatedAt: number; block: string; launched24h: number; ethUsd: number | null; tokens: RadarToken[] }
+
+export interface Scorecard {
+  since: number | null;
+  pending: number;
+  evaluated: number;
+  bad: number;
+  caught: number;
+  passed: number;
+  passedBad: number;
+  denied: number;
+  deniedBad: number;
+  byOutcome: Record<"rugged" | "honeypot" | "dumped" | "fine", number>;
+  recent: { token: Address; symbol: string | null; verdict: "ALLOW" | "WARN" | "DENY"; outcome: "rugged" | "honeypot" | "dumped" | "fine"; at: number }[];
 }
 
 export interface Passport {

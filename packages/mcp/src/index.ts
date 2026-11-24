@@ -16,7 +16,7 @@ import {
   HEIMDALL_MAINNET,
 } from "@heimdallfund/sdk";
 
-export const VERSION = "0.2.0";
+export const VERSION = "0.3.0";
 
 export interface Deps {
   shield: HeimdallShield;
@@ -139,7 +139,7 @@ export function buildServer(d: Deps) {
 
   server.registerTool("heimdall_token_check", {
     title: "Is this token safe to buy?",
-    description: "Before buying a token on Robinhood Chain: simulates a buy, a sell and a transfer through its Uniswap pool, measures buy/sell/transfer taxes, tests whether anyone or the owner can pull it out of a holder's wallet (clawback), and checks for fake tickers (a copy of USDG, NVDA…) and the blocklist. Never buy on DENY.",
+    description: "Before buying a token on Robinhood Chain, including memecoins still on a launchpad (Pons, Klik…): simulates a buy, a sell and a transfer on its bonding curve or Uniswap pool, measures taxes, tests clawback backdoors, fake tickers and the blocklist, then runs rug checks: what the owner can do (mint, block a seller, pause, raise the tax, upgrade), whether selling still works a week later, whether a 0.1 ETH trade works, and whether a wallet can pull the liquidity. Also shows the dev's earlier launches and who holds the supply. Never buy on DENY.",
     inputSchema: { token: address.describe("Token contract address") },
     annotations: { readOnlyHint: true, openWorldHint: true },
   }, async ({ token }) => {
@@ -151,6 +151,11 @@ export function buildServer(d: Deps) {
         `Verdict: ${r.verdict} (risk ${r.riskScore}/100)`,
         [leg("Buy", r.buy), leg("Sell", r.sell), leg("Transfer", r.transfer)].join(" · "),
         r.pullableBy.length ? `Clawback: ${r.pullableBy.join(" and ")} can take it from a holder's wallet` : "Clawback: none found",
+        ...(r.launch ? [`Launch: ${r.launch.launchpad}${r.launch.graduated === false ? `, on the bonding curve${r.launch.progressPct != null ? ` (${r.launch.progressPct.toFixed(0)}% to graduation)` : ""}` : r.launch.graduated ? ", graduated" : ""}${r.launch.dev ? `, dev ${r.launch.dev}` : ""}`] : []),
+        ...(r.holders?.devHistory?.launches ? [`Dev's other launches (last month): ${r.holders.devHistory.launches}; of the last ${r.holders.devHistory.checked}: ${r.holders.devHistory.dumped} dumped, ${r.holders.devHistory.dead} dead, ${r.holders.devHistory.graduated} graduated, ${r.holders.devHistory.active} trading`] : []),
+        ...(r.holders ? [`Holders: ${r.holders.count}${r.holders.top10Pct != null ? `, top 10 hold ${r.holders.top10Pct}%` : ""}${r.holders.devSoldPct != null ? `, dev sold ${r.holders.devSoldPct}% of theirs` : ""}${r.holders.smart ? `, ${r.holders.smart} early-winner wallets` : ""}`] : []),
+        ...(r.powers ? [`Owner powers (tested): ${r.powers.renounced ? "ownership renounced" : [r.powers.mint && "can mint", r.powers.blacklist && "can block sellers", r.powers.pause && "can pause", r.powers.maxSellTaxPct != null && r.powers.maxSellTaxPct >= 10 && `can raise sell tax to ${r.powers.maxSellTaxPct}%`, r.powers.upgradeable && "code can be replaced"].filter(Boolean).join(", ") || (r.powers.ownerTested ? "none found" : "not tested")}`] : []),
+        ...(r.liquidity?.removed ? ["Liquidity: ALL PULLED (rug pull)"] : r.liquidity?.lp ? [`Liquidity: ${r.liquidity.lp.walletPct}% held by a wallet, ${r.liquidity.lp.lockedPct + r.liquidity.lp.burnedPct}% locked or burned${r.liquidity.pairEth != null ? `, ${r.liquidity.pairEth.toFixed(3)} ETH in the pool` : ""}`] : []),
         ...r.findings.filter((f) => f.severity !== "info").map((f) => `- [${f.severity.toUpperCase()}] ${f.message}`),
         `Report: ${d.webUrl}/token-check/${r.token}`,
       ];
@@ -158,6 +163,28 @@ export function buildServer(d: Deps) {
       return { ...text(lines.join("\n")), structuredContent: r as unknown as Record<string, unknown> };
     } catch (e) {
       return fail(`Token Check failed: ${msg(e)}. Treat the token as unsafe.`);
+    }
+  });
+
+  server.registerTool("heimdall_launch_radar", {
+    title: "Launch Radar: new tokens, checked",
+    description: "Tokens launched on Robinhood Chain in the last 24 hours (Pons, Klik, Uniswap), ranked by how many different wallets bought in the last hour, with ETH volume, net flow and Heimdall's Token Check verdict for the busiest. Use it to see what is trending and which launches are traps. Counted from onchain events; it does not predict prices.",
+    inputSchema: { limit: z.number().int().min(1).max(40).optional().describe("How many tokens to list (default 15)"), passedOnly: z.boolean().optional().describe("Only tokens whose Token Check passed (ALLOW)") },
+    annotations: { readOnlyHint: true, openWorldHint: true },
+  }, async ({ limit, passedOnly }) => {
+    try {
+      const r = await d.shield.radar();
+      const list = r.tokens.filter((t) => !passedOnly || t.check?.verdict === "ALLOW").slice(0, limit ?? 15);
+      const lines = [`${r.launched24h} tokens launched in the last 24h. Busiest by buyers in the last hour${passedOnly ? " (passed checks only)" : ""}:`];
+      for (const t of list) {
+        const vol = t.buyEth1h != null && t.sellEth1h != null ? `, ${(t.buyEth1h + t.sellEth1h).toFixed(2)} ETH volume (net ${(t.buyEth1h - t.sellEth1h >= 0 ? "+" : "")}${(t.buyEth1h - t.sellEth1h).toFixed(2)})` : "";
+        const v = t.check ? `${t.check.verdict}${t.check.flags.length ? ` (${t.check.flags.slice(0, 3).join(", ")})` : ""}` : "not checked yet";
+        lines.push(`- ${t.symbol ?? t.token} ${t.token} on ${t.venue}: ${t.buyers1h} buyers, ${t.buys1h} buys / ${t.sells1h} sells${vol}. Token Check: ${v}`);
+      }
+      lines.push(`Live list: ${d.webUrl}/radar`);
+      return { ...text(lines.join("\n")), structuredContent: r as unknown as Record<string, unknown> };
+    } catch (e) {
+      return fail(`Launch Radar failed: ${msg(e)}`);
     }
   });
 

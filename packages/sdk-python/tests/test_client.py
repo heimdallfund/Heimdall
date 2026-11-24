@@ -81,3 +81,12 @@ async def test_async_client_matches_the_sync_one():
         with pytest.raises(HeimdallDenied):
             await s.guard(AGENT, USDG)
     assert seen[0].url.path == "/v1/check"
+
+
+def test_radar_summary_and_accuracy_hit_their_paths():
+    handler, seen = recorder(body={"tokens": []})
+    s = Shield(transport=httpx.MockTransport(handler))
+    s.radar()
+    s.token_summary(USDG)
+    s.accuracy()
+    assert [r.url.path for r in seen] == ["/v1/radar", f"/v1/token/{USDG}/summary", "/v1/bench"]

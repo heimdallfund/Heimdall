@@ -1,6 +1,6 @@
 {
   "name": "@heimdallfund/mcp",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Heimdall MCP server: let Claude, Cursor or any MCP agent check Robinhood Chain transactions and signatures before signing",
   "mcpName": "fund.heimdall/mcp",
   "keywords": [
@@ -27,7 +27,7 @@
   },
   "license": "BUSL-1.1",
   "dependencies": {
-    "@heimdallfund/sdk": "^0.2.0",
+    "@heimdallfund/sdk": "^0.3.0",
     "@modelcontextprotocol/sdk": "^1.32.2",
     "viem": "^2.58.4",
     "zod": "^4.6.7"

@@ -8,7 +8,7 @@ Four public npm packages plus the Python SDK (`heimdallfund` on PyPI).
 | --- | --- |
 | `@heimdallfund/sdk` | TypeScript SDK: Shield, vaults, Pay, Auto-Invest, Signals |
 | `@heimdallfund/agent-kit` | Tools for the Vercel AI SDK, LangChain and ElizaOS |
-| `@heimdallfund/mcp` | MCP server (`npx @heimdallfund/mcp`) with 17 tools; mainnet addresses built in |
+| `@heimdallfund/mcp` | MCP server (`npx @heimdallfund/mcp`) with 18 tools; mainnet addresses built in |
 | `@heimdallfund/plugin-heimdall` | ElizaOS plugin (thin wrapper over `agent-kit/eliza`) |
 
 ## 1. npm
@@ -65,6 +65,6 @@ python3 -m twine upload dist/*   # PyPI account with two-factor; use an API toke
 
 Smithery, Glama and mcp.so list MCP servers from npm or a submission form. Use this text:
 
-> **Heimdall Shield** — a firewall for AI agents on Robinhood Chain. Before your agent signs, Shield simulates the transaction or signature and answers ALLOW, WARN or DENY, with the reasons and every token that would move. 16 tools: transaction and signature checks, address vetting, Wallet Check (risky approvals), the Threat Board, the Risk Oracle, Agent Passports (ERC-8004), Heimdall Pay escrow, the Agent Arena and vault limits. Free tier: 1,000 checks a day per wallet.
+> **Heimdall Shield** — a firewall for AI agents on Robinhood Chain. Before your agent signs, Shield simulates the transaction or signature and answers ALLOW, WARN or DENY, with the reasons and every token that would move. 18 tools: transaction and signature checks, Token Check with rug checks, the Launch Radar, address vetting, Wallet Check (risky approvals), the Threat Board, the Risk Oracle, Agent Passports (ERC-8004), Heimdall Pay escrow, the Agent Arena and vault limits. Free tier: 1,000 checks a day per wallet.
 >
 > `npx -y @heimdallfund/mcp`

@@ -51,8 +51,15 @@ async function findV4Pool(client: PublicClient, token: Address, logs: PublicClie
   const hit = v4Cache.get(k);
   if (hit && Date.now() - hit.at < 600_000) return hit.pool;
   const head = await logs.getBlockNumber().catch(() => 0n);
-  const found = await eachWindow(head, 10_000_000n, async (from, to) => (await Promise.all([{ currency1: token }, { currency0: token }].map((args) =>
-    logs.getLogs({ address: POOL_MANAGER, event: INITIALIZE, args: args as never, fromBlock: from, toBlock: to })))).flat(), 4, 1n, true);
+  // Only pools against ETH or WETH matter, and v4 sorts the two currencies: native ETH (0x0) is always currency0,
+  // and WETH sits on whichever side its address sorts to. Two exact filters, so the RPC matches on both topics.
+  // (One value per topic: the public RPC caps OR-lists of topics at 100k blocks, single values at 10M.)
+  const filters = [{ currency0: NATIVE, currency1: token }, BigInt(token) > BigInt(WETH) ? { currency0: WETH, currency1: token } : { currency0: token, currency1: WETH }];
+  const stats = { failed: 0 };
+  const found = await eachWindow(head, 10_000_000n, async (from, to) => (await Promise.all(filters.map((args) =>
+    logs.getLogs({ address: POOL_MANAGER, event: INITIALIZE, args: args as never, fromBlock: from, toBlock: to })))).flat(), 3, 1n, stats);
+  // nothing found while part of the history could not be read: unknown, not "no pool" (and not cached)
+  if (!found.length && stats.failed) throw new Error(`pool search incomplete: ${stats.failed} block ranges unread`);
   const pair = (l: (typeof found)[number]) => (l.args.currency0!.toLowerCase() === k ? l.args.currency1! : l.args.currency0!).toLowerCase();
   // pools against ETH or WETH, newest first; spam pools are common, so only the 25 newest are measured
   const cands = found.filter((l) => [NATIVE.toLowerCase(), WETH.toLowerCase()].includes(pair(l))).sort((a, b) => Number((b.blockNumber ?? 0n) - (a.blockNumber ?? 0n))).slice(0, 25);
@@ -245,7 +252,7 @@ export async function tokenCheck(rawClient: PublicClient, raw: Address, now = Da
   }
   if (!pool) {
     let searchFailed = false;
-    const v4 = await findV4Pool(client, token, logs).catch(() => { searchFailed = true; return null; });
+    const v4 = await findV4Pool(client, token, logs).catch((e) => { searchFailed = true; console.log(JSON.stringify({ level: "warn", path: "tokencheck", token, v4SearchError: String((e as Error)?.message ?? e).slice(0, 200) })); return null; });
     if (searchFailed) {
       startExtra(null);
       add("SIM_UNAVAILABLE", "warn", "Could not search the Uniswap v4 pools right now (the chain's log service did not answer), so buying and selling were not tested. Try again in a minute.");

@@ -89,7 +89,8 @@ const tools = await mcp.getTools(); // pass to createReactAgent({ llm, tools })`
 export const MCP_TOOLS: [string, string][] = [
   ["heimdall_check_transaction", "Simulates a transaction before signing: ALLOW, WARN or DENY with reasons. Optional share link."],
   ["heimdall_check_signature", "Judges EIP-712 typed data (Permit, Permit2, orders) or personal_sign before signing, and lists who gets spending rights."],
-  ["heimdall_token_check", "Before a buy: simulated buy, sell and transfer through the token's pool, taxes, clawback backdoors and fake tickers."],
+  ["heimdall_token_check", "Before a buy: simulated buy, sell and transfer on the curve or pool, taxes, clawbacks, fake tickers, rug checks (owner powers, selling a week later, liquidity owners) and the dev's earlier launches."],
+  ["heimdall_launch_radar", "New launches of the last 24 hours ranked by buyers in the last hour, with ETH volume and Token Check verdicts."],
   ["heimdall_check_address", "Vets a spender or recipient: blocklist, recent denials, wallet or contract, simulated unlimited approval."],
   ["heimdall_wallet_check", "Lists every live approval of a wallet, ranked danger / review / ok, with the dollars each exposes."],
   ["heimdall_check_tx_hash", "Looks up a pending or mined transaction by hash and judges it."],

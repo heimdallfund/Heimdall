@@ -4,9 +4,9 @@ const WHITE = ["#FFFFFF", "#D6DEFF", "#EAEFFF", "#AFC0FF", "#C7D3FF", "#9DB1FF"]
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 const width = (s: string) => Math.round([...s].reduce((w, ch) => w + (/[ il.,:|'!]/.test(ch) ? 3.6 : /[mwMW%]/.test(ch) ? 10 : /[A-Z0-9·]/.test(ch) ? 7.6 : 6.6), 0) + 14);
 
-export function badgeSvg(label: string, message: string, tone: "brand" | "allow" | "muted" = "allow") {
+export function badgeSvg(label: string, message: string, tone: "brand" | "allow" | "muted" | "warn" | "deny" = "allow") {
   const lw = width(label) + 18, mw = width(message), w = lw + mw;
-  const color = tone === "allow" ? "#0B7A3B" : tone === "brand" ? "#3355FF" : "#5A6377";
+  const color = tone === "allow" ? "#0B7A3B" : tone === "brand" ? "#3355FF" : tone === "warn" ? "#A86A00" : tone === "deny" ? "#C21F32" : "#5A6377";
   const mark = FACETS.map((p, i) => `<polygon points="${p}" fill="${WHITE[i]}"/>`).join("");
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="20" role="img" aria-label="${esc(label)}: ${esc(message)}">
 <title>${esc(label)}: ${esc(message)}</title>

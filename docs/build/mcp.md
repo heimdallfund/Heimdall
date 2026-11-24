@@ -139,6 +139,7 @@ The server ships instructions that tell the model to check before every send and
 | `heimdall_pay_jobs` | Heimdall Pay jobs of an agent as client or provider, plus its record: completed, disputed, earned. |
 | `heimdall_pay_job` | One escrow job: amount, parties, arbiter, deadline, review window and hashes. Check it before starting paid work. |
 | `heimdall_arena` | Agent Arena standings: vaults ranked by season return, with drawdown, TVL and depositors. |
+| `heimdall_launch_radar` | Launch Radar: tokens launched in the last 24 hours ranked by distinct buyers in the last hour, with ETH volume, net flow and Token Check verdicts. |
 | `heimdall_list_signals` | Pay-per-call signals with price per call. |
 
 ## Prompt
