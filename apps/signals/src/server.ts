@@ -86,14 +86,24 @@ export function buildApp(cfg: SignalsConfig, client: PublicClient, ledger: Vouch
   return app;
 }
 
-if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split("/").pop()!)) {
-  const cfg = configFromEnv();
-  const transports = [...(process.env.RPC_URL_MAINNET ? [http(process.env.RPC_URL_MAINNET)] : []), http()];
-  const client = createPublicClient({ chain: robinhoodChain, transport: fallback(transports) }) as PublicClient;
-  const port = Number(process.env.PORT ?? 8788);
+/** The app with its production wiring: private RPC first, Upstash ledger (Vercel KV names work too). */
+function production() {
   const env = process.env;
-  const ledger = env.UPSTASH_REDIS_REST_URL && env.UPSTASH_REDIS_REST_TOKEN ? new UpstashLedger(env.UPSTASH_REDIS_REST_URL, env.UPSTASH_REDIS_REST_TOKEN) : new MemoryLedger();
-  if (env.NODE_ENV === "production" && ledger instanceof MemoryLedger) throw new Error("Set UPSTASH_REDIS_REST_URL/TOKEN in production: accepted vouchers must survive restarts.");
-  serve({ fetch: buildApp(cfg, client, ledger).fetch, port });
+  const cfg = configFromEnv();
+  const transports = [...(env.RPC_URL_MAINNET ? [http(env.RPC_URL_MAINNET)] : []), http()];
+  const client = createPublicClient({ chain: robinhoodChain, transport: fallback(transports) }) as PublicClient;
+  const url = env.UPSTASH_REDIS_REST_URL ?? env.KV_REST_API_URL, token = env.UPSTASH_REDIS_REST_TOKEN ?? env.KV_REST_API_TOKEN;
+  const ledger = url && token ? new UpstashLedger(url, token) : new MemoryLedger();
+  // accepted vouchers must survive restarts: without a ledger the paid endpoints refuse rather than risk double spends
+  const app = ledger instanceof MemoryLedger && env.NODE_ENV === "production" ? buildApp({ ...cfg, ids: {} }, client, ledger) : buildApp(cfg, client, ledger);
+  return { app, cfg };
+}
+
+export default process.env.VERCEL ? production().app : undefined;
+
+if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split("/").pop()!)) {
+  const { app, cfg } = production();
+  const port = Number(process.env.PORT ?? 8788);
+  serve({ fetch: app.fetch, port });
   console.log(`[signals] listening on :${port}${cfg.free ? " (FREE dev mode)" : ""}`);
 }
