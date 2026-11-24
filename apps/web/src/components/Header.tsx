@@ -11,6 +11,7 @@ import { Search } from "./Search";
 const LINKS: { href: string; label: string; match: string[] }[] = [
   { href: "/check", label: "Wallet check", match: ["/check"] },
   { href: "/token-check", label: "Token check", match: ["/token-check"] },
+  { href: "/radar", label: "Radar", match: ["/radar"] },
   { href: "/shield", label: "Agents", match: ["/shield", "/app"] },
   { href: "/vaults", label: "Vaults", match: ["/vaults", "/agents"] },
   { href: "/signals", label: "Signals", match: ["/signals"] },

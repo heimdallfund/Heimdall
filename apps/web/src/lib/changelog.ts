@@ -8,6 +8,7 @@ export const CHANGELOG: ChangeEntry[] = [
     title: "Agents can find and use Heimdall on their own",
     summary: "A hosted MCP server, an OpenAPI spec and discovery files mean an agent or a developer tool can connect without anyone setting it up. Plus a live status page, a bigger sourced blocklist and a security pass on the Shield API.",
     changes: [
+      { tag: "Web", text: "Launch Radar: every token launched in the last 24 hours on Pons, Klik and Uniswap, ranked by how many wallets bought it in the last hour, with buys against sells and Token Check verdicts for the busiest. Counted from onchain transfers, refreshed every minute." },
       { tag: "Shield", text: "Token Check rug checks, each run as a simulation: Heimdall acts as the owner to see whether it can mint, block a seller, pause transfers or raise the sell tax, checks whether the code can be replaced, sells again one week later to catch time-locked honeypots, trades 0.1 ETH to catch buy and sell limits, and finds who holds the pool's liquidity and whether a wallet can pull it." },
       { tag: "Shield", text: "Approvals know launchpads: a launchpad's own bonding curve contract is a normal spender, and a token launched on one that asks for an approval to itself is flagged." },
       { tag: "Web", text: "Token Check now covers memecoins still on a launchpad: Pons tokens are bought and sold on their bonding curve itself, also when the curve is priced in another token, and tokens from Klik, DYOR.fun, Bow.fun, RealFun and other launchpads are tested in their Uniswap pool." },

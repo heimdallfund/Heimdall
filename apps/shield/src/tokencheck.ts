@@ -37,7 +37,7 @@ const PERMIT2: Address = getAddress("0x000000000022d473030f116ddee9f6b43ac78ba3"
 const STATE_VIEW: Address = getAddress("0xf3334192d15450cdd385c8b70e03f9a6bd9e673b");
 const NATIVE: Address = "0x0000000000000000000000000000000000000000";
 /** The public RPC serves wide log queries (10M blocks each); paid RPCs on free plans often allow only a few blocks. */
-const logsClient = createPublicClient({ transport: http(process.env.LOGS_RPC_URL ?? "https://rpc.mainnet.chain.robinhood.com", { timeout: 8_000 }) });
+export const logsClient = createPublicClient({ transport: http(process.env.LOGS_RPC_URL ?? "https://rpc.mainnet.chain.robinhood.com", { timeout: 8_000 }) });
 const INITIALIZE = parseAbiItem("event Initialize(bytes32 indexed id, address indexed currency0, address indexed currency1, uint24 fee, int24 tickSpacing, address hooks, uint160 sqrtPriceX96, int24 tick)");
 type V4Key = { currency0: Address; currency1: Address; fee: number; tickSpacing: number; hooks: Address };
 const v4Caches = new WeakMap<PublicClient, Map<string, { at: number; pool: (V4Key & { id: Hex; liquidity: bigint }) | null }>>();

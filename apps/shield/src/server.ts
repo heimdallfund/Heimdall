@@ -3,7 +3,7 @@ import { scanWallet } from "./approvals.js";
 import { currentSeason, recordSnapshots, standings, type Snapshot } from "./arena.js";
 import { openApi } from "./openapi.js";
 import { agentCard, handleA2A } from "./a2a.js";
-import { tokenCheck } from "./tokencheck.js";
+import { logsClient, tokenCheck } from "./tokencheck.js";
 import { summarize } from "./ai.js";
 import { alchemyHoldings, explorerHoldings, flagHoldings } from "./holdings.js";
 import { countVerdict, listIncidents, recordHeartbeat, status, upsertIncident } from "./status.js";
@@ -34,6 +34,7 @@ import { checkTransaction, toJSON } from "./shield.js";
 import { checkAuthorization, checkPersonalMessage, checkTypedData } from "./typed.js";
 import { keysRoutes, lookupStoredKey } from "./keys.js";
 import { background, deliver, hookOwnersOf } from "./webhooks.js";
+import { buildRadar, compact, type RadarCheck, type RadarSnapshot } from "./radar.js";
 import { storeFromEnv, type CounterStore } from "./store.js";
 import { checkDailyQuota, checkRate, identify, limitsFromEnv, type Caller, type LimitsConfig } from "./limits.js";
 
@@ -448,6 +449,33 @@ export function buildApp(opts: AppOptions = {}) {
   });
 
   /** Plain-language summary of a Token Check, written by AI from the check's results only (the verdict stays Heimdall's). */
+  /**
+   * Launch Radar: tokens launched in the last 24 hours, ranked by distinct buyers in the last hour, with Token Check
+   * verdicts for the busiest. Served from a snapshot; a request older than two minutes refreshes it in the background.
+   */
+  const RADAR_KEY = "radar:snapshot:v1";
+  const refreshRadar = async () => {
+    const client = getClient(4663);
+    const snap = await buildRadar({
+      client, logs: logsClient,
+      check: (t) => cachedTokenCheck(t as `0x${string}`),
+      getCheck: async (t) => { const v = await store.fetch(`radar:check:${t.toLowerCase()}`); return v ? JSON.parse(v) as RadarCheck : null; },
+      putCheck: (t, ck) => store.put(`radar:check:${t.toLowerCase()}`, JSON.stringify(ck), 1_200),
+    });
+    await store.put(RADAR_KEY, JSON.stringify(snap), 86_400);
+    return snap;
+  };
+  app.get("/v1/radar", async (c) => {
+    c.header("cache-control", "public, max-age=30");
+    const raw = await store.fetch(RADAR_KEY).catch(() => null);
+    const snap = raw ? JSON.parse(raw) as RadarSnapshot : null;
+    if (!snap || Date.now() - snap.generatedAt > 120_000) {
+      const mine = (await store.incr("radar:lock", 90).catch(() => 2)) === 1;
+      if (mine) background(refreshRadar().catch((e) => log({ level: "warn", path: "/v1/radar", message: (e as Error).message })).finally(() => store.remove("radar:lock").catch(() => {})));
+    }
+    return snap ? c.json(snap) : c.json({ error: "radar_warming_up" }, 503);
+  });
+
   app.get("/v1/token/:address/summary", async (c) => {
     const a = c.req.param("address");
     if (!isAddress(a)) return c.json({ error: "invalid_address" }, 400);
