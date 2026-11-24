@@ -57,8 +57,8 @@ function SafetyTests({ r }: { r: TokenReport }) {
     { label: "Code can be replaced", state: !p ? "skip" : p.upgradeable ? "warn" : "ok", text: !p ? "Not tested" : p.upgradeable ? "Yes, upgradeable proxy" : "No" },
     { label: "Sell still works in a week", state: p?.sellLater == null ? "skip" : p.sellLater ? "ok" : "bad", text: p?.sellLater == null ? "Not tested" : p.sellLater ? "Yes" : "No: time-locked" },
     { label: "0.1 ETH buy and sell", state: curve ? "skip" : p?.bigTrade == null ? "skip" : p.bigTrade ? "ok" : "warn", text: curve ? "Not tested on a curve" : p?.bigTrade == null ? "Not tested" : p.bigTrade ? "Works like a small one" : "Limited or taxed more" },
-    { label: "Liquidity can be pulled", state: curve ? "ok" : !lp ? "skip" : lp.walletPct >= 50 ? "warn" : "ok",
-      text: curve ? `No, it sits in the ${r.launch?.launchpad} curve` : !lp ? "Not measured" : lp.walletPct >= 50 ? `${lp.walletPct.toFixed(0)}% held by a wallet` : lp.burnedPct + lp.lockedPct >= 50 ? `No, ${(lp.burnedPct + lp.lockedPct).toFixed(0)}% locked or burned` : lp.contractPct >= 50 ? `${lp.contractPct.toFixed(0)}% held by a contract` : "No single wallet holds most" },
+    { label: "Liquidity can be pulled", state: r.liquidity?.removed ? "bad" : curve ? "ok" : !lp ? "skip" : lp.walletPct >= 50 ? "warn" : "ok",
+      text: r.liquidity?.removed ? "Already pulled" : curve ? `No, it sits in the ${r.launch?.launchpad} curve` : !lp ? "Not measured" : lp.walletPct >= 50 ? `${lp.walletPct.toFixed(0)}% held by a wallet` : lp.burnedPct + lp.lockedPct >= 50 ? `No, ${(lp.burnedPct + lp.lockedPct).toFixed(0)}% locked or burned` : lp.contractPct >= 50 ? `${lp.contractPct.toFixed(0)}% held by a contract` : "No single wallet holds most" },
   ];
   if (r.liquidity?.pairEth != null) rows.push({ label: "Pool depth", state: r.liquidity.pairEth < 0.05 ? "warn" : "ok", text: `${r.liquidity.pairEth < 10 ? r.liquidity.pairEth.toFixed(3) : r.liquidity.pairEth.toFixed(1)} ETH` });
   if (!r.powers && !r.liquidity) return null;

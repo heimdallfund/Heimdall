@@ -18,7 +18,7 @@ export interface LpOwnership {
   /** The wallet holding the most liquidity, when wallets hold any. */
   topWallet: Address | null;
 }
-export interface Liquidity { pairEth: number | null; lp: LpOwnership | null }
+export interface Liquidity { pairEth: number | null; lp: LpOwnership | null; /** Liquidity was added to the pool and all of it has been taken out since. */ removed?: boolean }
 
 const WETH: Address = getAddress("0x0bd7d308f8e1639fab988df18a8011f41eacad73");
 const MINT_V3 = "0x7a53080ba414158be7ec69b987b5fb7d07dee101fe85488f0853ae16239d0bde";
@@ -84,7 +84,8 @@ export async function v3Liquidity(client: PublicClient, logs: PublicClient, pool
       if (liq > 0n) holders.set(who.toLowerCase(), (holders.get(who.toLowerCase()) ?? 0n) + liq);
     }
   }));
-  return { pairEth, lp: await classify(client, holders) };
+  const lp = await classify(client, holders);
+  return { pairEth, lp, removed: mints.length > 0 && !lp };
 }
 
 /** Uniswap v4: ModifyLiquidity events of the pool, netted per position; a position manager's salt is the NFT id. */
@@ -99,6 +100,7 @@ export async function v4Liquidity(client: PublicClient, logs: PublicClient, pool
     cur.liq += delta;
     pos.set(k, cur);
   }
+  const everAdded = mods.some((m) => decodeAbiParameters([{ type: "int24" }, { type: "int24" }, { type: "int256" }, { type: "bytes32" }], m.data)[2] > 0n);
   const holders = new Map<string, bigint>();
   await Promise.all([...pos.values()].filter((p) => p.liq > 0n).map(async (p) => {
     const id = BigInt(p.salt);
@@ -106,7 +108,8 @@ export async function v4Liquidity(client: PublicClient, logs: PublicClient, pool
     const who = (nftOwner ?? p.sender).toLowerCase();
     holders.set(who, (holders.get(who) ?? 0n) + p.liq);
   }));
-  return { pairEth: null, lp: await classify(client, holders) };
+  const lp = await classify(client, holders);
+  return { pairEth: null, lp, removed: everAdded && !lp };
 }
 
 export function liquidityFindings(l: Liquidity, dev: Address | null): Finding[] {
@@ -115,6 +118,7 @@ export function liquidityFindings(l: Liquidity, dev: Address | null): Finding[] 
     if (l.pairEth < 0.05) F.push({ code: "LOW_LIQUIDITY", severity: "warn", message: `Very little liquidity: the pool holds ${l.pairEth.toFixed(4)} ETH, so even a small sell moves the price a lot.` });
     else F.push({ code: "LIQUIDITY", severity: "info", message: `The pool holds ${l.pairEth < 10 ? l.pairEth.toFixed(3) : l.pairEth.toFixed(1)} ETH of liquidity.` });
   }
+  if (l.removed) F.push({ code: "LIQUIDITY_REMOVED", severity: "deny", message: "Liquidity was added to its pool and has all been taken out since: the token can no longer be sold there. This is what a rug pull leaves behind." });
   const lp = l.lp;
   if (!lp) return F;
   if (lp.walletPct >= 50) {

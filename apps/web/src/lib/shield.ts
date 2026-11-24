@@ -59,6 +59,7 @@ export const CODE_LABEL: Record<string, string> = {
   LP_LOCKED: "Liquidity locked",
   LP_IN_CONTRACT: "Liquidity held by a contract",
   LOW_LIQUIDITY: "Very low liquidity",
+  LIQUIDITY_REMOVED: "Liquidity removed (rug pull)",
   APPROVAL_LAUNCHPAD_UNUSED: "Approval a launchpad never needs",
   SIM_REVERTED: "Transaction would revert",
   HONEYPOT: "Honeypot token (cannot be sold)",
