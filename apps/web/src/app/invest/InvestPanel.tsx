@@ -18,6 +18,9 @@ const when = (s: bigint) => new Date(Number(s) * 1000).toISOString().replace("T"
 const every = (sec: number) => EVERY.find(([, v]) => v === sec)?.[0].toLowerCase() ?? `every ${Math.round(sec / 3600)} h`;
 interface Plan { owner: Address; token: Address; amountPerBuy: bigint; interval: number; maxSlippageBps: number; buysLeft: number; nextBuyAt: bigint; active: boolean; feeBps: number }
 
+/** Same window as HeimdallWeekdayFeed: Saturday 00:00 to Monday 01:00 UTC. */
+const weekendClosed = () => { const t = (Math.floor(Date.now() / 1000) % (7 * 86_400)); return t >= 2 * 86_400 && t < 4 * 86_400 + 3_600; };
+
 export function InvestPanel({ ai }: { ai: Address }) {
   const { address } = useAccount();
   const pc = usePublicClient();
@@ -70,7 +73,7 @@ export function InvestPanel({ ai }: { ai: Address }) {
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
           {INVEST_TOKENS.map((t, i) => {
             const p = prices?.[i]?.result as bigint | undefined;
-            return <div key={t.symbol} className="card p-4"><p className="flex items-center justify-between gap-2 text-[13px] text-muted"><span className="truncate">{t.name}</span>{t.weekdays && <span className="shrink-0 rounded-sm bg-ink-2 px-1.5 py-0.5 text-[11px] font-semibold">Mon–Fri</span>}</p><p className="mt-1 flex items-center gap-2 font-mono text-[20px] font-semibold"><TokenIcon symbol={t.symbol} size={24} />{t.symbol}</p><p className="font-mono text-[14px] text-muted">{p ? `$${Number(formatUnits(p, 6)).toFixed(2)}` : t.weekdays ? "Market closed" : "—"}</p></div>;
+            return <div key={t.symbol} className="card p-4"><p className="flex items-center justify-between gap-2 text-[13px] text-muted"><span className="truncate">{t.name}</span>{t.weekdays && <span className="shrink-0 rounded-sm bg-ink-2 px-1.5 py-0.5 text-[11px] font-semibold">Mon–Fri</span>}</p><p className="mt-1 flex items-center gap-2 font-mono text-[20px] font-semibold"><TokenIcon symbol={t.symbol} size={24} />{t.symbol}</p><p className="font-mono text-[14px] text-muted">{p ? `$${Number(formatUnits(p, 6)).toFixed(2)}` : t.weekdays && weekendClosed() ? "Market closed" : "—"}</p></div>;
           })}
         </div>
         <div className="card min-w-0 overflow-hidden">
