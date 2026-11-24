@@ -45,8 +45,8 @@ The release script writes `server.json` with the published version. Publish to n
 
 The registry needs a public GitHub repo for the plugin.
 
-1. Create a public repo `plugin-heimdall` and push only `packages/plugin-heimdall/` to it (it holds no secrets and no Heimdall internals: it imports the published `@heimdallfund/agent-kit`).
-2. Replace `<GITHUB_ORG>` in its `package.json` and in `registry-entry.json`.
+1. The public repo is `heimdallfund/plugin-heimdall`: `git subtree split --prefix packages/plugin-heimdall` pushed to its `main` (no secrets, no Heimdall internals: it imports the published `@heimdallfund/agent-kit`). It carries `images/logo.jpg` (400×400) and `images/banner.jpg` (1280×640) and the GitHub topic `elizaos-plugins`.
+2. `registry-entry.json` is the file to add under `entries/third-party/` in `elizaos-plugins/registry`.
 3. Add the topic `elizaos-plugins` to the repo.
 4. From the plugin folder: `elizaos plugins submit .` (it opens the registry pull request with `registry-entry.json`'s content).
 

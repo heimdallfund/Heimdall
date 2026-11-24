@@ -1,3 +1,5 @@
+![Heimdall](images/banner.jpg)
+
 # @heimdallfund/plugin-heimdall
 
 ElizaOS plugin for [Heimdall](https://heimdall.fund), the guardian layer for AI agents on Robinhood Chain.
