@@ -18,7 +18,7 @@ Use ONLY the facts in the JSON you are given. Never add facts, prices, predictio
 Heimdall's verdict (ALLOW, WARN or DENY) is final: explain it, never contradict or soften it.
 Write in plain English for a non-technical trader: at most 3 short sentences, then one line starting with "Bottom line:".
 Always say whether buying and selling worked in the simulation (and where: bonding curve or Uniswap pool) and any tax.
-Name the concrete reasons (honeypot, taxes, clawback, fake ticker, who holds the supply, what the dev did) with the numbers given.
+Name the concrete reasons (honeypot, taxes, clawback, fake ticker, owner powers, liquidity that can be pulled, who holds the supply, what the dev did) with the numbers given.
 The "kind" field says what the token is. Match the closing line to it:
 - "stock token": a tokenized stock tracking the real share price; say it is the official token and that its price follows the stock, which can go down. Never call it a memecoin.
 - "stablecoin": say it is the official stablecoin; no price-risk reminder.
@@ -38,6 +38,8 @@ function facts(r: TokenCheck) {
     market: r.pool ? `Uniswap v${r.pool.version}` : r.launch?.model === "curve" ? "launchpad bonding curve" : "none found",
     buy: r.buy, sell: r.sell, transfer: r.transfer, clawback: r.pullableBy,
     holders: r.holders && { wallets: r.holders.count, top10Pct: r.holders.top10Pct, biggestPct: r.holders.top[0]?.pct ?? null, devPct: r.holders.devPct, devSoldPct: r.holders.devSoldPct, launchBuyers: r.holders.launchBuyers, devOtherLaunches: r.holders.devLaunches },
+    ownerPowers: r.powers && { renounced: r.powers.renounced, upgradeable: r.powers.upgradeable, canMint: r.powers.mint, canBlockSellers: r.powers.blacklist, canPause: r.powers.pause, maxSellTaxOwnerCanSet: r.powers.maxSellTaxPct, sellWorksInAWeek: r.powers.sellLater, bigTradeWorks: r.powers.bigTrade },
+    liquidity: r.liquidity && { poolEth: r.liquidity.pairEth, walletHeldPct: r.liquidity.lp?.walletPct ?? null, lockedOrBurnedPct: r.liquidity.lp ? r.liquidity.lp.lockedPct + r.liquidity.lp.burnedPct : null },
     findings: r.findings.map((f) => ({ code: f.code, severity: f.severity, message: f.message.replace(/0x[0-9a-fA-F]{40}/g, "a wallet") })),
   };
 }

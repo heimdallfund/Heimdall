@@ -6,7 +6,7 @@ import { notFound } from "next/navigation";
 import { getAddress, isAddress } from "viem";
 import { ScanLoader } from "@/components/Motif";
 import { explorerAddress, short } from "@/lib/config";
-import { fetchTokenCheck, legState, VERDICT_HEAD, type Leg } from "@/lib/tokencheck";
+import { fetchTokenCheck, legState, VERDICT_HEAD, type Leg, type TokenReport } from "@/lib/tokencheck";
 import { TokenCheckForm } from "../TokenCheckForm";
 import { TokenCheckShare } from "../TokenCheckShare";
 import { TokenAiSummary } from "../TokenAiSummary";
@@ -38,6 +38,38 @@ function LegCard({ title, leg, good, extra }: { title: string; leg: Leg; good: s
       <span className="flex items-center gap-2 text-[16px] font-semibold"><span className={`size-2.5 shrink-0 rounded-full ${dot}`} /><span className="min-w-0 break-words">{text}</span></span>
       {extra && <span className="text-[12.5px] text-muted">{extra}</span>}
     </div>
+  );
+}
+
+type Row = { label: string; state: "ok" | "bad" | "warn" | "skip"; text: string };
+function SafetyTests({ r }: { r: TokenReport }) {
+  const p = r.powers;
+  const curve = r.launch?.model === "curve" && r.launch.graduated === false;
+  const noOwner = !r.owner || p?.renounced;
+  const own = (can: boolean | undefined): Row["state"] => (noOwner ? "ok" : !p ? "skip" : can ? "warn" : "ok");
+  const ownText = (can: boolean | undefined, tested: boolean, yes: string) => (noOwner ? "No owner" : !p ? "Not tested" : can ? yes : tested ? "No" : "Not tested");
+  const lp = r.liquidity?.lp;
+  const rows: Row[] = [
+    { label: "Owner can mint", state: own(p?.mint), text: ownText(p?.mint, true, "Yes, tested") },
+    { label: "Owner can block a seller", state: p && !noOwner && !p.ownerTested && !p.blacklist ? "skip" : own(p?.blacklist), text: ownText(p?.blacklist, !!p?.ownerTested, "Yes, tested") },
+    { label: "Owner can pause transfers", state: p && !noOwner && !p.ownerTested && !p.pause ? "skip" : own(p?.pause), text: ownText(p?.pause, !!p?.ownerTested, "Yes, tested") },
+    { label: "Owner can raise the sell tax", state: noOwner ? "ok" : !p || !p.ownerTested ? "skip" : (p.maxSellTaxPct ?? 0) >= 50 ? "warn" : "ok", text: noOwner ? "No owner" : !p || !p.ownerTested ? "Not tested" : p.maxSellTaxPct !== null && p.maxSellTaxPct >= 10 ? `Up to ${p.maxSellTaxPct >= 100 ? "100% (no selling)" : `${p.maxSellTaxPct.toFixed(0)}%`}` : "No" },
+    { label: "Code can be replaced", state: !p ? "skip" : p.upgradeable ? "warn" : "ok", text: !p ? "Not tested" : p.upgradeable ? "Yes, upgradeable proxy" : "No" },
+    { label: "Sell still works in a week", state: p?.sellLater == null ? "skip" : p.sellLater ? "ok" : "bad", text: p?.sellLater == null ? "Not tested" : p.sellLater ? "Yes" : "No: time-locked" },
+    { label: "0.1 ETH buy and sell", state: curve ? "skip" : p?.bigTrade == null ? "skip" : p.bigTrade ? "ok" : "warn", text: curve ? "Not tested on a curve" : p?.bigTrade == null ? "Not tested" : p.bigTrade ? "Works like a small one" : "Limited or taxed more" },
+    { label: "Liquidity can be pulled", state: curve ? "ok" : !lp ? "skip" : lp.walletPct >= 50 ? "warn" : "ok",
+      text: curve ? `No, it sits in the ${r.launch?.launchpad} curve` : !lp ? "Not measured" : lp.walletPct >= 50 ? `${lp.walletPct.toFixed(0)}% held by a wallet` : lp.burnedPct + lp.lockedPct >= 50 ? `No, ${(lp.burnedPct + lp.lockedPct).toFixed(0)}% locked or burned` : lp.contractPct >= 50 ? `${lp.contractPct.toFixed(0)}% held by a contract` : "No single wallet holds most" },
+  ];
+  if (r.liquidity?.pairEth != null) rows.push({ label: "Pool depth", state: r.liquidity.pairEth < 0.05 ? "warn" : "ok", text: `${r.liquidity.pairEth < 10 ? r.liquidity.pairEth.toFixed(3) : r.liquidity.pairEth.toFixed(1)} ETH` });
+  if (!r.powers && !r.liquidity) return null;
+  const dot = { ok: "bg-allow", warn: "bg-warn", bad: "bg-deny", skip: "bg-line-strong" } as const;
+  return (
+    <section className="card flex flex-col gap-3 p-5">
+      <div className="flex flex-wrap items-baseline justify-between gap-2"><h2 className="text-[18px] font-semibold">Rug checks</h2><span className="text-[12.5px] text-muted">Each run as a simulation on chain, not read from claims</span></div>
+      <ul className="grid gap-x-6 gap-y-2 text-[14.5px] sm:grid-cols-2">
+        {rows.map((row) => <li key={row.label} className="flex items-center justify-between gap-3 border-b border-line pb-2"><span className="flex items-center gap-2"><span className={`size-2 shrink-0 rounded-full ${dot[row.state]}`} />{row.label}</span><span className="text-right text-muted">{row.text}</span></li>)}
+      </ul>
+    </section>
   );
 }
 
@@ -80,6 +112,7 @@ async function Content({ params }: { params: Promise<{ address: string }> }) {
         <LegCard title="Transfer" leg={r.transfer} good="Works, no tax" />
         <LegCard title="Clawback" leg={r.buy ? { ok: r.pullableBy.length === 0, taxPct: null, reason: r.pullableBy.length ? pulled.toLowerCase() : undefined } : null} good={pulled} />
       </section>
+      <SafetyTests r={r} />
       {notable.length > 0 && (
         <section className="card flex flex-col gap-3 p-5">
           <h2 className="text-[18px] font-semibold">What Heimdall found</h2>
@@ -126,7 +159,7 @@ async function Content({ params }: { params: Promise<{ address: string }> }) {
           )}
         </section>
       )}
-      <p className="text-[13px] text-muted">Simulated on the Robinhood Chain block at {new Date(r.checkedAt).toISOString().slice(0, 16).replace("T", " ")} UTC with a throwaway wallet. A clean result shows what the token does now, not what its owner can change later. Holder and dev figures are read from the token&apos;s transfers on chain.</p>
+      <p className="text-[13px] text-muted">Simulated on the Robinhood Chain block at {new Date(r.checkedAt).toISOString().slice(0, 16).replace("T", " ")} UTC with a throwaway wallet. Owner powers are tested where the contract exposes them, by acting as the owner in the simulation; a contract can still hide behavior no test reaches. Holder and dev figures are read from the token&apos;s transfers on chain.</p>
       <section className="flex flex-col gap-3 border-t border-line pt-6"><h2 className="text-[18px] font-semibold">Check another token</h2><TokenCheckForm compact /></section>
     </>
   );

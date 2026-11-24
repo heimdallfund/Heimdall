@@ -7,6 +7,8 @@ import { parseLogs, decodeRevert, probeReceivedToken, STRANGER, type RawLog } fr
 import type { Finding, Verdict } from "./types.js";
 import { detectLaunch, LAUNCHPAD_HOOKS, type Launch } from "./launchpad.js";
 import { memecoinSignals, type Holders } from "./memecoin.js";
+import { BUYER as DEEP_BUYER, deepTests, type Powers, type Route } from "./powers.js";
+import { liquidityFindings, v3Liquidity, v4Liquidity, type Liquidity } from "./lp.js";
 
 /**
  * Token Check: is a token safe to buy? Finds its Uniswap v3 pool against WETH, then simulates on the current chain
@@ -95,6 +97,10 @@ export interface TokenCheck {
   launch: Launch | null;
   /** Who holds the supply: top holders, the dev's share, launch-block buyers. Null when it could not be read. */
   holders: Holders | null;
+  /** What the owner can do to holders, each tested in the simulation. Null for known tokens and when not tested. */
+  powers?: Powers | null;
+  /** Pool depth and who can pull the liquidity. */
+  liquidity?: Liquidity | null;
   buy: { ok: boolean; taxPct: number | null; reason?: string } | null;
   sell: { ok: boolean; taxPct: number | null; reason?: string } | null;
   transfer: { ok: boolean; taxPct: number | null; reason?: string } | null;
@@ -152,10 +158,19 @@ export async function tokenCheck(client: PublicClient, raw: Address, now = Date.
   }
   // holder and dev signals run beside the trade simulations; known tokens (USDG, stocks) skip them
   const signals = TOKENS[token.toLowerCase()] ? Promise.resolve(null) : memecoinSignals(client, logs, token, { supply, decimals, launch, pool: pool?.address ?? null }).catch(() => null);
+  // deeper tests (owner powers, time-locked and size-limited selling, liquidity owners) run beside the main ones
+  type Extra = { findings: Finding[]; powers: Powers | null; liquidity: Liquidity | null };
+  let extra: Promise<Extra> = Promise.resolve({ findings: [], powers: null, liquidity: null });
+  const startExtra = (route: Route | null, liq: Promise<Liquidity | null> = Promise.resolve(null)) => {
+    if (TOKENS[token.toLowerCase()]) return;
+    extra = Promise.all([deepTests(client, token, code!, out.owner, route).catch(() => null), liq.catch(() => null)])
+      .then(([d, l]) => ({ findings: [...(d?.findings ?? []), ...(l ? liquidityFindings(l, launch?.dev ?? null) : [])], powers: d?.powers ?? null, liquidity: l }));
+  };
   const done = async (r: TokenCheck | Promise<TokenCheck>) => {
     const res = await r;
-    const m = await signals;
+    const [m, x] = await Promise.all([signals, extra]);
     if (m) { res.holders = m.holders; res.findings.push(...m.findings); }
+    res.powers = x.powers; res.liquidity = x.liquidity; res.findings.push(...x.findings);
     // a launchpad's own fee hook is shared by every token it launched: a fact about the launchpad, not this token's dev
     const hook = res.pool?.hooks?.toLowerCase();
     if (hook && LAUNCHPAD_HOOKS[hook]) for (const f of res.findings) if (f.code === "HOOK_TAKES_DELTA") {
@@ -180,18 +195,27 @@ export async function tokenCheck(client: PublicClient, raw: Address, now = Date.
     const where = launch.graduated === false ? `still on its ${launch.launchpad} bonding curve${launch.progressPct === null ? "" : ` (${launch.progressPct.toFixed(1)}% to graduation)`}` : launch.graduated ? `graduated from ${launch.launchpad}` : `launched on ${launch.launchpad}`;
     add("LAUNCHPAD", "info", `Memecoin ${where}${launch.dev ? `, launched by ${launch.dev}` : ""}.`);
   }
-  if (launch?.simulate === "ponsV2" && launch.curve) return done(finishCurve(client, out, token, launch.curve, add, launch.pairToken));
+  if (launch?.simulate === "ponsV2" && launch.curve) {
+    startExtra(launch.pairToken ? null : curveRoute(token, launch.curve));
+    return done(finishCurve(client, out, token, launch.curve, add, launch.pairToken));
+  }
   if (launch?.model === "curve" && launch.graduated === false) {
+    startExtra(null);
     add("CURVE_NOT_SIMULATED", "warn", `Still trades on the ${launch.launchpad} bonding curve, which Heimdall cannot simulate yet: whether it can be sold back was not tested.`);
     return done(out);
   }
   if (!pool) {
     const v4 = await findV4Pool(client, token, logs).catch(() => null);
-    if (v4) return done(finishV4(client, out, token, v4, add));
+    if (v4) {
+      startExtra(v4Route(token, v4), v4Liquidity(client, logs, v4.id));
+      return done(finishV4(client, out, token, v4, add));
+    }
+    startExtra(null);
     add("NO_POOL", "warn", "No Uniswap v3 or v4 pool against ETH or WETH with liquidity: it cannot be bought or sold there, and the buy and sell could not be simulated.");
     return done(out);
   }
   out.pool = { version: 3, address: pool.address, fee: pool.fee, pair: "WETH", liquidity: pool.liquidity.toString() };
+  startExtra(v3Route(token, pool), v3Liquidity(client, logs, pool.address));
 
   // Buy
   const buyData = encodeFunctionData({ abi: ROUTER_ABI, functionName: "exactInputSingle", args: [{ tokenIn: WETH, tokenOut: token, fee: pool.fee, recipient: BUYER, amountIn: BUY_WEI, amountOutMinimum: 0n, sqrtPriceLimitX96: 0n }] });
@@ -416,6 +440,51 @@ async function acquire(client: PublicClient, pair: Address): Promise<{ calls: { 
   if (!r || r.status !== "0x1") return null;
   const amount = parseLogs(r.logs ?? []).transfers.filter((t) => t.asset.toLowerCase() === pair.toLowerCase() && t.to.toLowerCase() === BUYER.toLowerCase()).reduce((a, t) => a + t.amount, 0n);
   return amount > 0n ? { calls: [call], amount } : null;
+}
+
+// ---- routes for the deeper tests: the same buys and sells as above, for any amount
+const BIG_WEI = 10n ** 17n; // 0.1 ETH
+function v3Route(token: Address, pool: { address: Address; fee: number }): Route {
+  return {
+    label: "Uniswap v3", sink: pool.address, bigWei: BIG_WEI,
+    buy: (wei) => [{ from: DEEP_BUYER, to: SWAP_ROUTER_02, value: wei, data: encodeFunctionData({ abi: ROUTER_ABI, functionName: "exactInputSingle", args: [{ tokenIn: WETH, tokenOut: token, fee: pool.fee, recipient: DEEP_BUYER, amountIn: wei, amountOutMinimum: 0n, sqrtPriceLimitX96: 0n }] }) }],
+    sell: (amt) => [
+      { from: DEEP_BUYER, to: token, data: encodeFunctionData({ abi: ERC20, functionName: "approve", args: [SWAP_ROUTER_02, maxUint256] }) },
+      { from: DEEP_BUYER, to: SWAP_ROUTER_02, data: encodeFunctionData({ abi: ROUTER_ABI, functionName: "exactInputSingle", args: [{ tokenIn: token, tokenOut: WETH, fee: pool.fee, recipient: DEEP_BUYER, amountIn: amt, amountOutMinimum: 0n, sqrtPriceLimitX96: 0n }] }) },
+    ],
+  };
+}
+function v4Route(token: Address, p: V4Key): Route {
+  const native = p.currency0.toLowerCase() === NATIVE.toLowerCase() || p.currency1.toLowerCase() === NATIVE.toLowerCase();
+  const pairToken = native ? NATIVE : WETH;
+  const key: V4Key = { currency0: p.currency0, currency1: p.currency1, fee: p.fee, tickSpacing: p.tickSpacing, hooks: p.hooks };
+  const zfo = p.currency0.toLowerCase() === pairToken.toLowerCase();
+  return {
+    label: "Uniswap v4", sink: POOL_MANAGER, bigWei: BIG_WEI,
+    buy: (wei) => [
+      ...(native ? [] : [
+        { from: DEEP_BUYER, to: WETH, data: encodeFunctionData({ abi: WETH_DEPOSIT, functionName: "deposit" }), value: wei },
+        { from: DEEP_BUYER, to: WETH, data: encodeFunctionData({ abi: ERC20, functionName: "approve", args: [PERMIT2, maxUint256] }) },
+        { from: DEEP_BUYER, to: PERMIT2, data: encodeFunctionData({ abi: PERMIT2_APPROVE, functionName: "approve", args: [WETH, UNIVERSAL_ROUTER, (1n << 160n) - 1n, 281474976710655] }) },
+      ]),
+      { from: DEEP_BUYER, to: UNIVERSAL_ROUTER, data: v4SwapData(key, zfo, wei), value: native ? wei : 0n },
+    ],
+    sell: (amt) => [
+      { from: DEEP_BUYER, to: token, data: encodeFunctionData({ abi: ERC20, functionName: "approve", args: [PERMIT2, maxUint256] }) },
+      { from: DEEP_BUYER, to: PERMIT2, data: encodeFunctionData({ abi: PERMIT2_APPROVE, functionName: "approve", args: [token, UNIVERSAL_ROUTER, (1n << 160n) - 1n, 281474976710655] }) },
+      { from: DEEP_BUYER, to: UNIVERSAL_ROUTER, data: v4SwapData(key, !zfo, amt) },
+    ],
+  };
+}
+function curveRoute(token: Address, curve: Address): Route {
+  return {
+    label: "Pons bonding curve", sink: curve, bigWei: 0n, // a big buy can graduate the curve mid-trade: not a fair limit test
+    buy: (wei) => [{ from: DEEP_BUYER, to: curve, value: wei, data: encodeFunctionData({ abi: PONS_CURVE, functionName: "buy", args: [wei, 0n, DEEP_BUYER] }) }],
+    sell: (amt) => [
+      { from: DEEP_BUYER, to: token, data: encodeFunctionData({ abi: ERC20, functionName: "approve", args: [curve, maxUint256] }) },
+      { from: DEEP_BUYER, to: curve, data: encodeFunctionData({ abi: PONS_CURVE, functionName: "sell", args: [amt, 0n, DEEP_BUYER] }) },
+    ],
+  };
 }
 
 function F_push(out: TokenCheck, f: Finding[]) { out.findings.push(...f); }

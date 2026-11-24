@@ -8,6 +8,8 @@ export type TokenReport = {
   verdict: "ALLOW" | "WARN" | "DENY"; riskScore: number; findings: { code: string; severity: "info" | "warn" | "deny"; message: string }[];
   pool: { version?: 3 | 4; address: string; fee: number; pair: string; liquidity: string; hooks?: string } | null; buy: Leg; sell: Leg; transfer: Leg; pullableBy: string[]; checkedAt: number;
   launch?: { launchpad: string; url?: string; model: "curve" | "v3" | "v4"; dev: string | null; curve?: string; pool?: string; graduated: boolean | null; progressPct: number | null; feePct?: number; pairToken?: string } | null;
+  powers?: { renounced: boolean; upgradeable: boolean; mint: boolean; blacklist: boolean; pause: boolean; maxSellTaxPct: number | null; sellLater: boolean | null; bigTrade: boolean | null; ownerTested: boolean } | null;
+  liquidity?: { pairEth: number | null; lp: { positions: number; burnedPct: number; lockedPct: number; contractPct: number; walletPct: number; topWallet: string | null } | null } | null;
   holders?: { count: number; top10Pct: number | null; top: { address: string; pct: number }[]; dev: string | null; devPct: number | null; devSoldPct: number | null; launchBuyers: { wallets: number; pct: number } | null; devLaunches: number | null; window: "full" | "recent" } | null;
 };
 
