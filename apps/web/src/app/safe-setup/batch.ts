@@ -1,3 +1,4 @@
+import { concat, encodeFunctionData, encodePacked, getAddress, parseAbi, size } from "viem";
 // Generated from contracts/deployments/robinhood.safe-add-stocks.json: Vault defaults: 16 assets (+AMZN, AAPL, MSFT, META, COIN, QQQ, SPCX, GME, MU, CRCL, DELL, USO, SGOV); Auto-Invest: 13 new stocks
 export const BATCH_TITLE = "Add 13 stocks to vaults and Auto-Invest";
 export const BATCH: { to: `0x${string}`; data: `0x${string}` }[] = [
@@ -16,3 +17,21 @@ export const BATCH: { to: `0x${string}`; data: `0x${string}` }[] = [
   { to: "0xeacf613ff7d6dbc8acbf51b411ad092d48e5a932", data: "0x68a1c9ce000000000000000000000000a30fa36db767ad9ed3f7a60fc79526fb4d56d3440000000000000000000000004de17a3a0b10cafe8ba4e87b9ee7a69b379a94a90000000000000000000000000000000000000000000000000000000000000bb80000000000000000000000000000000000000000000000000000000000015f900000000000000000000000000000000000000000000000000000000000000001" },
   { to: "0xeacf613ff7d6dbc8acbf51b411ad092d48e5a932", data: "0x68a1c9ce00000000000000000000000092fd66527192e3e61d4ddd13322aa222de86f9b5000000000000000000000000a4bc3aeaef4712c622f5c18f7a73d78e5cf4a4600000000000000000000000000000000000000000000000000000000000000bb80000000000000000000000000000000000000000000000000000000000015f900000000000000000000000000000000000000000000000000000000000000001" },
 ];
+
+export const SAFE = getAddress("0xaF1c3b55D204899CEd14d23C996153bC82424168");
+export const MULTISEND_CALL_ONLY = getAddress("0x9641d764fc13c8B624c04430C7356C1C7C8102e2"); // Safe 1.4.1
+export const NONCE = 2n; // the Safe nonce this batch is for; a later nonce means it already ran
+export const SAFE_ABI = parseAbi([
+  "function getOwners() view returns (address[])",
+  "function getThreshold() view returns (uint256)",
+  "function nonce() view returns (uint256)",
+  "function approvedHashes(address owner, bytes32 hash) view returns (uint256)",
+  "function approveHash(bytes32 hashToApprove)",
+  "function getTransactionHash(address to,uint256 value,bytes data,uint8 operation,uint256 safeTxGas,uint256 baseGas,uint256 gasPrice,address gasToken,address refundReceiver,uint256 _nonce) view returns (bytes32)",
+  "function execTransaction(address to,uint256 value,bytes data,uint8 operation,uint256 safeTxGas,uint256 baseGas,uint256 gasPrice,address gasToken,address refundReceiver,bytes signatures) payable returns (bool)",
+]);
+export const BATCH_DATA = encodeFunctionData({
+  abi: parseAbi(["function multiSend(bytes transactions) payable"]),
+  functionName: "multiSend",
+  args: [concat(BATCH.map((t) => encodePacked(["uint8", "address", "uint256", "uint256", "bytes"], [0, t.to, 0n, BigInt(size(t.data)), t.data])))],
+});

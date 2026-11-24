@@ -1,33 +1,16 @@
 "use client";
 import { useEffect, useState } from "react";
-import { concat, encodeFunctionData, encodePacked, getAddress, pad, parseAbi, size, zeroAddress, type Address, type Hex } from "viem";
+import { concat, getAddress, pad, zeroAddress, type Address, type Hex } from "viem";
 import { useAccount, usePublicClient, useWriteContract } from "wagmi";
 import { ConnectButton } from "@/components/ConnectButton";
 import { explorerTx } from "@/lib/config";
-import { BATCH } from "./batch";
+import { BATCH_DATA as data, MULTISEND_CALL_ONLY, NONCE, SAFE, SAFE_ABI } from "./batch";
 
-const SAFE = getAddress("0xaF1c3b55D204899CEd14d23C996153bC82424168");
-const MULTISEND_CALL_ONLY = getAddress("0x9641d764fc13c8B624c04430C7356C1C7C8102e2"); // Safe 1.4.1
-const NONCE = 2n; // the Safe nonce this batch is for; a later nonce means it already ran
 const NAMES: Record<string, string> = {
   "0xdB09426BC12EF1FC70BD149e163FCB09179669c5": "Owner",
   "0xc30CAa1545F7e8C0d6A0E6cC48D7Bc3f81e0d12A": "Signer 2",
   "0x925eC8944BC434E82F66328C5CE338a56D0914DF": "Signer 3 (backup)",
 };
-const SAFE_ABI = parseAbi([
-  "function getOwners() view returns (address[])",
-  "function getThreshold() view returns (uint256)",
-  "function nonce() view returns (uint256)",
-  "function approvedHashes(address owner, bytes32 hash) view returns (uint256)",
-  "function approveHash(bytes32 hashToApprove)",
-  "function getTransactionHash(address to,uint256 value,bytes data,uint8 operation,uint256 safeTxGas,uint256 baseGas,uint256 gasPrice,address gasToken,address refundReceiver,uint256 _nonce) view returns (bytes32)",
-  "function execTransaction(address to,uint256 value,bytes data,uint8 operation,uint256 safeTxGas,uint256 baseGas,uint256 gasPrice,address gasToken,address refundReceiver,bytes signatures) payable returns (bool)",
-]);
-const data = encodeFunctionData({
-  abi: parseAbi(["function multiSend(bytes transactions) payable"]),
-  functionName: "multiSend",
-  args: [concat(BATCH.map((t) => encodePacked(["uint8", "address", "uint256", "uint256", "bytes"], [0, t.to, 0n, BigInt(size(t.data)), t.data])))],
-});
 
 export function SafeBatch() {
   const { address, chainId } = useAccount();
@@ -38,21 +21,17 @@ export function SafeBatch() {
   const [err, setErr] = useState<string | null>(null);
 
   async function load() {
-    if (!pc) return;
     try {
-      const [owners, threshold, nonce] = await Promise.all([
-        pc.readContract({ address: SAFE, abi: SAFE_ABI, functionName: "getOwners" }),
-        pc.readContract({ address: SAFE, abi: SAFE_ABI, functionName: "getThreshold" }),
-        pc.readContract({ address: SAFE, abi: SAFE_ABI, functionName: "nonce" }),
-      ]);
-      const hash = await pc.readContract({ address: SAFE, abi: SAFE_ABI, functionName: "getTransactionHash", args: [MULTISEND_CALL_ONLY, 0n, data, 1, 0n, 0n, 0n, zeroAddress, zeroAddress, NONCE] });
-      const flags = await Promise.all(owners.map((o) => pc.readContract({ address: SAFE, abi: SAFE_ABI, functionName: "approvedHashes", args: [o, hash] })));
-      setSt({ owners: owners.map((o) => getAddress(o)), threshold, nonce, hash, approved: owners.filter((_, i) => flags[i] > 0n).map((o) => getAddress(o)) });
+      const r = await fetch("/api/safe-setup", { cache: "no-store" });
+      const j = await r.json();
+      if (!r.ok) throw new Error();
+      setErr(null);
+      setSt({ owners: j.owners, threshold: BigInt(j.threshold), nonce: BigInt(j.nonce), hash: j.hash, approved: j.approved });
     } catch {
       setErr("Could not read the Safe. Refresh the page.");
     }
   }
-  useEffect(() => { load(); }, [pc]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { load(); const t = setInterval(load, 15_000); return () => clearInterval(t); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const me = address ? getAddress(address) : null;
   const isSigner = !!me && !!st?.owners.includes(me);
@@ -67,7 +46,8 @@ export function SafeBatch() {
     try {
       const hash = await fn();
       setTx(hash);
-      await pc!.waitForTransactionReceipt({ hash });
+      // the public RPC can rate-limit; the 15 s refresh picks the result up either way
+      await pc?.waitForTransactionReceipt({ hash, timeout: 120_000 }).catch(() => undefined);
       setTx(null);
       await load();
     } catch (e) {
@@ -105,6 +85,8 @@ export function SafeBatch() {
         <p className="text-[14.5px] text-deny">An earlier Safe transaction is still pending. Ask Heimdall to rebuild this page.</p>
       ) : !address || chainId !== 4663 ? (
         <ConnectButton />
+      ) : !st ? (
+        <p className="text-[14.5px] text-muted">Reading the Safe…</p>
       ) : !isSigner ? (
         <p className="text-[14.5px] text-deny">This wallet is not a signer of the admin Safe.</p>
       ) : canExecute ? (
