@@ -5,7 +5,7 @@ import {
 import { KNOWN_CONTRACTS, knownContract, NATIVE_ASSET } from "./chains.js";
 import { approvalsFromCall, decodeCall, expandBatch } from "./decode.js";
 import { isBlocklisted } from "./blocklist.js";
-import { ponsSpender } from "./launchpad.js";
+import { detectLaunch, LAUNCHPAD_SPENDERS, ponsSpender } from "./launchpad.js";
 import { inList, lc, type Policy, PolicySchema } from "./policy.js";
 import { signReceipt } from "./receipt.js";
 import { prelaunch } from "./signer.js";
@@ -220,6 +220,17 @@ export async function checkTransaction(rawTx: TxIntent, rawPolicy: unknown, deps
         add("APPROVAL_LAUNCHPAD_UNUSED", "warn",
           `Grants ${amount} to ${pons.symbol ?? "a token"} (${short(a.spender)}), a token launched on Pons. A Pons buy or sell goes through its bonding curve and trades in ${pairName}, so the token contract itself never needs your ${label(tx.chainId, a.token)}. Check which site asked for this.`);
       }
+      continue;
+    }
+    // Other launchpads: their own curve contract is a normal spender; a token launched on one never needs an approval.
+    const pad = !trusted ? LAUNCHPAD_SPENDERS[lc(a.spender)] : undefined;
+    if (pad && !(a.unlimited && policy.denyUnlimitedApprovals)) {
+      add("APPROVAL_LAUNCHPAD", "info", `Grants ${what.replace(` to ${short(a.spender)}`, "")} to ${pad}'s bonding curve contract (${short(a.spender)}), where its tokens are bought and sold.${a.unlimited ? ` Normal on ${pad}; an exact amount is still the safer habit.` : ""}`);
+      continue;
+    }
+    const launched = !trusted && a.standard !== "erc721-all" ? await detectLaunch(client, a.spender).catch(() => null) : null;
+    if (launched) {
+      add("APPROVAL_LAUNCHPAD_UNUSED", "warn", `Grants ${what.replace(` to ${short(a.spender)}`, "")} to a token launched on ${launched.launchpad} (${short(a.spender)}). Buys and sells go through ${launched.model === "curve" ? "its bonding curve" : "its pool"}, so the token contract itself never needs this approval. Check which site asked for this.`);
       continue;
     }
     if (a.unlimited) {

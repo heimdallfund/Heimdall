@@ -37,6 +37,12 @@ const REALFUN = getAddress("0xa3A71925be892c609Ac4BE4EFe918Dc9C35fc5e8");
 const KLIK = getAddress("0x16cF6788B762EE8969744586eD16fc5705140dd7");
 const BOTTOM = getAddress("0x1bed2687321074a198302c004036b51923812b18");
 
+/** Launchpad contracts that run the bonding curves themselves (buys and sells go to them), by name. */
+export const LAUNCHPAD_SPENDERS: Record<string, string> = Object.fromEntries(([
+  [PONS_V2_FACTORY, "Pons"], [HOOD, "hood.fun"], [PRINTR, "Printr"], [ROBINFUN, "RobinFun"], [PONS_V1[0]!, "Pons (V1)"], [PONS_V1[1]!, "Pons (V1)"],
+  [NOXA, "Noxa.fun"], [DYOR, "DYOR.fun"], [BOW, "Bow.fun"], [REALFUN, "RealFun"], [KLIK, "Klik"], [BOTTOM, "Bottom.fun"],
+] as const).map(([a, n]) => [a.toLowerCase(), n]));
+
 /** Contracts that hold a launchpad token's liquidity or inventory: never counted as holders. */
 export const LAUNCHPAD_CONTRACTS = new Set([PONS_V2_FACTORY, HOOD, PRINTR, ROBINFUN, ...PONS_V1, NOXA, DYOR, BOW, REALFUN, KLIK, BOTTOM,
   getAddress("0x736D76699C26D0d966744cAe304C000d471f7F35"), getAddress("0x31ca5E101941A93A7DD6d0497928700625CF54B5"), // Pons lockers

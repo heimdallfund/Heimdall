@@ -154,6 +154,39 @@ describe("Heimdall Shield", () => {
     expect(r.findings.map((f) => f.code)).toEqual(expect.arrayContaining(["UNLIMITED_APPROVAL", "SIM_UNAVAILABLE"]));
   });
 
+  it("treats a launchpad's own curve contract as a normal spender", async () => {
+    const HOODFUN: Address = "0x5fcc1df0dc020cf454e742e9a8ae2554c37a452c";
+    const data = encodeFunctionData({ abi: ERC20, functionName: "approve", args: [HOODFUN, maxUint256] });
+    const r = await checkTransaction(tx(USDG, data), {}, { client: mockClient({ contracts: [HOODFUN] }), sign: false });
+    expect(r.findings.find((f) => f.code === "APPROVAL_LAUNCHPAD")?.message).toContain("hood.fun");
+    expect(r.findings.map((f) => f.code)).not.toContain("UNLIMITED_APPROVAL");
+    expect(r.verdict).toBe("ALLOW");
+  });
+
+  it("warns when a Pons token itself asks for an approval it never needs", async () => {
+    const TOKEN: Address = "0x066141bb21ef5a6c754825c05617ac59c5c55f75";
+    const CURVE: Address = "0xB393B4197e772261642e4837b9E777191805aBEA";
+    const client = mockClient({ contracts: [TOKEN, CURVE] });
+    const inner = client.readContract;
+    (client as unknown as { readContract: unknown }).readContract = async (a: { address: Address; functionName: string }) => {
+      const at = a.address.toLowerCase();
+      if (at === TOKEN.toLowerCase() && a.functionName === "curve") return CURVE;
+      if (at === TOKEN.toLowerCase() && a.functionName === "symbol") return "TESSYN";
+      if (at === CURVE.toLowerCase() && a.functionName === "factory") return "0x7eD598BcEf8bd9Edd8C97A195C6d13f40801EC7e";
+      if (at === CURVE.toLowerCase() && a.functionName === "pairToken") return zeroAddress;
+      if (at === CURVE.toLowerCase() && a.functionName === "graduated") return false;
+      return inner(a as never);
+    };
+    const toToken = encodeFunctionData({ abi: ERC20, functionName: "approve", args: [TOKEN, maxUint256] });
+    const r = await checkTransaction(tx(USDG, toToken), {}, { client, sign: false });
+    const f = r.findings.find((x) => x.code === "APPROVAL_LAUNCHPAD_UNUSED");
+    expect(f?.severity).toBe("warn");
+    expect(f?.message).toContain("TESSYN");
+    const toCurve = encodeFunctionData({ abi: ERC20, functionName: "approve", args: [CURVE, maxUint256] });
+    const sell = await checkTransaction(tx(TOKEN, toCurve), {}, { client, sign: false });
+    expect(sell.findings.find((x) => x.code === "APPROVAL_LAUNCHPAD")?.severity).toBe("info");
+  });
+
   it("signs a verifiable EIP-712 receipt", async () => {
     const r = await checkTransaction(tx(WETH, "0xd0e30db0", 1n), {}, { client: mockClient() });
     const m = r.receipt!.message;
