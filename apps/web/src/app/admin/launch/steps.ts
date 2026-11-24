@@ -37,7 +37,7 @@ export const PHASES: Phase[] = [
       { id: "monitor-up", title: "Monitor cron wired", detail: "On the heimdall-monitor Vercel project: FACTORY, AUTOINVEST, SPLITTER, USDG, RISK_ORACLE, RISK_REPORTER_KEY, PASSPORT_KEY, KEEPER_KEY, SHIELD_ADMIN_KEY and the same Upstash as Shield (SHIELD_API_URL and the narrow SHIELD_HEARTBEAT_KEY are already set). Redeploy; the status page shows its first heartbeat within 2 minutes." },
       { id: "reporter", title: "Reporter appointed on the Risk Oracle", detail: "Skip if riskReporter was in the deploy config. Otherwise the Safe calls setReporter(<monitor reporter>, true)." },
       { id: "web-env", title: "Web env set and redeployed", detail: "NEXT_PUBLIC_FACTORY_ADDRESS, _SIGNALS_, _PAY_, _AUTOINVEST_, _RISK_ORACLE_, _GUARD_MODULE_, _STAKING_, _SPLITTER_, _HEIM_, _HEIM_HOLDER_ADDRESS, NEXT_PUBLIC_API_URL and SHIELD_API_URL on heimdall-web." },
-      { id: "domains", title: "Domains attached", detail: "heimdall.fund → heimdall-web, api.heimdall.fund → heimdall-shield. HTTPS works on both." },
+      { id: "domains", title: "Domains attached", detail: "heimdall.fund → heimdall-web, api.heimdall.fund → heimdall-shield, mcp.heimdall.fund → heimdall-mcp. HTTPS works on all three; POST an MCP initialize to mcp.heimdall.fund/mcp." },
     ],
   },
   {
