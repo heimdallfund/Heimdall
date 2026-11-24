@@ -40,6 +40,7 @@ import { buildRadar, runChecks, type RadarCheck, type RadarSnapshot } from "./ra
 import { learnSmartMoney, smartCount } from "./smart.js";
 import { evaluateDue, recordPrediction, scorecard } from "./bench.js";
 import { noteOutcome, recordSeen, rugLog, sweepRugs, type RugEvent } from "./rugs.js";
+import { heimToken } from "./heim.js";
 import { storeFromEnv, type CounterStore } from "./store.js";
 import { checkDailyQuota, checkRate, identify, limitsFromEnv, type Caller, type LimitsConfig } from "./limits.js";
 
@@ -287,7 +288,8 @@ export function buildApp(opts: AppOptions = {}) {
   /** $HEIM holders get a larger free quota. HEIM_HOLDER_ADDRESS (HeimdallHolderBalance: held + staked) is preferred over
    *  HEIM_ADDRESS (held only). HEIM_HOLDER_MIN in raw units with 18 decimals, HEIM_QUOTA_MULTIPLIER. */
   async function holderMultiplier(wallet: string): Promise<number> {
-    const heim = env.HEIM_HOLDER_ADDRESS || env.HEIM_ADDRESS;
+    // HeimdallHolderBalance once deployed; until then $HEIM itself, found on its own when it launches
+    const heim = env.HEIM_HOLDER_ADDRESS || (await heimToken(store, getClient(4663), logsClient, env.HEIM_ADDRESS && isAddress(env.HEIM_ADDRESS) ? env.HEIM_ADDRESS : undefined).catch(() => null));
     if (!heim || !isAddress(heim)) return 1;
     const key = `heim:${wallet.toLowerCase()}`;
     let bal = await store.fetch(key).catch(() => null);

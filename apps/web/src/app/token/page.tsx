@@ -27,7 +27,13 @@ const FEES: [string, string, string][] = [
 async function HeimCA() {
   await connection();
   const a = await heimAddress();
-  return <p className="mt-2 break-all font-mono text-[15px]">{a ? <a className="hover:text-brand" href={explorerAddress(a)}>{a}</a> : "Appears here automatically at launch."}</p>;
+  if (!a) return <p className="mt-2 font-mono text-[15px]">Appears here automatically at launch.</p>;
+  return (
+    <div className="mt-2 flex flex-col gap-2">
+      <p className="break-all font-mono text-[15px]"><a className="hover:text-brand" href={explorerAddress(a)}>{a}</a></p>
+      <p className="text-[14px] text-muted">Same rules as every token: <a className="font-semibold text-ink underline hover:text-brand" href={`/token-check/${a}`}>$HEIM&apos;s own Token Check</a> · trade it on <a className="font-semibold text-ink underline hover:text-brand" href="https://ponsfamily.com" target="_blank" rel="noopener">Pons</a></p>
+    </div>
+  );
 }
 
 async function Supply() {
