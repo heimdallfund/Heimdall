@@ -35,6 +35,8 @@ function Row({ t, now }: { t: RadarToken; now: number }) {
           <span>launched {ago(t.launchedAt, now)} ago</span>
           {c?.progressPct != null && <span>· curve {c.progressPct.toFixed(0)}%</span>}
           {c?.holders != null && <span>· {c.holders.toLocaleString("en-US")} holders</span>}
+          {c?.devDumped ? <span className="font-semibold text-deny">· dev dumped {c.devDumped} earlier token{c.devDumped === 1 ? "" : "s"}</span> : null}
+          {c?.smart ? <span className="text-allow">· {c.smart} early-winner wallet{c.smart === 1 ? "" : "s"}</span> : null}
         </div>
       </div>
       <div className="grid grid-cols-3 gap-3 text-[13px] sm:w-[300px]">

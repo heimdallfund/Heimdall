@@ -1,7 +1,8 @@
 import { getAddress, parseAbi, type Address, type PublicClient } from "viem";
-import { LAUNCHPAD_CONTRACTS, ponsLaunchesBy, type Launch } from "./launchpad.js";
+import { LAUNCHPAD_CONTRACTS, type Launch } from "./launchpad.js";
 import { POOL_MANAGER, UNIVERSAL_ROUTER } from "./v4hooks.js";
 import type { Finding } from "./types.js";
+import { devHistoryFindings, ponsDevHistory, type DevHistory } from "./devhistory.js";
 
 /**
  * Who holds a token, read from the chain: its Transfer events (up to ~10M blocks back) give every address that ever
@@ -23,6 +24,12 @@ export interface Holders {
   devLaunches: number | null;
   /** "full" when the window reaches the token's mint, "recent" when the token is older than the window. */
   window: "full" | "recent";
+  /** What happened to the dev's earlier launches (Pons). */
+  devHistory?: DevHistory | null;
+  /** Top holders who got their tokens sent from one wallet rather than buying them. */
+  cluster?: { from: Address; wallets: number; pct: number; isDev: boolean } | null;
+  /** Top holders that were early buyers of at least two other tokens that later graduated. */
+  smart?: number | null;
 }
 
 const TRANSFER = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
@@ -59,7 +66,7 @@ const pct = (a: bigint, b: bigint) => (b > 0n ? Math.round(Number((a * 1_000_000
 
 export async function memecoinSignals(
   client: PublicClient, logs: PublicClient, token: Address,
-  ctx: { supply: bigint | null; decimals: number | null; launch: Launch | null; pool: Address | null },
+  ctx: { supply: bigint | null; decimals: number | null; launch: Launch | null; pool: Address | null; smartCount?: (wallets: string[]) => Promise<number> },
 ): Promise<{ holders: Holders; findings: Finding[] } | null> {
   const supply = ctx.supply;
   if (!supply || supply === 0n) return null;
@@ -74,6 +81,7 @@ export async function memecoinSignals(
   const minted = all.find((l) => /^0+$/.test(l.topics[1]!.slice(26)));
   const window: Holders["window"] = minted ? "full" : "recent";
   const seen = new Set<string>();
+  const sentBy = new Map<string, Set<string>>(); // recipient -> wallets that sent it tokens directly
   const received = new Map<string, bigint>();
   const sent = new Map<string, bigint>();
   for (const l of all) {
@@ -82,6 +90,7 @@ export async function memecoinSignals(
     const amount = BigInt(l.data === "0x" ? 0 : l.data.slice(0, 66));
     seen.add(from); seen.add(to);
     received.set(to, (received.get(to) ?? 0n) + amount);
+    if (!infra.has(from.toLowerCase()) && !infra.has(to.toLowerCase()) && !BURN.has(from.toLowerCase()) && from !== to) (sentBy.get(to) ?? sentBy.set(to, new Set()).get(to)!).add(from);
     // tokens burned are not "sold": only count what leaves for a live address
     if (!BURN.has(to.toLowerCase())) sent.set(from, (sent.get(from) ?? 0n) + amount);
   }
@@ -114,7 +123,17 @@ export async function memecoinSignals(
     const held = [...early].reduce((s, a) => s + (balances.get(a) ?? 0n), 0n);
     launchBuyers = { wallets: early.size, pct: pct(held, supply) };
   }
-  const devLaunches = dev && ctx.launch?.launchpad === "Pons" ? await ponsLaunchesBy(logs, dev).then((l) => l.filter((t) => t !== token).length).catch(() => null) : null;
+  const [devHistory, smart] = await Promise.all([
+    dev && ctx.launch?.launchpad === "Pons" ? ponsDevHistory(client, logs, dev, token).catch(() => null) : Promise.resolve(null),
+    ctx.smartCount ? ctx.smartCount(ranked.slice(0, 30).map(([a]) => a.toLowerCase()).filter((a) => a !== dev?.toLowerCase())).catch(() => null) : Promise.resolve(null),
+  ]);
+  const devLaunches = devHistory ? devHistory.launches : null;
+
+  // a wallet that sent tokens to several of the top holders: a dev or insider splitting a bag, not separate buyers
+  const fanout = new Map<string, string[]>();
+  for (const [holder] of ranked.slice(0, 20)) for (const f of sentBy.get(holder) ?? []) (fanout.get(f) ?? fanout.set(f, []).get(f)!).push(holder);
+  const biggestFan = [...fanout.entries()].map(([f, hs]) => ({ f, hs, held: hs.reduce((a, h) => a + (balances.get(h) ?? 0n), 0n) })).sort((a, b) => (b.held > a.held ? 1 : -1))[0];
+  const cluster = biggestFan && biggestFan.hs.length >= 3 ? { from: getAddress(biggestFan.f), wallets: biggestFan.hs.length, pct: pct(biggestFan.held, supply), isDev: !!dev && biggestFan.f.toLowerCase() === dev.toLowerCase() } : null;
 
   const holders: Holders = {
     count: balances.size,
@@ -122,7 +141,7 @@ export async function memecoinSignals(
     top: ranked.slice(0, 10).map(([address, v]) => ({ address: address as Address, pct: pct(v, supply) })),
     dev, devPct: devBal === null ? null : pct(devBal, supply),
     devSoldPct: dev && devIn > 0n ? Math.min(100, pct(devOut, devIn)) : null,
-    launchBuyers, devLaunches, window,
+    launchBuyers, devLaunches, window, devHistory, cluster, smart,
   };
 
   const F: Finding[] = [];
@@ -137,8 +156,9 @@ export async function memecoinSignals(
   }
   if (holders.devSoldPct !== null && holders.devSoldPct >= 50 && devIn > supply / 100n) add("DEV_SOLD", "warn", `The dev has sold or moved ${holders.devSoldPct.toFixed(0)}% of the tokens they got (burns not counted).`);
   if (launchBuyers && launchBuyers.wallets >= 5 && launchBuyers.pct >= 15) add("BUNDLED_LAUNCH", "warn", `${launchBuyers.wallets} wallets bought in the first blocks and still hold ${launchBuyers.pct.toFixed(1)}%: a sign of a bundled or sniped launch.`);
-  if (devLaunches !== null && devLaunches >= 5) add("SERIAL_LAUNCHER", "warn", `The same dev launched ${devLaunches} other tokens on ${ctx.launch?.launchpad} in about the last month.`);
-  else if (devLaunches !== null && devLaunches >= 2) add("SERIAL_LAUNCHER", "info", `The same dev launched ${devLaunches} other tokens on ${ctx.launch?.launchpad} in about the last month.`);
+  if (devHistory) F.push(...devHistoryFindings(devHistory));
+  if (cluster && cluster.pct >= 10) add("HOLDER_CLUSTER", cluster.pct >= 25 || cluster.isDev ? "warn" : "info", `${cluster.wallets} of the top holders got their tokens sent from ${cluster.isDev ? "the dev's wallet" : `one wallet (${cluster.from})`} instead of buying; together they hold ${cluster.pct.toFixed(1)}% of the supply.`);
+  if (smart && smart >= 2) add("SMART_MONEY", "info", `${smart} of the top holders were early buyers in at least two other tokens that later graduated.`);
   if (window === "full" && holders.count < 20) add("FEW_HOLDERS", "info", holders.count === 0 ? "No wallet holds it yet: nobody has bought." : `Only ${holders.count} wallet${holders.count === 1 ? "" : "s"} hold${holders.count === 1 ? "s" : ""} it.`);
   return { holders, findings: F };
 }

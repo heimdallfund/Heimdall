@@ -46,6 +46,11 @@ export interface RadarCheck {
   top10Pct: number | null;
   devSoldPct: number | null;
   progressPct: number | null;
+  /** Top holders who were early in at least two tokens that later graduated. */
+  smart?: number | null;
+  /** The dev's earlier launches: how many, and how many they dumped. */
+  devLaunches?: number | null;
+  devDumped?: number | null;
   checkedAt: number;
 }
 export interface RadarSnapshot { generatedAt: number; block: string; launched24h: number; tokens: RadarToken[] }
@@ -126,6 +131,7 @@ export function compact(r: TokenCheck): RadarCheck {
     flags: r.findings.filter((f) => f.severity !== "info").sort((a, b) => SEV[a.severity] - SEV[b.severity]).map((f) => f.code).slice(0, 4),
     holders: r.holders?.count ?? null, top10Pct: r.holders?.top10Pct ?? null, devSoldPct: r.holders?.devSoldPct ?? null,
     progressPct: r.launch?.graduated === false ? r.launch.progressPct : null, checkedAt: r.checkedAt,
+    smart: r.holders?.smart ?? null, devLaunches: r.holders?.devHistory?.launches ?? null, devDumped: r.holders?.devHistory?.dumped ?? null,
   };
 }
 

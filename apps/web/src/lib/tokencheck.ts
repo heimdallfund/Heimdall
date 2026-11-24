@@ -10,7 +10,7 @@ export type TokenReport = {
   launch?: { launchpad: string; url?: string; model: "curve" | "v3" | "v4"; dev: string | null; curve?: string; pool?: string; graduated: boolean | null; progressPct: number | null; feePct?: number; pairToken?: string } | null;
   powers?: { renounced: boolean; upgradeable: boolean; mint: boolean; blacklist: boolean; pause: boolean; maxSellTaxPct: number | null; sellLater: boolean | null; bigTrade: boolean | null; ownerTested: boolean } | null;
   liquidity?: { pairEth: number | null; lp: { positions: number; burnedPct: number; lockedPct: number; contractPct: number; walletPct: number; topWallet: string | null } | null; removed?: boolean } | null;
-  holders?: { count: number; top10Pct: number | null; top: { address: string; pct: number }[]; dev: string | null; devPct: number | null; devSoldPct: number | null; launchBuyers: { wallets: number; pct: number } | null; devLaunches: number | null; window: "full" | "recent" } | null;
+  holders?: { count: number; top10Pct: number | null; top: { address: string; pct: number }[]; dev: string | null; devPct: number | null; devSoldPct: number | null; launchBuyers: { wallets: number; pct: number } | null; devLaunches: number | null; window: "full" | "recent"; devHistory?: { launches: number; checked: number; graduated: number; dumped: number; dead: number; active: number; recent: { token: string; symbol: string | null; outcome: "graduated" | "dumped" | "dead" | "active" }[] } | null; cluster?: { from: string; wallets: number; pct: number; isDev: boolean } | null; smart?: number | null } | null;
 };
 
 export const VERDICT_HEAD = { ALLOW: "Looks tradable", WARN: "Be careful", DENY: "Do not buy" } as const;

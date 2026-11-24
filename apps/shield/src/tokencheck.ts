@@ -156,7 +156,7 @@ function pinClient(client: PublicClient, n: bigint): PublicClient {
   });
 }
 
-export async function tokenCheck(rawClient: PublicClient, raw: Address, now = Date.now(), logs: PublicClient = logsClient): Promise<TokenCheck> {
+export async function tokenCheck(rawClient: PublicClient, raw: Address, now = Date.now(), logs: PublicClient = logsClient, extras: { smartCount?: (wallets: string[]) => Promise<number> } = {}): Promise<TokenCheck> {
   const head = typeof rawClient.getBlockNumber === "function" ? await rawClient.getBlockNumber().catch(() => null) : null;
   const client = head ? pinClient(rawClient, head) : rawClient;
   const token = getAddress(raw);
@@ -185,7 +185,7 @@ export async function tokenCheck(rawClient: PublicClient, raw: Address, now = Da
   }
   // holder and dev signals run beside the trade simulations; known tokens (USDG, stocks) skip them
   const sigT0 = Date.now();
-  const signals = TOKENS[token.toLowerCase()] ? Promise.resolve(null) : memecoinSignals(client, logs, token, { supply, decimals, launch, pool: pool?.address ?? null }).catch(() => null);
+  const signals = TOKENS[token.toLowerCase()] ? Promise.resolve(null) : memecoinSignals(client, logs, token, { supply, decimals, launch, pool: pool?.address ?? null, smartCount: extras.smartCount }).catch(() => null);
   // deeper tests (owner powers, time-locked and size-limited selling, liquidity owners) run beside the main ones
   type Extra = { findings: Finding[]; powers: Powers | null; liquidity: Liquidity | null };
   let extra: Promise<Extra> = Promise.resolve({ findings: [], powers: null, liquidity: null });

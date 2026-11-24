@@ -146,7 +146,13 @@ async function Content({ params }: { params: Promise<{ address: string }> }) {
               <span className="label">Launch</span>
               <span className="font-semibold">{r.launch.url ? <a href={r.launch.url} target="_blank" rel="noopener" className="hover:text-brand">{r.launch.launchpad}</a> : r.launch.launchpad}<span className="font-normal text-muted"> · {r.launch.graduated === false ? "on the bonding curve" : r.launch.graduated ? "graduated" : r.launch.model === "curve" ? "bonding curve" : `Uniswap ${r.launch.model}`}</span></span>
               {r.launch.dev && <span className="text-muted">Dev <a href={`/check/${r.launch.dev}`} className="font-mono hover:text-brand">{short(r.launch.dev)}</a>{r.holders?.devPct != null ? ` · holds ${r.holders.devPct.toFixed(1)}%` : ""}{r.holders?.devSoldPct != null ? ` · sold or moved ${r.holders.devSoldPct.toFixed(0)}% of what they got` : ""}</span>}
-              {r.holders?.devLaunches != null && <span className="text-muted">{r.holders.devLaunches === 0 ? "No other launches by this dev in about a month" : `${r.holders.devLaunches} other launch${r.holders.devLaunches === 1 ? "" : "es"} by this dev in about a month`}</span>}
+              {r.holders?.devHistory ? (r.holders.devHistory.launches === 0 ? <span className="text-muted">No other launches by this dev in about a month</span> : (
+                <>
+                  <span className="text-muted">{r.holders.devHistory.launches} other launch{r.holders.devHistory.launches === 1 ? "" : "es"} by this dev in about a month{r.holders.devHistory.checked < r.holders.devHistory.launches ? ` (last ${r.holders.devHistory.checked} checked)` : ""}:{" "}
+                    <span className={r.holders.devHistory.dumped ? "font-semibold text-deny" : ""}>{r.holders.devHistory.dumped} dumped</span> · {r.holders.devHistory.dead} died · <span className={r.holders.devHistory.graduated ? "font-semibold text-allow" : ""}>{r.holders.devHistory.graduated} graduated</span> · {r.holders.devHistory.active} trading</span>
+                  <span className="flex flex-wrap gap-1.5">{r.holders.devHistory.recent.map((x) => <a key={x.token} href={`/token-check/${x.token}`} className={`rounded-sm px-1.5 py-0.5 font-mono text-[11px] ${x.outcome === "dumped" ? "bg-deny-soft text-deny" : x.outcome === "graduated" ? "bg-allow-soft text-allow" : "bg-ink-2 text-muted"}`}>{x.symbol ?? short(x.token)} · {x.outcome}</a>)}</span>
+                </>
+              )) : r.holders?.devLaunches != null && <span className="text-muted">{r.holders.devLaunches === 0 ? "No other launches by this dev in about a month" : `${r.holders.devLaunches} other launch${r.holders.devLaunches === 1 ? "" : "es"} by this dev in about a month`}</span>}
             </div>
           )}
           {r.holders && (
@@ -154,6 +160,8 @@ async function Content({ params }: { params: Promise<{ address: string }> }) {
               <span className="label">Holders</span>
               <span className="font-semibold">{r.holders.count.toLocaleString("en-US")} wallet{r.holders.count === 1 ? "" : "s"}{r.holders.top10Pct !== null ? <span className="font-normal text-muted"> · top 10 hold {r.holders.top10Pct.toFixed(1)}%</span> : null}</span>
               <ul className="flex flex-col gap-0.5">{r.holders.top.slice(0, 5).map((h) => <li key={h.address} className="flex justify-between gap-3 font-mono text-[12.5px]"><a href={`/check/${h.address}`} className="text-muted hover:text-brand">{short(h.address)}{h.address === r.holders?.dev ? " (dev)" : ""}</a><span>{h.pct.toFixed(2)}%</span></li>)}</ul>
+              {r.holders.cluster && <span className={r.holders.cluster.pct >= 10 ? "text-warn" : "text-muted"}>{r.holders.cluster.wallets} top holders got their tokens sent from {r.holders.cluster.isDev ? "the dev" : <a href={`/check/${r.holders.cluster.from}`} className="font-mono hover:text-brand">{short(r.holders.cluster.from)}</a>} instead of buying ({r.holders.cluster.pct.toFixed(1)}%)</span>}
+              {r.holders.smart != null && r.holders.smart > 0 && <span className="text-allow">{r.holders.smart} top holder{r.holders.smart === 1 ? " was" : "s were"} early in 2+ tokens that later graduated</span>}
               {r.holders.launchBuyers && r.holders.launchBuyers.wallets > 0 && <span className="text-muted">{r.holders.launchBuyers.wallets} wallet{r.holders.launchBuyers.wallets === 1 ? "" : "s"} bought in the first blocks; they hold {r.holders.launchBuyers.pct.toFixed(1)}% now</span>}
               <span className="text-[12px] text-muted">Pools, the curve and burn addresses are not counted.{r.holders.window === "recent" ? " Older than a month: based on wallets active in the last month." : ""}</span>
             </div>

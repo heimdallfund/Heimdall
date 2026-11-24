@@ -37,6 +37,7 @@ import { checkAuthorization, checkPersonalMessage, checkTypedData } from "./type
 import { keysRoutes, lookupStoredKey } from "./keys.js";
 import { background, deliver, hookOwnersOf } from "./webhooks.js";
 import { buildRadar, runChecks, type RadarCheck, type RadarSnapshot } from "./radar.js";
+import { learnSmartMoney, smartCount } from "./smart.js";
 import { storeFromEnv, type CounterStore } from "./store.js";
 import { checkDailyQuota, checkRate, identify, limitsFromEnv, type Caller, type LimitsConfig } from "./limits.js";
 
@@ -425,7 +426,7 @@ export function buildApp(opts: AppOptions = {}) {
     const key = `tokencheck:${token.toLowerCase()}`;
     const hit = await store.fetch(key).catch(() => null);
     if (hit) return JSON.parse(hit) as Awaited<ReturnType<typeof tokenCheck>>;
-    const r = await tokenCheck(getClient(4663), token);
+    const r = await tokenCheck(getClient(4663), token, Date.now(), undefined, { smartCount: (w) => smartCount(store, w) });
     await store.put(key, JSON.stringify(r), 60).catch(() => {});
     return r;
   }
@@ -471,6 +472,8 @@ export function buildApp(opts: AppOptions = {}) {
     if (await runChecks(snap, { check: (t) => cachedTokenCheck(t as `0x${string}`), putCheck: (t, ck) => store.put(`radar:check:${t.toLowerCase()}`, JSON.stringify(ck), 2_700) })) {
       await store.put(RADAR_KEY, JSON.stringify(snap), 86_400);
     }
+    // smart money learns from the day's graduations, a few tokens per refresh
+    await learnSmartMoney(store, client, radarLogs).catch(() => 0);
     return snap;
   };
   app.get("/v1/radar", async (c) => {
@@ -487,7 +490,7 @@ export function buildApp(opts: AppOptions = {}) {
   app.get("/v1/token/:address/summary", async (c) => {
     const a = c.req.param("address");
     if (!isAddress(a)) return c.json({ error: "invalid_address" }, 400);
-    const key = `tokensummary:v6:${a.toLowerCase()}`;
+    const key = `tokensummary:v7:${a.toLowerCase()}`;
     c.header("cache-control", "public, max-age=300");
     const hit = await store.fetch(key).catch(() => null);
     if (hit) return c.json(JSON.parse(hit));
