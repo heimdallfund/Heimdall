@@ -41,7 +41,7 @@ export async function summarize(r: TokenCheck, opts: { oidc?: string; fetcher?: 
     const res = await (opts.fetcher ?? fetch)("https://ai-gateway.vercel.sh/v1/chat/completions", {
       method: "POST",
       headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
-      body: JSON.stringify({ model, max_tokens: 220, temperature: 0, messages: [{ role: "system", content: SYSTEM }, { role: "user", content }] }),
+      body: JSON.stringify({ model, max_tokens: 1500, reasoning_effort: "low", temperature: 0, messages: [{ role: "system", content: SYSTEM }, { role: "user", content }] }),
       signal: AbortSignal.timeout(opts.timeoutMs ?? 12_000),
     }).catch(() => null);
     if (!res) continue;
