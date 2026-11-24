@@ -1,6 +1,6 @@
 {
   "name": "@heimdallfund/sdk",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Heimdall SDK for Robinhood Chain agents: Shield transaction firewall, guarded vault execution, Heimdall Pay escrow, Auto-Invest and pay-per-call Signals",
   "keywords": [
     "robinhood-chain",
@@ -12,9 +12,9 @@
     "stock-tokens",
     "usdg"
   ],
-  "homepage": "https://heimdall.fund/docs/sdk",
+  "homepage": "https://heimdall.fund/docs",
   "bugs": {
-    "url": "https://heimdall.fund/security"
+    "url": "https://github.com/heimdallfund/Heimdall/issues"
   },
   "author": "Heimdall <hello@heimdall.fund>",
   "main": "dist/index.js",
@@ -52,5 +52,10 @@
   "sideEffects": false,
   "publishConfig": {
     "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/heimdallfund/Heimdall.git",
+    "directory": "packages/sdk"
   }
 }

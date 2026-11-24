@@ -2,29 +2,82 @@
   "name": "@heimdallfund/plugin-heimdall",
   "version": "0.1.0",
   "description": "ElizaOS plugin: Heimdall Shield checks every Robinhood Chain transaction and signature before your agent signs, plus Heimdall Pay escrow lookups",
-  "keywords": ["elizaos", "eliza", "plugin", "elizaos-plugins", "robinhood-chain", "firewall", "wallet-security", "ai-agents"],
-  "homepage": "https://heimdall.fund/docs/frameworks",
-  "bugs": { "url": "https://heimdall.fund/security" },
+  "keywords": [
+    "elizaos",
+    "eliza",
+    "plugin",
+    "elizaos-plugins",
+    "robinhood-chain",
+    "firewall",
+    "wallet-security",
+    "ai-agents"
+  ],
+  "homepage": "https://heimdall.fund/docs",
+  "bugs": {
+    "url": "https://github.com/heimdallfund/Heimdall/issues"
+  },
   "author": "Heimdall <hello@heimdall.fund>",
   "license": "BUSL-1.1",
-  "repository": { "type": "git", "url": "git+https://github.com/<GITHUB_ORG>/plugin-heimdall.git" },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/heimdallfund/Heimdall.git",
+    "directory": "packages/plugin-heimdall"
+  },
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" } },
-  "files": ["dist", "README.md", "LICENSE", "elizaos.plugin.json"],
-  "scripts": { "build": "tsc -p tsconfig.json", "prepublishOnly": "npm run build" },
-  "dependencies": { "@heimdallfund/agent-kit": "^0.1.0" },
-  "peerDependencies": { "@elizaos/core": ">=2" },
-  "devDependencies": { "@elizaos/core": "^2.0.5", "@types/node": "^26.6.6", "typescript": "^7.0.2" },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "elizaos.plugin.json"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "@heimdallfund/agent-kit": "^0.1.0"
+  },
+  "peerDependencies": {
+    "@elizaos/core": ">=2"
+  },
+  "devDependencies": {
+    "@elizaos/core": "^2.0.5",
+    "@types/node": "^26.6.6",
+    "typescript": "^7.0.2"
+  },
   "agentConfig": {
     "pluginType": "elizaos:plugin:2.0.0",
     "pluginParameters": {
-      "HEIMDALL_API_KEY": { "type": "string", "description": "Shield API key. Optional: without one the free tier applies (1,000 checks a day per wallet).", "required": false, "sensitive": true },
-      "HEIMDALL_API_URL": { "type": "string", "description": "Shield API base URL. Defaults to the public Heimdall API.", "required": false },
-      "HEIMDALL_PAY_ADDRESS": { "type": "string", "description": "HeimdallPay contract on Robinhood Chain, for the Pay lookups.", "required": false }
+      "HEIMDALL_API_KEY": {
+        "type": "string",
+        "description": "Shield API key. Optional: without one the free tier applies (1,000 checks a day per wallet).",
+        "required": false,
+        "sensitive": true
+      },
+      "HEIMDALL_API_URL": {
+        "type": "string",
+        "description": "Shield API base URL. Defaults to the public Heimdall API.",
+        "required": false
+      },
+      "HEIMDALL_PAY_ADDRESS": {
+        "type": "string",
+        "description": "HeimdallPay contract on Robinhood Chain, for the Pay lookups.",
+        "required": false
+      }
     }
   },
-  "engines": { "node": ">=20" },
-  "publishConfig": { "access": "public" }
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
 }

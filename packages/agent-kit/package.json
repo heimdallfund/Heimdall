@@ -12,9 +12,9 @@
     "firewall",
     "tools"
   ],
-  "homepage": "https://heimdall.fund/docs/frameworks",
+  "homepage": "https://heimdall.fund/docs",
   "bugs": {
-    "url": "https://heimdall.fund/security"
+    "url": "https://github.com/heimdallfund/Heimdall/issues"
   },
   "author": "Heimdall <hello@heimdall.fund>",
   "type": "module",
@@ -51,7 +51,7 @@
     "prepublishOnly": "npm run build && npm test"
   },
   "dependencies": {
-    "@heimdallfund/sdk": "file:../sdk",
+    "@heimdallfund/sdk": "^0.2.0",
     "viem": "^2.58.4",
     "zod": "^4.6.7"
   },
@@ -85,5 +85,10 @@
   "sideEffects": false,
   "publishConfig": {
     "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/heimdallfund/Heimdall.git",
+    "directory": "packages/agent-kit"
   }
 }

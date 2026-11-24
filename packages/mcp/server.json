@@ -33,17 +33,17 @@
         },
         {
           "name": "HEIMDALL_PAY_ADDRESS",
-          "description": "HeimdallPay contract, for the Pay tools.",
+          "description": "HeimdallPay contract, for the Pay tools. Defaults to the Heimdall mainnet deployment.",
           "isRequired": false
         },
         {
           "name": "HEIMDALL_FACTORY_ADDRESS",
-          "description": "HeimdallVaultFactory, for the vault tools.",
+          "description": "HeimdallVaultFactory, for the vault tools. Defaults to the Heimdall mainnet deployment.",
           "isRequired": false
         },
         {
           "name": "HEIMDALL_SIGNALS_ADDRESS",
-          "description": "HeimdallSignals, for the signal tools.",
+          "description": "HeimdallSignals, for the signal tools. Defaults to the Heimdall mainnet deployment.",
           "isRequired": false
         }
       ]

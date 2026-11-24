@@ -12,6 +12,7 @@ export { verifyWebhook, parseWebhook, type WebhookEvent, type WebhookEventType }
 export { heimdallRiskOracleAbi, heimdallGuardModuleAbi } from "./abi.js";
 export { payX402, readPaymentRequired, X402_ROBINHOOD_USDG, X402Error, type PayX402Options, type X402Asset } from "./x402.js";
 export { ERC8004_REGISTRIES, heimdallScore, executeThroughGuard, guardRemaining, guardSetupCalls, readRisk, RISK_FLAGS, RISK_LEVEL, safeBatch, type GuardSetup, type OnchainRisk, type SafeCall } from "./guard.js";
+export { HEIMDALL_MAINNET } from "./deployments.js";
 
 // ───────────────────────────── Chains ─────────────────────────────
 

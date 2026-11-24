@@ -1,0 +1,19 @@
+/** Heimdall contracts on Robinhood Chain mainnet (chain 4663), deployed at block 122,057,226. Source-verified on Sourcify and Blockscout. */
+export const HEIMDALL_MAINNET = {
+  chainId: 4663,
+  deployBlock: 122_057_226n,
+  adminSafe: "0xaF1c3b55D204899CEd14d23C996153bC82424168",
+  shieldSigner: "0xa6ce235055039a55aa438aFFAD18F7d0Ccf092d9",
+  vaultFactory: "0x838fdede1ae6fbdc15f784030d78ca7543d1154d",
+  vaultDeployer: "0x59c2385ee4876405f535f6fcf8f7f566f48cb9fb",
+  signals: "0x14bd445999dd254090ce86bfcf96df5d4a3e301d",
+  pay: "0xd8bd0bfc6ad1c5cee42c4f64bfcea9555a170265",
+  autoInvest: "0xeacf613ff7d6dbc8acbf51b411ad092d48e5a932",
+  riskOracle: "0x84da850303db7cca6d5194b9d9f8f392a6c9e3e0",
+  guardModule: "0xd2a8815c10f1d71fc854edb7a78405db8fe86ae6",
+  stockFeeds: {
+    NVDA: "0x1b8a95850fe344ddf67b98b61de9b5a1417edc8f",
+    TSLA: "0xf7d7b2f8b73a5b2828625f23c2a892baf50d6d34",
+    GOOGL: "0x51196319a3108269fe7f14d7a05b846f27be63f7",
+  },
+} as const;

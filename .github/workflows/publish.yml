@@ -1,0 +1,81 @@
+name: Publish packages
+
+# Publishes the SDKs: @heimdallfund/sdk, agent-kit, mcp and plugin-heimdall to npm (NPM_TOKEN secret,
+# with provenance), and heimdallfund to PyPI (trusted publishing, no token). A version that is already
+# on the registry is skipped, so re-running is safe. Bump the version in the package first.
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "What to publish"
+        type: choice
+        options: [all, npm, pypi]
+        default: all
+
+permissions:
+  contents: read
+
+jobs:
+  npm:
+    if: inputs.target != 'pypi'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+      - name: Check the token
+        run: |
+          test -n "$NODE_AUTH_TOKEN" || { echo "NPM_TOKEN secret is missing"; exit 1; }
+          echo "publishing as $(npm whoami)"
+      - name: Publish in dependency order
+        run: |
+          set -euo pipefail
+          published() { npm view "$1@$2" version >/dev/null 2>&1; }
+          wait_for() { for i in $(seq 1 30); do published "$1" "$2" && return 0; sleep 10; done; echo "$1@$2 not visible yet"; exit 1; }
+          for p in sdk agent-kit mcp plugin-heimdall; do
+            cd "$GITHUB_WORKSPACE/packages/$p"
+            name=$(node -p "require('./package.json').name"); ver=$(node -p "require('./package.json').version")
+            if published "$name" "$ver"; then echo "::notice::$name@$ver already on npm, skipped"; continue; fi
+            # workspace dependencies resolve from npm, so they must be published first
+            for dep in $(node -p "Object.entries(require('./package.json').dependencies||{}).filter(([d])=>d.startsWith('@heimdallfund/')).map(([d,v])=>d+'@'+v.replace(/^\\^/,'')).join(' ')"); do
+              wait_for "${dep%@*}" "${dep##*@}"
+            done
+            rm -f package-lock.json
+            npm install --no-audit --no-fund
+            npm run build
+            if node -e "process.exit(require('./package.json').scripts?.test?0:1)"; then npm test; fi
+            npm publish --access public --provenance --ignore-scripts
+            echo "::notice::published $name@$ver"
+          done
+
+  pypi:
+    if: inputs.target != 'npm'
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Build
+        working-directory: packages/sdk-python
+        run: |
+          python -m pip install -q build twine
+          python -m build
+          python -m twine check dist/*
+          ver=$(python -c "import tomllib;print(tomllib.load(open('pyproject.toml','rb'))['project']['version'])")
+          if curl -sf "https://pypi.org/pypi/heimdallfund/$ver/json" >/dev/null; then echo "::notice::heimdallfund $ver already on PyPI, skipped"; echo "SKIP=1" >> "$GITHUB_ENV"; fi
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        if: env.SKIP != '1'
+        with:
+          packages-dir: packages/sdk-python/dist

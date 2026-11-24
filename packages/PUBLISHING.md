@@ -1,12 +1,14 @@
 # Publishing the Heimdall packages
 
-Four public npm packages. The main repo stays private: npm and the registries only need the packages themselves, plus one small public repo for the ElizaOS plugin.
+Four public npm packages plus the Python SDK (`heimdallfund` on PyPI).
+
+**Quick path:** the `Publish packages` workflow (`.github/workflows/publish.yml`) publishes everything from GitHub Actions. It needs an `NPM_TOKEN` repo secret (npm granular token with publish rights on the `heimdallfund` org) and a PyPI trusted publisher (project `heimdallfund`, owner `heimdallfund`, repo `heimdall`, workflow `publish.yml`, environment `pypi`). Versions already on a registry are skipped. The manual steps below still work.
 
 | Package | What it is |
 | --- | --- |
 | `@heimdallfund/sdk` | TypeScript SDK: Shield, vaults, Pay, Auto-Invest, Signals |
 | `@heimdallfund/agent-kit` | Tools for the Vercel AI SDK, LangChain and ElizaOS |
-| `@heimdallfund/mcp` | MCP server (`npx @heimdallfund/mcp`) with 16 tools |
+| `@heimdallfund/mcp` | MCP server (`npx @heimdallfund/mcp`) with 17 tools; mainnet addresses built in |
 | `@heimdallfund/plugin-heimdall` | ElizaOS plugin (thin wrapper over `agent-kit/eliza`) |
 
 ## 1. npm

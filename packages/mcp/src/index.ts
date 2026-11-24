@@ -13,6 +13,7 @@ import {
   payX402, readRisk,
   HeimdallShield, HeimdallPay, heimdallSignalsAbi, heimdallVaultAbi, heimdallVaultFactoryAbi, type Job,
   robinhoodChain, robinhoodChainTestnet, USDG, type CheckResult, type SignatureCheckResult,
+  HEIMDALL_MAINNET,
 } from "@heimdallfund/sdk";
 
 export const VERSION = "0.2.0";
@@ -443,6 +444,7 @@ export function buildServer(d: Deps) {
 
 export function depsFromEnv(env: NodeJS.ProcessEnv = process.env): Deps {
   const chain = env.HEIMDALL_CHAIN === "testnet" ? robinhoodChainTestnet : robinhoodChain;
+  const main = chain.id === HEIMDALL_MAINNET.chainId;
   // Keyless: with HEIMDALL_X402_PRIVATE_KEY the server pays per call in USDG (x402) once the free limit is used,
   // never more than HEIMDALL_X402_MAX raw units (default 0.005 USDG) per call. The wallet needs USDG only, no ETH.
   let fetchImpl: typeof fetch | undefined;
@@ -454,10 +456,11 @@ export function depsFromEnv(env: NodeJS.ProcessEnv = process.env): Deps {
     shield: new HeimdallShield({ baseUrl: env.HEIMDALL_API_URL, apiKey: env.HEIMDALL_API_KEY, fetch: fetchImpl }),
     client: createPublicClient({ chain, transport: http(env.RPC_URL) }) as PublicClient,
     chainId: chain.id,
-    signals: env.HEIMDALL_SIGNALS_ADDRESS as Address | undefined,
-    factory: env.HEIMDALL_FACTORY_ADDRESS as Address | undefined,
-    pay: env.HEIMDALL_PAY_ADDRESS as Address | undefined,
-    riskOracle: env.HEIMDALL_RISK_ORACLE_ADDRESS as Address | undefined,
+    // mainnet defaults; on testnet the addresses must come from the environment
+    signals: (env.HEIMDALL_SIGNALS_ADDRESS ?? (main ? HEIMDALL_MAINNET.signals : undefined)) as Address | undefined,
+    factory: (env.HEIMDALL_FACTORY_ADDRESS ?? (main ? HEIMDALL_MAINNET.vaultFactory : undefined)) as Address | undefined,
+    pay: (env.HEIMDALL_PAY_ADDRESS ?? (main ? HEIMDALL_MAINNET.pay : undefined)) as Address | undefined,
+    riskOracle: (env.HEIMDALL_RISK_ORACLE_ADDRESS ?? (main ? HEIMDALL_MAINNET.riskOracle : undefined)) as Address | undefined,
     webUrl: (env.HEIMDALL_WEB_URL ?? "https://heimdall.fund").replace(/\/$/, ""),
   };
 }
