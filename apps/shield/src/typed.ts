@@ -1,4 +1,5 @@
 import { type Address, type PublicClient, getAddress, isAddress, isHex, maxUint256 } from "viem";
+import { judgeAuthorization, type Authorization } from "./delegation.js";
 import { fakeTokenCheck } from "./impersonation.js";
 import { knownContract } from "./chains.js";
 import { isBlocklisted } from "./blocklist.js";
@@ -128,6 +129,12 @@ export async function checkTypedData(
   if (vc && isBlocklisted(vc)) add("BLOCKLISTED_CONTRACT", "deny", `Verifying contract ${short(vc)} is on the Heimdall blocklist.`);
 
   return finish(F, kind, summary, approvals, policy);
+}
+
+/** EIP-7702 authorization tuple: which code the wallet would run, on which chains. */
+export async function checkAuthorization(chainId: number, auth: Authorization, policy: Policy, client: PublicClient): Promise<SignatureCheckResult> {
+  const { findings, summary } = await judgeAuthorization(auth, chainId, policy, client);
+  return finish(findings, "eip7702-authorization", [summary], [], policy);
 }
 
 /** personal_sign / eth_sign: a bare 32-byte hash is blind signing and is denied. */

@@ -82,7 +82,7 @@ export function buildServer(d: Deps) {
 
   server.registerTool("heimdall_check_signature", {
     title: "Check a signature request before signing",
-    description: "Judge an EIP-712 typed-data request (Permit, Permit2, orders, Seaport, …) or a personal_sign message BEFORE signing. Gasless approvals are the most common way agents get drained. Send exactly one of typedData or message.",
+    description: "Judge an EIP-712 typed-data request (Permit, Permit2, orders, Seaport, …), a personal_sign message, or an EIP-7702 authorization BEFORE signing. Gasless approvals and 7702 delegations are the most common ways agents get drained. Send exactly one of typedData, message or authorization.",
     inputSchema: {
       signer: address.describe("Wallet that would sign"),
       typedData: z.object({
@@ -92,13 +92,14 @@ export function buildServer(d: Deps) {
         message: z.record(z.string(), z.unknown()),
       }).optional().describe("The full eth_signTypedData_v4 payload"),
       message: z.string().max(16_384).optional().describe("A personal_sign message (plain text)"),
+      authorization: z.object({ chainId: z.number().int().nonnegative(), address: address, nonce: z.number().int().nonnegative().optional() }).optional().describe("An EIP-7702 authorization the wallet is asked to sign: which contract it would delegate to"),
       share: z.boolean().optional(),
     },
     annotations: { readOnlyHint: true, openWorldHint: true },
-  }, async ({ signer, typedData, message, share }) => {
-    if (!typedData === !message) return fail("Send exactly one of typedData or message.");
+  }, async ({ signer, typedData, message, authorization, share }) => {
+    if ([typedData, message, authorization].filter((x) => x !== undefined).length !== 1) return fail("Send exactly one of typedData, message or authorization.");
     try {
-      const r: SignatureCheckResult = await d.shield.checkSignature({ chainId: d.chainId, signer: signer as Address, typedData, message }, undefined, { share });
+      const r: SignatureCheckResult = await d.shield.checkSignature({ chainId: d.chainId, signer: signer as Address, typedData, message, authorization: authorization as never }, undefined, { share });
       const extra = r.approvals?.length
         ? `\nGrants spending rights to: ${r.approvals.map((a) => `${a.spender}${a.unlimited ? " (unlimited)" : ""}`).join(", ")}`
         : "";

@@ -28,6 +28,7 @@ class Policy(TypedDict, total=False):
     denyUnlimitedApprovals: bool
     allowContractDeploy: bool
     trustedRecipients: list[str]
+    trustedDelegates: list[str]
 
 
 class AssetChange(TypedDict):

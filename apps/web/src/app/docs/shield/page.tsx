@@ -44,6 +44,7 @@ Content-Type: application/json
         ["trustedSpenders", "Unlimited approvals to these spenders do not warn."],
         ["denyUnlimitedApprovals", "Unlimited approvals are always denied."],
         ["trustedRecipients", "Sending assets to these does not raise ONE_WAY_OUTFLOW."],
+        ["trustedDelegates", "EIP-7702 delegate contracts the agent may authorise beyond the wallet implementations Heimdall knows."],
         ["allowContractDeploy", "Allow to = null."],
       ]} />
       <H2 id="findings">Findings</H2>

@@ -12,6 +12,7 @@ import { probeReceivedToken, probeTransferability, simulate, STRANGER, type SimR
 import { fmt, tokenMeta } from "./tokens.js";
 import { fakeTokenCheck } from "./impersonation.js";
 import { lookalikeOf } from "./poison.js";
+import { judgeAuthorization } from "./delegation.js";
 import { TOKENS, KNOWN_SPENDERS } from "./registry.js";
 import type { ApprovalInfo, AssetChange, CheckResult, Finding, TxIntent, Verdict } from "./types.js";
 
@@ -153,6 +154,14 @@ export async function checkTransaction(rawTx: TxIntent, rawPolicy: unknown, deps
     if (isBlocklisted(tx.to)) add("BLOCKLISTED_TARGET", "deny", `Target ${short(tx.to)} is on the Heimdall blocklist of known drainers and exploits.`);
     if (policy.allowTargets && !inList(policy.allowTargets, tx.to))
       add("TARGET_NOT_ALLOWED", "deny", `Target ${short(tx.to)} is not in the agent's allow list.`);
+  }
+
+  // 1b. EIP-7702: authorizations in a type 4 transaction hand the signing wallet's control to a contract.
+  const authLines: string[] = [];
+  for (const a of (rawTx.authorizationList ?? []).slice(0, 8)) {
+    const j = await judgeAuthorization(a, tx.chainId, policy, client);
+    F.push(...j.findings);
+    authLines.push(j.summary);
   }
 
   // 2. Decode + parallel lookups. Code lookups are memoised per check, and spenders that are known from the
@@ -317,6 +326,7 @@ export async function checkTransaction(rawTx: TxIntent, rawPolicy: unknown, deps
   const verdict = verdictOf(F, policy);
   const summary: string[] = [];
   summary.push(decoded ? `Calls ${decoded.signature} on ${label(tx.chainId, tx.to)}` : tx.data === "0x" ? `Plain transfer to ${label(tx.chainId, tx.to)}` : `Calls unknown function ${tx.data.slice(0, 10)} on ${label(tx.chainId, tx.to)}`);
+  summary.push(...authLines);
   summary.push(...batch.lines);
   for (const t of batch.transfers) summary.push(`Router transfers ${t.amount} of ${label(tx.chainId, t.token)} → ${short(t.to)}`);
   for (const c of changes) {

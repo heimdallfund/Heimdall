@@ -50,6 +50,8 @@ def test_signature_needs_exactly_one_payload():
         s.check_signature(AGENT)
     with pytest.raises(ValueError):
         s.check_signature(AGENT, typed_data={"primaryType": "Permit", "message": {}}, message="x")
+    s.check_signature(AGENT, authorization={"chainId": 4663, "address": USDG, "nonce": 1})
+    assert json.loads(seen[-1].content)["authorization"] == {"chainId": 4663, "address": USDG, "nonce": 1}
 
 
 def test_payment_required_and_errors_carry_the_details():

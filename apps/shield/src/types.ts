@@ -15,6 +15,8 @@ export interface TxIntent {
   to: Address | null;
   data: Hex;
   value: bigint;
+  /** EIP-7702 authorizations carried by a type 4 transaction. */
+  authorizationList?: { chainId: number | string; address: string; nonce?: number | string }[];
   /** Internal only (Token Check): balances to give accounts before simulating, e.g. ETH for a probe buyer. Never from the API. */
   overrides?: Record<string, { balance?: Hex }>;
 }

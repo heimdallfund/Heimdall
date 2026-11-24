@@ -24,6 +24,8 @@ export const PolicySchema = z.object({
   allowContractDeploy: z.boolean().default(false),
   /** Recipients the agent may send assets to without a warning (e.g. owner, treasury). */
   trustedRecipients: z.array(addr).default([]),
+  /** EIP-7702 delegate contracts the agent may authorise, beyond the wallet implementations Heimdall knows. */
+  trustedDelegates: z.array(addr).default([]),
 }).prefault({});
 
 export type Policy = z.infer<typeof PolicySchema>;

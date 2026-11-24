@@ -24,12 +24,14 @@ def _tx_body(sender: str, to: str | None, data: str, value: int | str, chain_id:
     return body
 
 
-def _sig_body(signer: str, typed_data: Mapping[str, Any] | None, message: str | None, chain_id: int, policy: Policy | None, share: bool) -> dict[str, Any]:
-    if (typed_data is None) == (message is None):
-        raise ValueError("pass exactly one of typed_data or message")
+def _sig_body(signer: str, typed_data: Mapping[str, Any] | None, message: str | None, chain_id: int, policy: Policy | None, share: bool, authorization: Mapping[str, Any] | None = None) -> dict[str, Any]:
+    if sum(x is not None for x in (typed_data, message, authorization)) != 1:
+        raise ValueError("pass exactly one of typed_data, message or authorization")
     body: dict[str, Any] = {"chainId": chain_id, "signer": signer}
     if typed_data is not None:
         body["typedData"] = dict(typed_data)
+    elif authorization is not None:
+        body["authorization"] = dict(authorization)
     else:
         body["message"] = message
     if policy:
@@ -96,9 +98,10 @@ class Shield(_Base):
         """Simulate a transaction on the current chain state and judge it: ALLOW, WARN or DENY with the reasons."""
         return self._post("/v1/check", _tx_body(sender, to, data, value, self.chain_id, policy, share, probe))
 
-    def check_signature(self, signer: str, typed_data: Mapping[str, Any] | None = None, message: str | None = None, policy: Policy | None = None, share: bool = False) -> SignatureCheckResult:
-        """Judge an EIP-712 request (Permit, Permit2, orders) or a personal_sign message before signing it."""
-        return self._post("/v1/check-signature", _sig_body(signer, typed_data, message, self.chain_id, policy, share))
+    def check_signature(self, signer: str, typed_data: Mapping[str, Any] | None = None, message: str | None = None, policy: Policy | None = None, share: bool = False, authorization: Mapping[str, Any] | None = None) -> SignatureCheckResult:
+        """Judge an EIP-712 request (Permit, Permit2, orders), a personal_sign message, or an EIP-7702 authorization
+        ({"chainId": 4663, "address": delegate, "nonce": n}) before signing it."""
+        return self._post("/v1/check-signature", _sig_body(signer, typed_data, message, self.chain_id, policy, share, authorization))
 
     def guard(self, sender: str, to: str | None, data: str = "0x", value: int | str = 0, policy: Policy | None = None, allow_warn: bool = False) -> CheckResult:
         """Check, then raise HeimdallDenied unless the verdict allows signing. Errors raise too: fail closed."""
@@ -164,8 +167,8 @@ class AsyncShield(_Base):
     async def check(self, sender: str, to: str | None, data: str = "0x", value: int | str = 0, policy: Policy | None = None, share: bool = False, probe: bool = False) -> CheckResult:
         return await self._post("/v1/check", _tx_body(sender, to, data, value, self.chain_id, policy, share, probe))
 
-    async def check_signature(self, signer: str, typed_data: Mapping[str, Any] | None = None, message: str | None = None, policy: Policy | None = None, share: bool = False) -> SignatureCheckResult:
-        return await self._post("/v1/check-signature", _sig_body(signer, typed_data, message, self.chain_id, policy, share))
+    async def check_signature(self, signer: str, typed_data: Mapping[str, Any] | None = None, message: str | None = None, policy: Policy | None = None, share: bool = False, authorization: Mapping[str, Any] | None = None) -> SignatureCheckResult:
+        return await self._post("/v1/check-signature", _sig_body(signer, typed_data, message, self.chain_id, policy, share, authorization))
 
     async def guard(self, sender: str, to: str | None, data: str = "0x", value: int | str = 0, policy: Policy | None = None, allow_warn: bool = False) -> CheckResult:
         result = await self.check(sender, to, data, value, policy)

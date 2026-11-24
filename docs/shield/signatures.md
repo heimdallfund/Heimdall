@@ -18,6 +18,9 @@ POST https://api.heimdall.fund/v1/check-signature
 
 // personal_sign / eth_sign
 { "chainId": 4663, "signer": "0xAgent", "message": "0x…" }
+
+// EIP-7702 authorization: the contract the wallet would delegate to
+{ "chainId": 4663, "signer": "0xAgent", "authorization": { "chainId": 4663, "address": "0xDelegate", "nonce": 7 } }
 ```
 
 ## What is recognised
@@ -30,6 +33,7 @@ POST https://api.heimdall.fund/v1/check-signature
 | Permit2 PermitTransferFrom (+ batch, witness) | Tokens, amounts, spender, deadline. |
 | Seaport OrderComponents | Denies orders that give assets away for nothing; warns on any listing. |
 | personal\_sign of a 32-byte hash | Denied: blind signing can authorise anything. |
+| EIP-7702 authorization | Allowed only for known wallet implementations (MetaMask DeleGator, Simple7702Account, Uniswap Calibur, Coinbase EIP7702Proxy, Ambire) or ones in `trustedDelegates`. Denied for chain ID 0, another chain, an address with no code, a blocklisted contract or any unknown contract. The same rules apply to the `authorizationList` of a type 4 transaction sent to `/v1/check`. |
 | Anything else | WARN: unrecognised typed data. |
 
 ## Findings
@@ -43,6 +47,10 @@ POST https://api.heimdall.fund/v1/check-signature
 | `ORDER_FOR_NOTHING` | deny | Marketplace order that pays you nothing. |
 | `BLIND_HASH_SIGNATURE` | deny | Signing an opaque 32-byte hash. |
 | `BLOCKLISTED_SPENDER` / `BLOCKLISTED_CONTRACT` | deny | Known malicious address. |
+| `UNKNOWN_DELEGATE` | deny | EIP-7702: hands full control of the wallet to a contract Heimdall does not know. |
+| `AUTH_ALL_CHAINS` | deny | EIP-7702 authorization with chain ID 0: valid on every chain. |
+| `DELEGATE_NO_CODE` / `DELEGATE_IS_WALLET` / `BLOCKLISTED_DELEGATE` | deny | EIP-7702 delegate with no code yet, a delegated wallet, or a known malicious contract. |
+| `KNOWN_DELEGATE` / `TRUSTED_DELEGATE` / `AUTH_REVOKE` | info | A known wallet implementation, one your policy trusts, or clearing the delegation. |
 
 {% hint style="info" %}
 The same policy fields as [transaction checks](transactions.md#policy) apply, for example `trustedSpenders` for your own router.

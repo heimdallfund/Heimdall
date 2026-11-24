@@ -48,7 +48,12 @@ export interface Policy {
   denyUnlimitedApprovals?: boolean;
   allowContractDeploy?: boolean;
   trustedRecipients?: Address[];
+  /** EIP-7702 delegate contracts the agent may authorise beyond the wallet implementations Heimdall knows. */
+  trustedDelegates?: Address[];
 }
+
+/** EIP-7702 authorization tuple (the part that is signed, without the signature). */
+export interface Authorization7702 { chainId: number | string; address: Address; nonce?: number | string }
 
 export interface TxRequest {
   chainId?: number;
@@ -56,6 +61,8 @@ export interface TxRequest {
   to?: Address | null;
   data?: Hex;
   value?: bigint | string | number;
+  /** Type 4 (EIP-7702) transactions: the authorizations it carries. */
+  authorizationList?: Authorization7702[];
 }
 
 export interface Finding { code: string; severity: "info" | "warn" | "deny"; message: string }
@@ -88,6 +95,8 @@ export interface SignatureRequest {
   signer: Address;
   typedData?: { domain?: Record<string, unknown>; types?: Record<string, { name: string; type: string }[]>; primaryType: string; message: Record<string, unknown> };
   message?: string;
+  /** An EIP-7702 authorization the wallet is asked to sign. */
+  authorization?: Authorization7702;
 }
 export interface SignatureCheckResult {
   verdict: Verdict; riskScore: number; summary: string[]; findings: Finding[];
@@ -175,6 +184,7 @@ export class HeimdallShield {
         policy,
         share: opts.share || undefined,
         probe: opts.probe || undefined,
+        authorizationList: tx.authorizationList?.map((a) => ({ chainId: Number(a.chainId), address: a.address, nonce: a.nonce === undefined ? undefined : Number(a.nonce) })),
       }),
     });
   }
@@ -183,7 +193,7 @@ export class HeimdallShield {
   checkSignature(req: SignatureRequest, policy?: Policy, opts: { share?: boolean } = {}): Promise<SignatureCheckResult> {
     return this.request<SignatureCheckResult>("/v1/check-signature", {
       method: "POST",
-      body: JSON.stringify({ chainId: req.chainId ?? 4663, signer: req.signer, typedData: req.typedData, message: req.message, policy, share: opts.share || undefined }),
+      body: JSON.stringify({ chainId: req.chainId ?? 4663, signer: req.signer, typedData: req.typedData, message: req.message, authorization: req.authorization, policy, share: opts.share || undefined }),
     });
   }
 

@@ -55,6 +55,7 @@ Content-Type: application/json
 | `trustedSpenders` | Unlimited approvals to these spenders do not warn. |
 | `denyUnlimitedApprovals` | Unlimited approvals are always denied. |
 | `trustedRecipients` | Sending assets to these does not raise `ONE_WAY_OUTFLOW`. |
+| `trustedDelegates` | EIP-7702 delegate contracts the agent may authorise beyond the wallet implementations Heimdall knows. |
 | `allowContractDeploy` | Allow `to = null`. |
 
 ## Findings
@@ -73,7 +74,7 @@ Content-Type: application/json
 | `NATIVE_LIMIT` / `TOKEN_LIMIT` | deny | Above a policy cap. |
 | `DRAINS_BALANCE` | warn | Moves 90% or more of the wallet's balance of an asset. |
 | `ONE_WAY_OUTFLOW` | warn | Assets leave to an untrusted address and nothing comes back. |
-| `BLOCKLISTED_TARGET` / `SPENDER` / `RECIPIENT` | deny | A known drainer or exploit address is involved. |
+| `BLOCKLISTED_TARGET` / `SPENDER` / `RECIPIENT` / `TOKEN` | deny | A known drainer or exploit address is involved, or the token being bought is a known scam. |
 | `ZERO_TARGET` | deny | Sending to the zero address. |
 | `TARGET_NOT_ALLOWED` / `DENYLISTED_TARGET` | deny | Outside the policy's allow list, or on its deny list. |
 | `EOA_WITH_DATA` | warn | Calldata sent to an address with no code. |

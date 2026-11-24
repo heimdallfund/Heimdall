@@ -29,7 +29,7 @@ import { PolicySchema } from "./policy.js";
 import { receiptDomain, RECEIPT_TYPES } from "./receipt.js";
 import { getSigner, prelaunch } from "./signer.js";
 import { checkTransaction, toJSON } from "./shield.js";
-import { checkPersonalMessage, checkTypedData } from "./typed.js";
+import { checkAuthorization, checkPersonalMessage, checkTypedData } from "./typed.js";
 import { keysRoutes, lookupStoredKey } from "./keys.js";
 import { background, deliver, hookOwnersOf } from "./webhooks.js";
 import { storeFromEnv, type CounterStore } from "./store.js";
@@ -82,6 +82,12 @@ export function activeProvider(chainId: SupportedChainId) {
 }
 
 const addr = z.string().refine(isAddress, "invalid address");
+const Authorization7702 = z.object({
+  chainId: z.union([z.number().int().nonnegative(), z.string().regex(/^\d{1,20}$/)]),
+  address: addr,
+  nonce: z.union([z.number().int().nonnegative(), z.string().regex(/^\d{1,20}$/)]).optional(),
+});
+
 export const SignatureBody = z.object({
   chainId: z.union([z.literal(4663), z.literal(46630)]).default(4663),
   signer: addr,
@@ -92,9 +98,11 @@ export const SignatureBody = z.object({
     message: z.record(z.string(), z.unknown()),
   }).optional(),
   message: z.string().max(16_384).optional(),
+  /** EIP-7702 authorization tuple the wallet is asked to sign. */
+  authorization: Authorization7702.optional(),
   policy: PolicySchema.optional(),
   share: z.boolean().optional(),
-}).refine((b) => !!b.typedData !== !!b.message, "send exactly one of typedData or message");
+}).refine((b) => [b.typedData, b.message, b.authorization].filter((x) => x !== undefined).length === 1, "send exactly one of typedData, message or authorization");
 
 export const CheckBody = z.object({
   chainId: z.union([z.literal(4663), z.literal(46630)]).default(4663),
@@ -104,6 +112,8 @@ export const CheckBody = z.object({
   value: z.union([z.string().regex(/^(0x[0-9a-fA-F]{1,64}|\d{1,78})$/), z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER)]).default("0").refine((v) => BigInt(v) < 2n ** 256n, "value must fit in uint256"),
   policy: PolicySchema.optional(),
   share: z.boolean().optional(),
+  /** EIP-7702 (type 4) transaction: the authorizations it carries. */
+  authorizationList: z.array(Authorization7702).max(8).optional(),
   /** A lookup ("is this address safe?") from a throwaway wallet: judged normally but kept off the Threat Board and agent stats. */
   probe: z.boolean().optional(),
 });
@@ -320,14 +330,16 @@ export function buildApp(opts: AppOptions = {}) {
     try {
       const result = b.typedData
         ? await checkTypedData(b.chainId, b.signer as `0x${string}`, b.typedData as never, policy, getClient(b.chainId))
-        : checkPersonalMessage(b.message!, policy);
+        : b.authorization
+          ? await checkAuthorization(b.chainId, b.authorization, policy, getClient(b.chainId))
+          : checkPersonalMessage(b.message!, policy);
       const bucket = result.verdict === "ALLOW" ? "allowed" : result.verdict === "WARN" ? "warned" : "denied";
       await countVerdict(store, bucket).catch(() => {});
       const checkId = keccak256(toHex(`sig:${b.signer}:${Date.now()}:${Math.random()}`));
       const spender = result.approvals?.[0]?.spender ?? null;
       await recordCheck(store, { kind: "sig", wallet: b.signer, target: spender, result: { ...result, checkId } }).catch(() => {});
-      if (b.share) await saveVerdict(store, checkId, { kind: "sig", at: Date.now(), chainId: b.chainId, signer: b.signer, primaryType: b.typedData?.primaryType ?? "personal_sign", result: toJSON(result) }).catch(() => {});
-      notifyVerdict(c, "sig", { ...result, checkId } as never, { chainId: b.chainId, signer: b.signer, primaryType: b.typedData?.primaryType ?? "personal_sign" });
+      if (b.share) await saveVerdict(store, checkId, { kind: "sig", at: Date.now(), chainId: b.chainId, signer: b.signer, primaryType: b.typedData?.primaryType ?? (b.authorization ? "EIP7702Authorization" : "personal_sign"), result: toJSON(result) }).catch(() => {});
+      notifyVerdict(c, "sig", { ...result, checkId } as never, { chainId: b.chainId, signer: b.signer, primaryType: b.typedData?.primaryType ?? (b.authorization ? "EIP7702Authorization" : "personal_sign") });
       return c.json(b.share ? { ...(toJSON(result) as object), shareId: checkId } : result);
     } catch (e) {
       log({ level: "error", path: "/v1/check-signature", message: (e as Error).message });
@@ -350,7 +362,7 @@ export function buildApp(opts: AppOptions = {}) {
       const peersKey = `agent:${b.from.toLowerCase()}:peers`;
       const history = b.probe ? [] : await store.members(peersKey).catch(() => [] as string[]);
       const result = await checkTransaction(
-        { chainId: b.chainId, from: b.from as `0x${string}`, to: (b.to ?? null) as `0x${string}` | null, data: b.data as `0x${string}`, value: BigInt(b.value) },
+        { chainId: b.chainId, from: b.from as `0x${string}`, to: (b.to ?? null) as `0x${string}` | null, data: b.data as `0x${string}`, value: BigInt(b.value), authorizationList: b.authorizationList },
         b.policy,
         { client: getClient(b.chainId), history },
       );
