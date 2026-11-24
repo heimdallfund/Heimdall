@@ -15,4 +15,4 @@ coverage/
 contracts/deployments/localhost*.json
 apps/shield/data/*.local.*
 .DS_Store
-launch/
+/launch/
