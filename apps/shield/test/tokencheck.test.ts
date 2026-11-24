@@ -1,6 +1,9 @@
 import { describe, it, expect } from "vitest";
 import { decodeFunctionData, pad, parseAbi, toHex, type Address, type Hex, type PublicClient } from "viem";
 import { tokenCheck, SWAP_ROUTER_02 } from "../src/tokencheck.js";
+import { UNIVERSAL_ROUTER, POOL_MANAGER } from "../src/v4hooks.js";
+import { v4PoolsOf } from "../src/decode.js";
+import { decodeAbiParameters } from "viem";
 
 const TOKEN: Address = "0x4444444444444444444444444444444444444444";
 const POOL: Address = "0x7777777777777777777777777777777777777777";
@@ -17,6 +20,7 @@ function client(o: Opts = {}): PublicClient {
     readContract: async ({ functionName, args }: { functionName: string; args?: unknown[] }) => {
       if (functionName === "getPool") return o.pool === false ? "0x0000000000000000000000000000000000000000" : (args?.[2] === 3000 ? POOL : "0x0000000000000000000000000000000000000000");
       if (functionName === "liquidity") return 10n ** 20n;
+      if (functionName === "getLiquidity") return 10n ** 20n;
       if (functionName === "symbol") return o.symbol ?? "MEME";
       if (functionName === "name") return "Meme";
       if (functionName === "decimals") return 18;
@@ -40,6 +44,16 @@ function client(o: Opts = {}): PublicClient {
           const TAXMAN: Address = "0x8888888888888888888888888888888888888888";
           return { status: "0x1", logs: [log(POOL, buyer, kept), ...(kept < out ? [log(POOL, TAXMAN, out - kept)] : [])] };
         }
+        if (c.to.toLowerCase() === UNIVERSAL_ROUTER.toLowerCase()) {
+          const ex = decodeFunctionData({ abi: parseAbi(["function execute(bytes commands, bytes[] inputs, uint256 deadline)"]), data: c.data });
+          const input = (ex.args[1] as Hex[])[0]!;
+          const [, params] = decodeAbiParameters([{ type: "bytes" }, { type: "bytes[]" }], input) as [Hex, Hex[]];
+          const [st] = decodeAbiParameters([{ type: "tuple", components: [{ name: "k", type: "tuple", components: [{ name: "c0", type: "address" }, { name: "c1", type: "address" }, { name: "fee", type: "uint24" }, { name: "ts", type: "int24" }, { name: "h", type: "address" }] }, { name: "zeroForOne", type: "bool" }, { name: "amountIn", type: "uint128" }, { name: "min", type: "uint128" }, { name: "hd", type: "bytes" }] }], params[0]!) as unknown as [{ zeroForOne: boolean; amountIn: bigint }];
+          if (st.zeroForOne) return { status: "0x1", logs: [log(POOL_MANAGER, c.from, 1000n)] }; // buy: ETH -> token
+          if (o.sell === "revert") return { status: "0x0", returnData: "0x", error: { message: "SELL_BLOCKED" }, logs: [] };
+          return { status: "0x1", logs: [log(c.from, POOL_MANAGER, st.amountIn)] };
+        }
+        if (c.to.toLowerCase() === "0x000000000022d473030f116ddee9f6b43ac78ba3") return { status: "0x1", logs: [] }; // Permit2.approve
         const d = decodeFunctionData({ abi: X, data: c.data });
         if (d.functionName === "approve") return { status: "0x1", logs: [] };
         if (d.functionName === "transfer") { const [to, amt] = d.args as [Address, bigint]; return { status: "0x1", logs: [log(c.from, to, amt)] }; }
@@ -51,6 +65,17 @@ function client(o: Opts = {}): PublicClient {
 }
 
 describe("Token Check", () => {
+  it("falls back to a Uniswap v4 pool against ETH and catches a sell-blocking honeypot there", async () => {
+    const id = ("0x" + "ab".repeat(32)) as Hex;
+    const logs = { getBlockNumber: async () => 30_000_000n, getLogs: async ({ args }: { args: Record<string, string> }) => (args.currency1 ? [{ blockNumber: 5n, args: { id, currency0: "0x0000000000000000000000000000000000000000", currency1: args.currency1, fee: 3000, tickSpacing: 60, hooks: "0x0000000000000000000000000000000000000000" } }] : []) } as unknown as PublicClient;
+    const ok = await tokenCheck(client({ pool: false, sell: "ok" }), TOKEN, Date.now(), logs);
+    expect(ok.pool).toMatchObject({ version: 4, pair: "ETH", fee: 3000 });
+    expect(ok.verdict).toBe("ALLOW");
+    const hp = await tokenCheck(client({ pool: false, sell: "revert" }), TOKEN, Date.now(), { ...logs } as PublicClient);
+    expect(hp.verdict).toBe("DENY");
+    expect(hp.sell).toMatchObject({ ok: false, reason: "SELL_BLOCKED" });
+  });
+
   it("passes a token that buys, sells and transfers without tax", async () => {
     const r = await tokenCheck(client({ sell: "ok" }), TOKEN);
     expect(r.verdict).toBe("ALLOW");
@@ -80,8 +105,9 @@ describe("Token Check", () => {
     expect(fake.findings.map((f) => f.code)).toContain("FAKE_TOKEN");
   });
 
-  it("warns when there is no pool to simulate against", async () => {
-    const r = await tokenCheck(client({ pool: false }), TOKEN);
+  it("warns when there is no v3 pool and no v4 pool to simulate against", async () => {
+    const noLogs = { getBlockNumber: async () => 30_000_000n, getLogs: async () => [] } as unknown as PublicClient;
+    const r = await tokenCheck(client({ pool: false }), TOKEN, Date.now(), noLogs);
     expect(r.verdict).toBe("WARN");
     expect(r.findings.map((f) => f.code)).toContain("NO_POOL");
   });

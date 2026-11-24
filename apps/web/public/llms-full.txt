@@ -205,6 +205,10 @@ Content-Type: application/json
 | `VANISHING_TOKEN` | deny / warn | A token arrives and is taken out of the wallet in the same transaction (denied when you paid for it). |
 | `ALLOWANCE_BYPASS` | deny | A stranger, or the token's `owner()`, can `transferFrom` your wallet with no allowance: tokens can be clawed back. |
 | `FAKE_TOKEN` | deny / warn | The symbol (deny) or name (warn) of a known token such as USDG, WETH or a stock token, at a different address. Look-alike letters and zero-width characters are folded first. |
+| `HOOK_TAKES_DELTA` | warn | A Uniswap v4 pool on the route has a hook that can change swap amounts: a hidden fee of any size. |
+| `HOOK_DYNAMIC_FEE` | warn | A Uniswap v4 pool whose hook sets the swap fee at swap time. |
+| `HOOK_ON_SWAP` | info | A v4 hook runs on every swap and could refuse later trades. |
+| `HOOK_NO_CODE` / `BLOCKLISTED_HOOK` | deny | The pool names a hook with no contract, or a known malicious one. |
 | `LOOKALIKE_ADDRESS` | deny | A target, recipient or spender that shares 3+ first and last characters (8+ in total) with a known address, a trusted one in your policy, or one this wallet already used: address poisoning. |
 | `TRANSFER_TAX` | info / warn / deny | A received token loses value on transfer (≥5% warns, ≥50% denies). |
 | `NATIVE_LIMIT` / `TOKEN_LIMIT` | deny | Above a policy cap. |

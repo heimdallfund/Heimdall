@@ -12,7 +12,7 @@ type Leg = { ok: boolean; taxPct: number | null; reason?: string } | null;
 type Report = {
   token: string; symbol: string | null; name: string | null; decimals: number | null; owner: string | null;
   verdict: "ALLOW" | "WARN" | "DENY"; riskScore: number; findings: { code: string; severity: "info" | "warn" | "deny"; message: string }[];
-  pool: { address: string; fee: number; pair: string; liquidity: string } | null; buy: Leg; sell: Leg; transfer: Leg; pullableBy: string[]; checkedAt: number;
+  pool: { version?: 3 | 4; address: string; fee: number; pair: string; liquidity: string; hooks?: string } | null; buy: Leg; sell: Leg; transfer: Leg; pullableBy: string[]; checkedAt: number;
 };
 
 export async function generateMetadata({ params }: { params: Promise<{ address: string }> }): Promise<Metadata> {
@@ -92,7 +92,9 @@ async function Content({ params }: { params: Promise<{ address: string }> }) {
       <section className="grid gap-3 text-[14px] md:grid-cols-2">
         <div className="card flex flex-col gap-1.5 p-4">
           <span className="label">Pool</span>
-          {r.pool ? <><a href={explorerAddress(r.pool.address)} target="_blank" rel="noopener" className="font-mono hover:text-brand">{short(r.pool.address)}</a><span className="text-muted">Uniswap v3 · {r.pool.pair} · {(r.pool.fee / 10_000).toFixed(2)}% fee</span></> : <span className="text-muted">No Uniswap v3 pool against WETH</span>}
+          {r.pool ? (r.pool.version === 4 ? (
+            <><span className="break-all font-mono text-[12.5px]">{r.pool.address.slice(0, 18)}…</span><span className="text-muted">Uniswap v4 · {r.pool.pair} · {r.pool.fee === 0x800000 ? "dynamic fee" : `${(r.pool.fee / 10_000).toFixed(2)}% fee`}{r.pool.hooks && !/^0x0{40}$/i.test(r.pool.hooks) ? <> · hook <a href={explorerAddress(r.pool.hooks)} target="_blank" rel="noopener" className="font-mono hover:text-brand">{short(r.pool.hooks)}</a></> : " · no hook"}</span></>
+          ) : <><a href={explorerAddress(r.pool.address)} target="_blank" rel="noopener" className="font-mono hover:text-brand">{short(r.pool.address)}</a><span className="text-muted">Uniswap v3 · {r.pool.pair} · {(r.pool.fee / 10_000).toFixed(2)}% fee</span></>) : <span className="text-muted">No Uniswap v3 or v4 pool against ETH or WETH</span>}
         </div>
         <div className="card flex flex-col gap-1.5 p-4">
           <span className="label">Owner</span>

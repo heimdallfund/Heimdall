@@ -115,12 +115,44 @@ export interface Expanded {
   lines: string[];
   approvals: ApprovalInfo[];
   transfers: { token: Address; to: Address; amount: bigint }[];
+  /** Uniswap v4 pools a V4_SWAP goes through (hooks are read from these). */
+  v4Pools: { currency0: string; currency1: string; fee: number; hooks: string }[];
+}
+
+const POOL_KEY = { type: "tuple", components: [{ name: "currency0", type: "address" }, { name: "currency1", type: "address" }, { name: "fee", type: "uint24" }, { name: "tickSpacing", type: "int24" }, { name: "hooks", type: "address" }] } as const;
+const PATH_KEY = { type: "tuple[]", components: [{ name: "intermediateCurrency", type: "address" }, { name: "fee", type: "uint24" }, { name: "tickSpacing", type: "int24" }, { name: "hooks", type: "address" }, { name: "hookData", type: "bytes" }] } as const;
+
+/** The pools inside a Universal Router V4_SWAP input: (bytes actions, bytes[] params). */
+export function v4PoolsOf(input: Hex): Expanded["v4Pools"] {
+  const out: Expanded["v4Pools"] = [];
+  const [actions, params] = decodeAbiParameters([{ type: "bytes" }, { type: "bytes[]" }], input) as [Hex, Hex[]];
+  const acts = actions.slice(2).match(/.{2}/g) ?? [];
+  acts.forEach((a, i) => {
+    const act = parseInt(a, 16), p = params[i];
+    if (!p) return;
+    try {
+      if (act === 0x06 || act === 0x08) { // SWAP_EXACT_IN_SINGLE / SWAP_EXACT_OUT_SINGLE: the struct starts with the PoolKey
+        const [st] = decodeAbiParameters([{ type: "tuple", components: [{ name: "poolKey", ...POOL_KEY }, { name: "zeroForOne", type: "bool" }, { name: "amount", type: "uint128" }, { name: "limit", type: "uint128" }, { name: "hookData", type: "bytes" }] }], p) as unknown as [{ poolKey: { currency0: string; currency1: string; fee: number; hooks: string } }];
+        const k = st.poolKey;
+        out.push({ currency0: k.currency0, currency1: k.currency1, fee: Number(k.fee), hooks: k.hooks });
+      } else if (act === 0x07 || act === 0x09) { // SWAP_EXACT_IN / SWAP_EXACT_OUT: currency, then the path
+        const [st] = decodeAbiParameters([{ type: "tuple", components: [{ name: "currency", type: "address" }, { name: "path", ...PATH_KEY }, { name: "amount", type: "uint128" }, { name: "limit", type: "uint128" }] }], p) as unknown as [{ currency: string; path: { intermediateCurrency: string; fee: number; hooks: string }[] }];
+        let prev = st.currency;
+        for (const k of st.path) {
+          const [c0, c1] = BigInt(prev) < BigInt(k.intermediateCurrency) ? [prev, k.intermediateCurrency] : [k.intermediateCurrency, prev];
+          out.push({ currency0: c0, currency1: c1, fee: Number(k.fee), hooks: k.hooks });
+          prev = k.intermediateCurrency;
+        }
+      }
+    } catch { /* a newer struct layout: the simulation still shows the effect */ }
+  });
+  return out;
 }
 
 
 /** Look inside multicall(...) and Uniswap Universal Router execute(...) for nested approvals and transfers. */
 export function expandBatch(target: Address | null, data: Hex, depth = 0): Expanded {
-  const out: Expanded = { lines: [], approvals: [], transfers: [] };
+  const out: Expanded = { lines: [], approvals: [], transfers: [], v4Pools: [] };
   if (!target || depth > 2 || data.length < 10) return out;
   let d: { functionName: string; args?: readonly unknown[] };
   try { d = decodeFunctionData({ abi: BATCH_ABI, data }); } catch { return out; }
@@ -135,6 +167,7 @@ export function expandBatch(target: Address | null, data: Hex, depth = 0): Expan
       const nested = expandBatch(target, c, depth + 1);
       out.approvals.push(...nested.approvals);
       out.transfers.push(...nested.transfers);
+      out.v4Pools.push(...nested.v4Pools);
     }
     return out;
   }
@@ -162,6 +195,8 @@ export function expandBatch(target: Address | null, data: Hex, depth = 0): Expan
           input,
         ) as unknown as [{ details: { token: Address; amount: bigint }[]; spender: Address }];
         for (const det of pb.details) out.approvals.push({ standard: "permit2", token: det.token, spender: pb.spender, amount: det.amount, unlimited: isUnlimited(det.amount, "permit2"), revoke: det.amount === 0n });
+      } else if (cmd === 0x10) {
+        out.v4Pools.push(...v4PoolsOf(input));
       } else if (cmd === 0x05) {
         const [token, to, amount] = decodeAbiParameters([{ type: "address" }, { type: "address" }, { type: "uint256" }], input) as [Address, Address, bigint];
         out.transfers.push({ token, to, amount });

@@ -264,7 +264,8 @@ export interface TokenCheckResult {
   verdict: "ALLOW" | "WARN" | "DENY";
   riskScore: number;
   findings: { code: string; severity: "info" | "warn" | "deny"; message: string }[];
-  pool: { address: Address; fee: number; pair: "WETH"; liquidity: string } | null;
+  /** v3: the pool address; v4: the pool ID, with its hook. */
+  pool: { version: 3 | 4; address: Address | Hex; fee: number; pair: "WETH" | "ETH"; liquidity: string; hooks?: Address } | null;
   buy: { ok: boolean; taxPct: number | null; reason?: string } | null;
   sell: { ok: boolean; taxPct: number | null; reason?: string } | null;
   transfer: { ok: boolean; taxPct: number | null; reason?: string } | null;

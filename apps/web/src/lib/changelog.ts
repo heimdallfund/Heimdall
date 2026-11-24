@@ -8,7 +8,8 @@ export const CHANGELOG: ChangeEntry[] = [
     title: "Agents can find and use Heimdall on their own",
     summary: "A hosted MCP server, an OpenAPI spec and discovery files mean an agent or a developer tool can connect without anyone setting it up. Plus a live status page, a bigger sourced blocklist and a security pass on the Shield API.",
     changes: [
-      { tag: "Web", text: "Token Check: paste any Robinhood Chain token and see a simulated buy, sell and transfer through its Uniswap pool, the taxes, whether it can be clawed back from your wallet, and whether it fakes a real ticker. Also in the API, both SDKs and the MCP server." },
+      { tag: "Shield", text: "Uniswap v4 hooks: a swap through a pool whose hook can change the amounts, set the fee at swap time, or does not exist is flagged before you sign." },
+      { tag: "Web", text: "Token Check: paste any Robinhood Chain token and see a simulated buy, sell and transfer through its Uniswap v3 or v4 pool, the taxes, whether it can be clawed back from your wallet, and whether it fakes a real ticker. Also in the API, both SDKs and the MCP server." },
       { tag: "Shield", text: "EIP-7702 delegations, the newest drainer trick: signing one hands a contract full control of the wallet. Shield allows only known wallet implementations and denies any other, plus authorizations valid on every chain." },
       { tag: "Shield", text: "Catches the three scams Robinhood Chain is known for: honeypots that cannot be sold back to their pool, tokens that vanish or can be pulled out of your wallet after you buy, and fake tokens with a real ticker such as USDG or NVDA." },
       { tag: "Shield", text: "Address poisoning: a recipient that starts and ends like an address you already use, but is not it, is denied." },

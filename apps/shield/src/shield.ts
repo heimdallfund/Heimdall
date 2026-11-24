@@ -13,6 +13,7 @@ import { fmt, tokenMeta } from "./tokens.js";
 import { fakeTokenCheck } from "./impersonation.js";
 import { lookalikeOf } from "./poison.js";
 import { judgeAuthorization } from "./delegation.js";
+import { assessHooks } from "./v4hooks.js";
 import { TOKENS, KNOWN_SPENDERS } from "./registry.js";
 import type { ApprovalInfo, AssetChange, CheckResult, Finding, TxIntent, Verdict } from "./types.js";
 
@@ -262,6 +263,9 @@ export async function checkTransaction(rawTx: TxIntent, rawPolicy: unknown, deps
     const twin = lookalikeOf(d, familiar);
     if (twin) add("LOOKALIKE_ADDRESS", "deny", `${short(d)} looks like ${short(getAddress(twin))}${deps.history?.some((h) => lc(h) === twin) ? ", an address this wallet used before" : ""}, but it is a different address. This is address poisoning: check every character.`);
   }
+
+  // 4c. Uniswap v4 hooks of the pools this swap goes through
+  if (batch.v4Pools.length) F.push(...await assessHooks(client, batch.v4Pools.slice(0, 6)));
 
   // 5a. Fake tokens: a known ticker or name at the wrong address, wherever the token shows up in this call.
   const tokensTouched = new Map<string, Address>();
