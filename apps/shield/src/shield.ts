@@ -5,6 +5,7 @@ import {
 import { KNOWN_CONTRACTS, knownContract, NATIVE_ASSET } from "./chains.js";
 import { approvalsFromCall, decodeCall, expandBatch } from "./decode.js";
 import { isBlocklisted } from "./blocklist.js";
+import { ponsSpender } from "./launchpad.js";
 import { inList, lc, type Policy, PolicySchema } from "./policy.js";
 import { signReceipt } from "./receipt.js";
 import { prelaunch } from "./signer.js";
@@ -200,6 +201,25 @@ export async function checkTransaction(rawTx: TxIntent, rawPolicy: unknown, deps
       if (tx.to && !target.contract) add("APPROVE_ON_EOA", "deny", "Approval call sent to a non-contract address.");
       add(a.unlimited ? "UNLIMITED_APPROVAL_TO_EOA" : "APPROVAL_TO_EOA", a.unlimited ? "deny" : "warn",
         `Grants ${what} — the spender is a plain wallet, a classic drainer pattern.`);
+      continue;
+    }
+    // A Pons V2 token or curve is the launchpad's own code. It needs an approval only for the token its curve trades in.
+    const pons = !trusted && !(a.unlimited && policy.denyUnlimitedApprovals) && a.standard !== "erc721-all" ? await ponsSpender(client, a.spender).catch(() => null) : null;
+    if (pons) {
+      const amount = `${a.unlimited ? "UNLIMITED" : "limited"} ${label(tx.chainId, a.token)}`;
+      const pairName = pons.pairToken ? label(tx.chainId, pons.pairToken) : "ETH";
+      if (pons.kind === "curve") {
+        // the curve pulls its pair token on a buy and the launched token on a sell
+        const forBuy = !!pons.pairToken && lc(pons.pairToken) === lc(a.token);
+        const forSell = !forBuy && await ponsSpender(client, a.token).then((t) => !!t && lc(t.curve) === lc(a.spender)).catch(() => false);
+        if (forBuy || forSell) add("APPROVAL_LAUNCHPAD", "info",
+          `Grants ${amount} to a Pons bonding curve (${short(a.spender)}) so it can ${forBuy ? `take ${pairName} for a buy` : "take the tokens for a sell"}.${a.unlimited ? " Normal on Pons; an exact amount is still the safer habit." : ""}`);
+        else add("APPROVAL_LAUNCHPAD_UNUSED", "warn",
+          `Grants ${amount} to a Pons bonding curve (${short(a.spender)}) that trades in ${pairName}, so a Pons buy or sell never needs this approval.`);
+      } else {
+        add("APPROVAL_LAUNCHPAD_UNUSED", "warn",
+          `Grants ${amount} to ${pons.symbol ?? "a token"} (${short(a.spender)}), a token launched on Pons. A Pons buy or sell goes through its bonding curve and trades in ${pairName}, so the token contract itself never needs your ${label(tx.chainId, a.token)}. Check which site asked for this.`);
+      }
       continue;
     }
     if (a.unlimited) {

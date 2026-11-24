@@ -52,6 +52,7 @@ export const LAUNCHPAD_HOOKS: Record<string, string> = {
 
 const ABI = parseAbi([
   "function curve() view returns (address)",
+  "function symbol() view returns (string)",
   "function deployer() view returns (address)",
   "function factory() view returns (address)",
   "function graduated() view returns (bool)",
@@ -147,6 +148,24 @@ export async function detectLaunch(client: PublicClient, raw: Address): Promise<
   if (klik && !ZERO.test(String(klik[0])) && getAddress(String(klik[0])) === token) return { launchpad: "Klik", url: "https://klik.finance", model: "v4", dev: getAddress(String(klik[3])), graduated: null, progressPct: null };
   if (bottom && !ZERO.test(String(bottom[0])) && getAddress(String(bottom[0])) === token) return { launchpad: "Bottom.fun", model: "v4", dev: getAddress(String(bottom[1])), graduated: null, progressPct: null };
   return null;
+}
+
+/** A spender that is a Pons V2 token or bonding curve: deployed by the Pons factory, so its code is Pons's, not the dev's. */
+export interface PonsSpender { kind: "token" | "curve"; token: Address | null; symbol: string | null; curve: Address; pairToken: Address | null; graduated: boolean | null }
+
+export async function ponsSpender(client: PublicClient, raw: Address): Promise<PonsSpender | null> {
+  const a = getAddress(raw);
+  const r = <T>(address: Address, functionName: string) =>
+    client.readContract({ address, abi: ABI as never, functionName: functionName as never }).then((v) => v as T).catch(() => null);
+  const fromCurve = async (curve: Address, kind: "token" | "curve", token: Address | null): Promise<PonsSpender | null> => {
+    const factory = await r<Address>(curve, "factory");
+    if (!factory || getAddress(factory) !== PONS_V2_FACTORY) return null;
+    const [pair, graduated, symbol] = await Promise.all([r<Address>(curve, "pairToken"), r<boolean>(curve, "graduated"), token ? r<string>(token, "symbol") : Promise.resolve(null)]);
+    return { kind, token, symbol, curve, pairToken: pair && !ZERO.test(pair) ? getAddress(pair) : null, graduated };
+  };
+  const curve = await r<Address>(a, "curve");
+  if (curve && !ZERO.test(curve)) return fromCurve(getAddress(curve), "token", a);
+  return fromCurve(a, "curve", null);
 }
 
 /** Pons V2 launches by the same wallet in the last ~10M blocks (the factory's launch event carries the creator). */
