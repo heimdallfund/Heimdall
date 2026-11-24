@@ -1,6 +1,7 @@
 import { erc20Abi, formatUnits, getAddress, isAddress, type Address } from "viem";
 import { ADDRESSES } from "./config";
 import { client } from "./reads";
+import { heimAddress } from "./heim";
 
 const DEAD = "0x000000000000000000000000000000000000dEaD" as Address;
 
@@ -15,7 +16,7 @@ export interface HeimSupply {
 
 /** $HEIM supply read from Robinhood Chain. Total = minted − burned (dead address); circulating = total − listed wallets. */
 export async function readHeimSupply(): Promise<HeimSupply | null> {
-  const token = ADDRESSES.heim;
+  const token = await heimAddress();
   if (!token) return null;
   const excluded = nonCirculating();
   const read = (functionName: "totalSupply" | "decimals") => client.readContract({ address: token, abi: erc20Abi, functionName });

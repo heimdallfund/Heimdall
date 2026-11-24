@@ -1,9 +1,18 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { H1, H2, Table } from "@/components/docs/Docs";
+import { Suspense } from "react";
+import { connection } from "next/server";
 import { ADDRESSES, ERC8004, explorerAddress } from "@/lib/config";
+import { heimAddress } from "@/lib/heim";
 
 export const metadata: Metadata = { title: "Contracts", description: "Heimdall contract addresses and roles on Robinhood Chain." };
+
+async function HeimLink() {
+  await connection();
+  const a = await heimAddress();
+  return a ? <a className="text-brand" href={explorerAddress(a)}>{a}</a> : <>Published with $HEIM</>;
+}
 
 export default function Page() {
   const link = (a: string | undefined, when = "Published at launch") => (a ? <a className="text-brand" href={explorerAddress(a)}>{a}</a> : when);
@@ -25,7 +34,7 @@ export default function Page() {
         ["HeimdallStaking", "Stake $HEIM, earn USDG", link(ADDRESSES.staking, withHeim)],
         ["HeimdallFeeSplitter", "Splits protocol fees between stakers and the treasury", link(ADDRESSES.splitter, withHeim)],
         ["HeimdallHolderBalance", "$HEIM held plus staked, for holder benefits", link(ADDRESSES.heimHolder, withHeim)],
-        ["$HEIM", "The Heimdall token", link(ADDRESSES.heim, withHeim)],
+        ["$HEIM", "The Heimdall token", <Suspense key="heim" fallback="…"><HeimLink /></Suspense>],
         ["ERC-8004 Identity Registry", "Official agent identities (not Heimdall's)", link(ERC8004.identity)],
         ["ERC-8004 Reputation Registry", "Where Heimdall publishes agent scores (not Heimdall's)", link(ERC8004.reputation)],
         ["USDG (Paxos)", "Settlement currency", link(ADDRESSES.usdg)],

@@ -6,6 +6,7 @@ import { cacheLife } from "next/cache";
 import { connection } from "next/server";
 import { ADDRESSES, SHIELD_API_URL, explorerAddress, explorerTx, short } from "@/lib/config";
 import { client } from "@/lib/reads";
+import { heimAddress } from "@/lib/heim";
 import { fetchSigner } from "@/lib/shield";
 import { heimdallSignalsAbi, heimdallVaultFactoryAbi } from "@/lib/abi";
 import { Icon } from "@/components/Icons";
@@ -70,7 +71,7 @@ const Addr = ({ a }: { a?: string }) => (a ? <a href={explorerAddress(a)} classN
 
 async function Live() {
   await connection(); // live status is per request
-  const [st, signer, gov, hist] = await Promise.all([status(), fetchSigner(), governance(), history()]);
+  const [st, signer, gov, hist, heim] = await Promise.all([status(), fetchSigner(), governance(), history(), heimAddress()]);
   return (
     <>
       <section className="grid gap-5 md:grid-cols-3">
@@ -90,7 +91,7 @@ async function Live() {
         <Row k="HeimdallAutoInvest"><Addr a={ADDRESSES.autoInvest} /></Row>
         <Row k="HeimdallStaking"><Addr a={ADDRESSES.staking} /></Row>
         <Row k="HeimdallFeeSplitter"><Addr a={ADDRESSES.splitter} /></Row>
-        <Row k="$HEIM"><Addr a={ADDRESSES.heim} /></Row>
+        <Row k="$HEIM"><Addr a={heim} /></Row>
         <Row k="USDG (Paxos)"><Addr a={ADDRESSES.usdg} /></Row>
         <Row k="Shield receipt signer"><Addr a={signer?.address} /></Row>
       </section>

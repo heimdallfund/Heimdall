@@ -1,6 +1,7 @@
 import { cacheLife } from "next/cache";
 import { createPublicClient, fallback, formatUnits, http, parseAbi, type Address } from "viem";
 import { ADDRESSES, chain, HEIM_HOLDER_MIN, SHIELD_API_URL } from "./config";
+import { heimAddress } from "./heim";
 import { heimdallPayAbi, heimdallSignalsAbi, heimdallVaultAbi, heimdallVaultFactoryAbi } from "./abi";
 
 // Server-side reads use the private RPC_URL (never sent to the browser) with RPC_URL_BACKUP and the public endpoint behind it.
@@ -34,9 +35,8 @@ export async function readVault(address: Address): Promise<VaultSummary> {
   ]);
   const nav = await r<bigint>("totalAssets").catch(() => null);
   const dailyBps = await r<number>("maxDailyLossBps").catch(() => 500);
-  const heimBal = ADDRESSES.heim
-    ? await client.readContract({ address: ADDRESSES.heimHolder ?? ADDRESSES.heim, abi: ERC20, functionName: "balanceOf", args: [manager] }).catch(() => 0n)
-    : 0n;
+  const heim = ADDRESSES.heimHolder ?? (await heimAddress());
+  const heimBal = heim ? await client.readContract({ address: heim, abi: ERC20, functionName: "balanceOf", args: [manager] }).catch(() => 0n) : 0n;
   const pps = await r<bigint>("convertToAssets", [10n ** BigInt(decimals)]).catch(() => null);
   return {
     address, name, symbol, manager,
@@ -130,8 +130,9 @@ export async function getShieldStats(): Promise<ShieldStats | null> {
 export async function isHeimHolder(address: Address): Promise<boolean> {
   "use cache";
   cacheLife("minutes");
-  if (!ADDRESSES.heim) return false;
-  const bal = await client.readContract({ address: ADDRESSES.heimHolder ?? ADDRESSES.heim, abi: ERC20, functionName: "balanceOf", args: [address] }).catch(() => 0n);
+  const heim = ADDRESSES.heimHolder ?? (await heimAddress());
+  if (!heim) return false;
+  const bal = await client.readContract({ address: heim, abi: ERC20, functionName: "balanceOf", args: [address] }).catch(() => 0n);
   return bal >= HEIM_HOLDER_MIN;
 }
 

@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
-import { ADDRESSES, explorerAddress } from "@/lib/config";
+import { explorerAddress } from "@/lib/config";
 import { Suspense } from "react";
 import { connection } from "next/server";
 import { Icon } from "@/components/Icons";
 import { readHeimSupply } from "@/lib/heimSupply";
+import { heimAddress } from "@/lib/heim";
 
 import { LogoRow } from "@/components/BrandLogo";
 export const metadata: Metadata = { title: "$HEIM", description: "The Heimdall token: holding it makes the guardian cheaper to use." };
@@ -22,6 +23,12 @@ const FEES: [string, string, string][] = [
   ["Signals", "10% of what providers redeem", "5% when the provider holds $HEIM"],
   ["Auto-Invest", "0.25% of every buy", "Fixed for each plan's life"],
 ];
+
+async function HeimCA() {
+  await connection();
+  const a = await heimAddress();
+  return <p className="mt-2 break-all font-mono text-[15px]">{a ? <a className="hover:text-brand" href={explorerAddress(a)}>{a}</a> : "Appears here automatically at launch."}</p>;
+}
 
 async function Supply() {
   await connection();
@@ -51,7 +58,7 @@ export default function TokenPage() {
 
       <section className="card p-6">
         <h2 className="text-[13px] font-semibold text-muted">Contract address · Robinhood Chain</h2>
-        <p className="mt-2 break-all font-mono text-[15px]">{ADDRESSES.heim ? <a className="hover:text-brand" href={explorerAddress(ADDRESSES.heim)}>{ADDRESSES.heim}</a> : "Appears here automatically at launch."}</p>
+        <Suspense fallback={<p className="mt-2 font-mono text-[15px] text-muted">…</p>}><HeimCA /></Suspense>
       </section>
 
       <section aria-labelledby="benefits" className="flex flex-col gap-6">
