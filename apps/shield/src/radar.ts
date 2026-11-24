@@ -257,8 +257,12 @@ export async function buildRadar(d: RadarDeps): Promise<RadarSnapshot> {
       token: x.l.token, symbol: text(meta[i * 2]), name: text(meta[i * 2 + 1]), venue: x.l.venue,
       launchedAt: Math.round(now - (Number(head - x.l.block) / bps) * 1000),
       buyers1h: x.s!.buyers.size, buys1h: x.s!.buys, sells1h: x.s!.sells,
-      buyEth1h: vol && !noEth.has(x.l.token.toLowerCase()) ? Number(vol.get(x.l.token.toLowerCase())?.buy ?? 0n) / 1e18 : null,
-      sellEth1h: vol && !noEth.has(x.l.token.toLowerCase()) ? Number(vol.get(x.l.token.toLowerCase())?.sell ?? 0n) / 1e18 : null,
+      // trades seen but no ETH in the trade events (a hook that settles the swap itself, or a pool the radar did not
+      // see created): the volume is unknown, not zero
+      ...(() => {
+        const v = vol && !noEth.has(x.l.token.toLowerCase()) ? vol.get(x.l.token.toLowerCase()) : undefined;
+        return v && v.buy + v.sell > 0n ? { buyEth1h: Number(v.buy) / 1e18, sellEth1h: Number(v.sell) / 1e18 } : { buyEth1h: null, sellEth1h: null };
+      })(),
       check: cached[i] ?? null,
     })),
   };
