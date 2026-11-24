@@ -39,6 +39,7 @@ import { background, deliver, hookOwnersOf } from "./webhooks.js";
 import { buildRadar, runChecks, type RadarCheck, type RadarSnapshot } from "./radar.js";
 import { learnSmartMoney, smartCount } from "./smart.js";
 import { evaluateDue, recordPrediction, scorecard } from "./bench.js";
+import { noteOutcome, recordSeen, rugLog, sweepRugs } from "./rugs.js";
 import { storeFromEnv, type CounterStore } from "./store.js";
 import { checkDailyQuota, checkRate, identify, limitsFromEnv, type Caller, type LimitsConfig } from "./limits.js";
 
@@ -423,12 +424,20 @@ export function buildApp(opts: AppOptions = {}) {
 
   /** Token Check: simulated buy, sell and transfer of a token through its Uniswap pool, plus backdoor and fake-token tests. */
   /** Token Check with the shared one-minute cache (also used by Wallet Check). */
+  /** Every fresh check feeds the rug log: the first one is kept as the "before", later ones can show the rug. */
+  const afterFreshCheck = (token: string, r: Awaited<ReturnType<typeof tokenCheck>>) => background((async () => {
+    await recordSeen(store, token, r);
+    const rug = await noteOutcome(store, token, r);
+    // the radar's cached verdict is stale now: drop it so the next refresh shows the rug
+    if (rug) { await store.remove(`radar:check:${token.toLowerCase()}`); log({ level: "info", path: "rugs", token, kind: rug.kind, before: rug.before.verdict }); }
+  })().catch(() => {}));
   async function cachedTokenCheck(token: `0x${string}`) {
     const key = `tokencheck:${token.toLowerCase()}`;
     const hit = await store.fetch(key).catch(() => null);
     if (hit) return JSON.parse(hit) as Awaited<ReturnType<typeof tokenCheck>>;
     const r = await tokenCheck(getClient(4663), token, Date.now(), undefined, { smartCount: (w) => smartCount(store, w) });
     await store.put(key, JSON.stringify(r), 60).catch(() => {});
+    afterFreshCheck(token, r);
     return r;
   }
 
@@ -445,6 +454,7 @@ export function buildApp(opts: AppOptions = {}) {
     try {
       const r = await tokenCheck(getClient(4663), a as `0x${string}`, Date.now(), undefined, { smartCount: (w) => smartCount(store, w) });
       await store.put(key, JSON.stringify(r), 60).catch(() => {});
+      afterFreshCheck(a, r);
       return c.json(r);
     } catch (e) {
       log({ level: "error", path: "/v1/token", message: (e as Error).message });
@@ -489,6 +499,12 @@ export function buildApp(opts: AppOptions = {}) {
   app.get("/v1/bench", async (c) => {
     c.header("cache-control", "public, max-age=60");
     return c.json(await memo("bench", 60, () => scorecard(store)));
+  });
+  /** Rug log: tokens first checked while alive that later rugged or became honeypots, with the verdict from before. */
+  app.get("/v1/rugs", async (c) => {
+    c.header("cache-control", "public, max-age=30");
+    const limit = Math.min(200, Math.max(1, Number(c.req.query("limit") ?? 100) || 100));
+    return c.json(await memo(`rugs:${limit}`, 30, () => rugLog(store, limit)));
   });
   app.get("/v1/radar", async (c) => {
     c.header("cache-control", "public, max-age=30");
@@ -983,6 +999,17 @@ export function buildApp(opts: AppOptions = {}) {
     const site = env.HEIMDALL_WEB_URL ?? "https://heimdall.fund";
     const tokens = await runTokenWatch(store, { logs: logsClient, client: getClient(4663), check: (t) => cachedTokenCheck(t as `0x${string}`), send, siteUrl: site })
       .catch((e) => ({ error: (e as Error).message.split("\n")[0] }));
+    // the rug watch: tokens checked in the last three days, re-checked so a pulled pool shows up within minutes
+    const rugs = await (async () => {
+      if ((await store.incr("rugwatch:lock", 120).catch(() => 2)) !== 1) return { skipped: "busy" };
+      try { const x = await sweepRugs(store, (t) => cachedTokenCheck(t as `0x${string}`), { max: 8, budgetMs: 35_000 }); return { ...x, found: x.found.map((e) => e.symbol ?? e.token) }; }
+      finally { await store.remove("rugwatch:lock").catch(() => {}); }
+    })().catch((e) => ({ error: (e as Error).message.split("\n")[0] }));
+    // keep the radar (and its predictions) moving even when nobody has the page open
+    const raw = await store.fetch(RADAR_KEY).catch(() => null);
+    if (!raw || Date.now() - (JSON.parse(raw) as RadarSnapshot).generatedAt > 240_000) {
+      if ((await store.incr("radar:lock", 240).catch(() => 2)) === 1) background(refreshRadar().catch(() => {}).finally(() => store.remove("radar:lock").catch(() => {})));
+    }
     const wallets = await runWatch(store, watchScan, send, {
       limit: Math.min(500, Number(c.req.query("limit") ?? 200)), siteUrl: site,
       onRisky: async (address, fresh) => {
@@ -991,7 +1018,7 @@ export function buildApp(opts: AppOptions = {}) {
         }
       },
     });
-    return c.json({ ...wallets, tokens });
+    return c.json({ ...wallets, tokens, rugs });
   }));
   /** The monitor's status heartbeat. Takes the admin key or the narrow heartbeat key (SHIELD_HEARTBEAT_KEY_SHA256), which opens nothing else. */
   const isHeartbeat = (c: any) => {

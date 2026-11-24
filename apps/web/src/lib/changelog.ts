@@ -8,6 +8,8 @@ export const CHANGELOG: ChangeEntry[] = [
     title: "Agents can find and use Heimdall on their own",
     summary: "A hosted MCP server, an OpenAPI spec and discovery files mean an agent or a developer tool can connect without anyone setting it up. Plus a live status page, a bigger sourced blocklist and a security pass on the Shield API.",
     changes: [
+      { tag: "Security", text: "Hall of Rugs: every token Heimdall checks while it still trades is re-checked for three days (risky ones every 10 minutes). When its liquidity is pulled or selling stops, it is listed with the verdict from its first check, recorded before it happened. Misses are listed too. heimdall.fund/rugs" },
+      { tag: "Web", text: "Rug alerts on the Launch Radar: rugs caught in the last 24 hours at the top, and a RUGGED label on tokens in the list whose pool was emptied." },
       { tag: "Integrations", text: "Token Check widget: launchpads, explorers and wallets can put a live verdict card (two lines of HTML, light or dark) or a badge on any token page. Free, no cookies, links to the full report. heimdall.fund/widget" },
       { tag: "Integrations", text: "SDK 0.3.0 (TypeScript and Python) and MCP 0.3.0: Launch Radar, AI token summaries and the accuracy scorecard; Token Check results carry the rug checks, liquidity owners, the dev's earlier launches and holder clusters. New MCP tool heimdall_launch_radar." },
       { tag: "Web", text: "Launch Radar shows ETH volume: ETH paid in to buy and paid out to sellers in the last hour, in ETH and dollars, with the net flow, read from the Pons curve and Uniswap pool trade events. New sort: Volume." },

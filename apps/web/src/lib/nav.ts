@@ -33,6 +33,7 @@ export const SEARCH: SearchEntry[] = [
   { title: "Escrow jobs", section: "App", href: "/app/pay", keywords: "pay escrow create job hire agent" },
   { title: "Wallet Check", section: "Products", href: "/check", keywords: "approvals revoke allowance permit2 wallet scan drainer" },
   { title: "Launch Radar", section: "Products", href: "/radar", keywords: "new tokens launches memecoins pons klik trending buyers momentum radar scanner" },
+  { title: "Hall of Rugs", section: "Trust", href: "/rugs", keywords: "rug pulls rugged liquidity removed honeypot record accuracy caught missed" },
   { title: "Token Check", section: "Products", href: "/token-check", keywords: "honeypot checker rug check token scan sell tax buy tax scam fake token clawback" },
   { title: "Guardian Points", section: "Products", href: "/points", keywords: "points leaderboard rewards season report drainer" },
   { title: "Stake $HEIM", section: "Products", href: "/stake", keywords: "staking yield usdg fees heim" },

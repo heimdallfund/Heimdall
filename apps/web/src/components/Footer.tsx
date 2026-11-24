@@ -10,7 +10,7 @@ const social = [
 
 /** The short list: everything else is one tap away in the header menu. */
 const cols: [string, [string, string][]][] = [
-  ["Products", [["/check", "Wallet Check"], ["/token-check", "Token Check"], ["/radar", "Launch Radar"], ["/shield", "Shield"], ["/vaults", "Vaults"], ["/pay", "Pay"], ["/token", "$HEIM"]]],
+  ["Products", [["/check", "Wallet Check"], ["/token-check", "Token Check"], ["/radar", "Launch Radar"], ["/rugs", "Hall of Rugs"], ["/shield", "Shield"], ["/vaults", "Vaults"], ["/pay", "Pay"], ["/token", "$HEIM"]]],
   ["Build", [["/integrate", "Integrate"], ["/docs", "Docs"], ["/docs/sdk", "SDK"], ["/docs/mcp", "MCP server"], ["/widget", "Token Check widget"], ["/docs/contracts", "Contracts"]]],
   ["Trust", [["/security", "Security"], ["/status", "Status"], ["/trust", "Trust center"], ["/threats", "Threat Board"], ["/changelog", "Changelog"], ["/brand", "Brand kit"]]],
 ];

@@ -18,7 +18,7 @@ export function Accuracy() {
   return (
     <section id="accuracy" aria-labelledby="accuracy-h" className="flex scroll-mt-24 flex-col gap-5">
       <div><span className="eyebrow">Measured, not claimed</span><h2 id="accuracy-h" className="display mt-2 text-[41px]">Token Check accuracy</h2></div>
-      <p className="max-w-[760px] leading-relaxed text-muted">Every token the Launch Radar checks has its first verdict recorded. A day later the same token is checked again and what actually happened is read from the chain: its liquidity was pulled, selling stopped working, or the dev sold out. The numbers below compare the two. Nothing is back-filled or adjusted afterwards.</p>
+      <p className="max-w-[760px] leading-relaxed text-muted">Every token the Launch Radar checks has its first verdict recorded. A day later the same token is checked again and what actually happened is read from the chain: its liquidity was pulled, selling stopped working, or the dev sold out. The numbers below compare the two. Nothing is back-filled or adjusted afterwards. Every rug caught along the way, with the verdict from before, is in the <Link href="/rugs" className="underline hover:text-brand">Hall of Rugs</Link>.</p>
       {!c ? <div className="card p-6 text-muted">Loading the scorecard…</div> : c.evaluated < MIN ? (
         <div className="card flex flex-col gap-2 p-6">
           <span className="font-semibold">Collecting</span>

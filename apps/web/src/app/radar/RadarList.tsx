@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { CODE_LABEL } from "@/lib/codes";
 import type { RadarSnapshot, RadarToken } from "@/lib/radar";
+import { RUG_WORD, span, type RugEvent, type RugLog } from "@/lib/rugs";
 
 type Filter = "all" | "passed" | "risky";
 type Sort = "buyers" | "volume" | "new";
@@ -23,7 +24,7 @@ const vol = (t: RadarToken) => (t.buyEth1h ?? 0) + (t.sellEth1h ?? 0);
 const eth = (n: number) => (n >= 100 ? n.toFixed(0) : n >= 10 ? n.toFixed(1) : n.toFixed(2));
 const usd = (n: number) => (n >= 1_000_000 ? `$${(n / 1_000_000).toFixed(1)}M` : n >= 1_000 ? `$${(n / 1_000).toFixed(1)}k` : `$${Math.round(n)}`);
 
-function Row({ t, now, ethUsd }: { t: RadarToken; now: number; ethUsd: number | null }) {
+function Row({ t, now, ethUsd, rug }: { t: RadarToken; now: number; ethUsd: number | null; rug?: RugEvent }) {
   const c = t.check;
   const hasVol = t.buyEth1h != null && t.sellEth1h != null;
   const total = hasVol ? vol(t) : t.buys1h + t.sells1h;
@@ -56,7 +57,12 @@ function Row({ t, now, ethUsd }: { t: RadarToken; now: number; ethUsd: number | 
         <div className="flex flex-col justify-center gap-1"><span className="h-1.5 w-full overflow-hidden rounded-full bg-deny-soft"><span className="block h-full bg-allow" style={{ width: `${buyShare}%` }} /></span><span className="text-muted">{net !== null ? <span className={net >= 0 ? "text-allow" : "text-deny"}>{net >= 0 ? "+" : "−"}{eth(Math.abs(net))} ETH net</span> : `${buyShare}% buys`}</span></div>
       </div>
       <div className="flex items-center gap-3 sm:w-[230px] sm:flex-col sm:items-end sm:gap-1">
-        {c ? (
+        {rug ? (
+          <>
+            <span className="rounded-[3px] border border-deny bg-deny px-2 py-0.5 font-mono text-[13px] font-bold text-paper">RUGGED</span>
+            <span className="min-w-0 truncate text-[12.5px] font-semibold text-deny sm:text-right">{RUG_WORD[rug.kind]} {ago(rug.detectedAt, now)} ago</span>
+          </>
+        ) : c ? (
           <>
             <span className={`rounded-[3px] border px-2 py-0.5 font-mono text-[13px] font-bold ${VERDICT[c.verdict]}`}>{c.verdict}</span>
             <span className="min-w-0 truncate text-[12.5px] text-muted sm:max-w-[230px] sm:text-right">{c.flags[0] ? label(c.flags[0]) : "Passed every check"}{c.flags.length > 1 ? ` +${c.flags.length - 1}` : ""}</span>
@@ -67,6 +73,31 @@ function Row({ t, now, ethUsd }: { t: RadarToken; now: number; ethUsd: number | 
   );
 }
 
+/** Rugs the watch caught in the last 24 hours, with what the first check said. */
+function RugAlerts({ log, now }: { log: RugLog | null; now: number }) {
+  if (!log) return null;
+  const recent = log.events.filter((e) => now - e.detectedAt < 86_400_000);
+  if (!recent.length) {
+    return <p className="text-[12.5px] text-muted"><span className="font-mono font-semibold uppercase tracking-wider text-ink">Rug alerts</span> · no rugs caught in the last 24 hours · {log.watching.toLocaleString("en-US")} tokens on watch · <Link href="/rugs" className="underline hover:text-brand">Hall of Rugs</Link></p>;
+  }
+  return (
+    <div className="card flex flex-col gap-2.5 border-deny/60 p-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span className="flex items-center gap-2 font-mono text-[12.5px] font-bold uppercase tracking-wider text-deny"><span className="h-2 w-2 animate-pulse rounded-full bg-deny" />Rug alerts · last 24h · {recent.length}</span>
+        <Link href="/rugs" className="text-[12.5px] font-semibold underline hover:text-brand">Hall of Rugs</Link>
+      </div>
+      <ul className="flex flex-col gap-1.5">
+        {recent.slice(0, 5).map((e) => (
+          <li key={e.token} className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 border-t border-line pt-1.5 text-[13.5px]">
+            <span><Link href={`/token-check/${e.token}`} className="font-semibold hover:text-brand">{e.symbol ?? `${e.token.slice(0, 8)}…`}</Link> <span className="text-deny">{RUG_WORD[e.kind].toLowerCase()}</span> <span className="text-muted">{ago(e.detectedAt, now)} ago</span></span>
+            <span className="text-[12.5px] text-muted">first check {span(e.detectedAt - e.before.at)} before said <span className={e.before.verdict === "ALLOW" ? "font-semibold text-warn" : "font-semibold text-allow"}>{e.before.verdict}</span>{e.before.flags.includes("LP_REMOVABLE") ? " · pull warned" : ""}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 export function RadarList() {
   const [snap, setSnap] = useState<RadarSnapshot | null>(null);
   const [error, setError] = useState(false);
@@ -74,6 +105,7 @@ export function RadarList() {
   const [sort, setSort] = useState<Sort>("buyers");
   const [now, setNow] = useState<number | null>(null);
   const snapRef = useRef<RadarSnapshot | null>(null);
+  const [rugs, setRugs] = useState<RugLog | null>(null);
 
   useEffect(() => {
     let stop = false;
@@ -83,6 +115,7 @@ export function RadarList() {
         if (r.ok) { const j = await r.json() as RadarSnapshot; if (!stop) { snapRef.current = j; setSnap(j); setError(false); } }
         else if (!stop) setError(true);
       } catch { if (!stop) setError(true); }
+      fetch("/api/rugs?limit=40", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((j: RugLog | null) => { if (!stop && j) setRugs(j); }).catch(() => {});
       if (!stop) setNow(Date.now());
     };
     // every 10 seconds while the first snapshot is being built, then every minute
@@ -92,6 +125,7 @@ export function RadarList() {
     return () => { stop = true; clearTimeout(timer); };
   }, []);
 
+  const rugBy = useMemo(() => new Map((rugs?.events ?? []).map((e) => [e.token.toLowerCase(), e])), [rugs]);
   const rows = useMemo(() => {
     const list = (snap?.tokens ?? []).filter((t) => filter === "all" ? true : filter === "passed" ? t.check?.verdict === "ALLOW" : t.check && t.check.verdict !== "ALLOW");
     return sort === "new" ? [...list].sort((a, b) => b.launchedAt - a.launchedAt) : sort === "volume" ? [...list].sort((a, b) => vol(b) - vol(a)) : list;
@@ -112,12 +146,13 @@ export function RadarList() {
           <button type="button" className={chip(sort === "new")} onClick={() => setSort("new")}>Newest</button>
         </div>
       </div>
+      {now !== null && <RugAlerts log={rugs} now={now} />}
       {snap && now !== null && (
         <p className="text-[12.5px] text-muted">{snap.launched24h.toLocaleString("en-US")} tokens launched in the last 24 hours · showing the {snap.tokens.length} with the most buyers in the last hour · updated {ago(snap.generatedAt, now)} ago, refreshes every minute</p>
       )}
       {!snap && !error && <div className="card p-6 text-muted">Scanning the last 24 hours of launches…</div>}
       {!snap && error && <div className="card p-6 text-muted">The radar is scanning launches and running the first checks. This page updates by itself in a few seconds.</div>}
-      {snap && now !== null && (rows.length ? <div className="flex flex-col gap-2.5">{rows.map((t) => <Row key={t.token} t={t} now={now} ethUsd={snap.ethUsd ?? null} />)}</div> : <div className="card p-6 text-muted">Nothing matches this filter right now.</div>)}
+      {snap && now !== null && (rows.length ? <div className="flex flex-col gap-2.5">{rows.map((t) => <Row key={t.token} t={t} now={now} ethUsd={snap.ethUsd ?? null} rug={rugBy.get(t.token.toLowerCase())} />)}</div> : <div className="card p-6 text-muted">Nothing matches this filter right now.</div>)}
       <p className="text-[12.5px] leading-relaxed text-muted">A buyer is a wallet that received the token from its curve or pool in the last hour. Volume is the ETH paid in to buy plus the ETH paid out to sellers, read from the curve's and the pool's own trade events; net is in minus out. Dollar values use the Chainlink ETH price. A verdict is Token Check on the current chain state, refreshed every 45 minutes or sooner; open a token for the full report. Busy does not mean safe, and passing the checks does not mean the price will hold.</p>
     </section>
   );
