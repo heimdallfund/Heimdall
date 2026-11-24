@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { useAccount, useConnect, useDisconnect, useSwitchChain, type Connector } from "wagmi";
 import { chain, short } from "@/lib/config";
 import { BrandLogo, logoFor } from "@/components/BrandLogo";
@@ -62,9 +63,10 @@ export function ConnectButton() {
       <button type="button" disabled={isPending} onClick={() => setOpen(true)} className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-brand px-3.5 text-[13px] font-semibold text-white disabled:opacity-60">
         {isPending ? "Connecting…" : "Connect wallet"}
       </button>
-      {open && (
-        <div role="dialog" aria-modal="true" aria-label="Connect a wallet" className="fixed inset-0 z-[100] flex items-end justify-center bg-ink/50 p-0 sm:items-center sm:p-4" onClick={() => setOpen(false)}>
-          <div className="flex max-h-[90vh] w-full max-w-[420px] flex-col gap-3 overflow-y-auto rounded-t-[6px] border border-line bg-paper p-5 sm:rounded-[6px]" onClick={(e) => e.stopPropagation()}>
+      {/* rendered on <body>: the sticky header is its own stacking context and would trap the dialog under other bars */}
+      {open && typeof document !== "undefined" && createPortal(
+        <div role="dialog" aria-modal="true" aria-label="Connect a wallet" className="fixed inset-0 z-[10000] flex items-end justify-center bg-ink/50 p-0 sm:items-center sm:p-4" onClick={() => setOpen(false)}>
+          <div className="flex max-h-[90vh] w-full max-w-[420px] flex-col gap-3 overflow-y-auto rounded-t-[6px] border border-line bg-paper p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:rounded-[6px]" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between"><h2 className="text-[20px] font-semibold">Connect a wallet</h2><button type="button" onClick={() => setOpen(false)} aria-label="Close" className="text-[22px] leading-none text-muted hover:text-ink">×</button></div>
             <p className="text-[13.5px] text-muted">Heimdall runs on {chain.name}. Your wallet will be asked to add or switch to it.</p>
             {announced.map((c) => <Option key={c.uid} c={c} onPick={pick} busy={isPending} hint="Detected in this browser" />)}
@@ -83,7 +85,8 @@ export function ConnectButton() {
             )}
             {error && <p role="alert" className="text-[13px] text-deny">{/rejected|denied/i.test(error.message) ? "The request was declined in the wallet." : error.message.split("\n")[0]}</p>}
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </>
   );
