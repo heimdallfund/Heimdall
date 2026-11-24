@@ -1030,7 +1030,7 @@ export function buildApp(opts: AppOptions = {}) {
     const rugs = await (async () => {
       if ((await store.incr("rugwatch:lock", 120).catch(() => 2)) !== 1) return { skipped: "busy" };
       try {
-        const x = await sweepRugs(store, (t) => cachedTokenCheck(t as `0x${string}`), { max: 8, budgetMs: 35_000 });
+        const x = await sweepRugs(store, (t) => cachedTokenCheck(t as `0x${string}`), { max: 4, budgetMs: 35_000 });
         for (const e of x.found) await onRug(e).catch(() => {});
         return { ...x, found: x.found.map((e) => e.symbol ?? e.token) };
       }

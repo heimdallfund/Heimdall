@@ -56,8 +56,12 @@ async function findV4Pool(client: PublicClient, token: Address, logs: PublicClie
   // (One value per topic: the public RPC caps OR-lists of topics at 100k blocks, single values at 10M.)
   const filters = [{ currency0: NATIVE, currency1: token }, BigInt(token) > BigInt(WETH) ? { currency0: WETH, currency1: token } : { currency0: token, currency1: WETH }];
   const stats = { failed: 0 };
-  const found = await eachWindow(head, 10_000_000n, async (from, to) => (await Promise.all(filters.map((args) =>
-    logs.getLogs({ address: POOL_MANAGER, event: INITIALIZE, args: args as never, fromBlock: from, toBlock: to })))).flat(), 3, 1n, stats);
+  // a slow log service must not hold the report for a minute: past 20 s the search counts as failed (shown as not simulated)
+  const found = await Promise.race([
+    eachWindow(head, 10_000_000n, async (from, to) => (await Promise.all(filters.map((args) =>
+      logs.getLogs({ address: POOL_MANAGER, event: INITIALIZE, args: args as never, fromBlock: from, toBlock: to })))).flat(), 3, 1n, stats),
+    new Promise<never>((_, rej) => setTimeout(() => rej(new Error("pool search timed out")), 20_000)),
+  ]);
   // nothing found while part of the history could not be read: unknown, not "no pool" (and not cached)
   if (!found.length && stats.failed) throw new Error(`pool search incomplete: ${stats.failed} block ranges unread`);
   const pair = (l: (typeof found)[number]) => (l.args.currency0!.toLowerCase() === k ? l.args.currency1! : l.args.currency0!).toLowerCase();
@@ -213,7 +217,10 @@ export async function tokenCheck(rawClient: PublicClient, raw: Address, now = Da
   const done = async (r: TokenCheck | Promise<TokenCheck>) => {
     const res = await r;
     const mainMs = Date.now() - sigT0;
-    const [m, x] = await Promise.all([signals.finally(() => { const ms = Date.now() - sigT0; if (ms > 8_000) console.log(JSON.stringify({ level: "info", path: "tokencheck", token, holdersMs: ms })); }), extra]);
+    // holders and the dev's record get the same kind of budget as the deep tests: past it, the report goes out without them
+    const timedSignals = signals.finally(() => { const ms = Date.now() - sigT0; if (ms > 8_000) console.log(JSON.stringify({ level: "info", path: "tokencheck", token, holdersMs: ms })); });
+    const budget = Math.max(5_000, 25_000 - (Date.now() - sigT0));
+    const [m, x] = await Promise.all([Promise.race([timedSignals, new Promise<null>((r) => setTimeout(() => r(null), budget))]).catch(() => null), extra]);
     if (mainMs > 8_000) console.log(JSON.stringify({ level: "info", path: "tokencheck", token, mainMs }));
     if (m) { res.holders = m.holders; res.findings.push(...m.findings); }
     res.powers = x.powers; res.liquidity = x.liquidity; res.findings.push(...x.findings);
