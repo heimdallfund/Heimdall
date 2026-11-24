@@ -59,9 +59,13 @@ async function findV4Pool(client: PublicClient, token: Address, logs: PublicClie
   // one multicall instead of 25 calls: paid RPC plans throttle bursts, and a dropped read made a deep pool look empty
   type Res = { status: string; result?: bigint };
   const one = (l: (typeof cands)[number]): Promise<Res> => client.readContract({ address: STATE_VIEW, abi: SV, functionName: "getLiquidity", args: [l.args.id!] }).then((result) => ({ status: "success", result }), () => ({ status: "failure" }));
-  const liq: Res[] = await (async () => client.multicall({ contracts: cands.map((l) => ({ address: STATE_VIEW, abi: SV, functionName: "getLiquidity", args: [l.args.id!] })) as never, allowFailure: true }) as Promise<Res[]>)()
-    .then((r) => (r.every((x) => x.status !== "success") && r.length ? Promise.all(cands.map(one)) : r))
-    .catch(() => Promise.all(cands.map(one)));
+  const viaMulticall = (c: PublicClient) => (async () => c.multicall({ contracts: cands.map((l) => ({ address: STATE_VIEW, abi: SV, functionName: "getLiquidity", args: [l.args.id!] })) as never, allowFailure: true }) as Promise<Res[]>)()
+    .catch(() => [] as Res[]);
+  const okAll = (r: Res[]) => r.length === cands.length && r.some((x) => x.status === "success");
+  // the main RPC first, then the log RPC, then one read per pool: a failed read must not make a deep pool look empty
+  let liq: Res[] = await viaMulticall(client);
+  if (!okAll(liq)) liq = await viaMulticall(logs);
+  if (!okAll(liq)) liq = await Promise.all(cands.map(one));
   const measured = cands.map((l, i) => ({ l, liquidity: liq[i]?.status === "success" ? (liq[i]!.result ?? 0n) : 0n }));
   // launchpad pools (Klik and others) start with one-sided liquidity above the price: zero in range until the first buy,
   // so with no pool in range the newest one is still tried
