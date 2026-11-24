@@ -28,5 +28,47 @@
     "label": "Vladhood (VLAD) fake token promoted from the hacked X account of Robinhood's CEO; flagged as a scam on Blockscout",
     "source": "https://thedefiant.io/news/defi/hacker-behind-fake-vladhood-token-still-collecting-fees-after-robinhood-ceo-s-x-account-hack",
     "addedAt": "2026-11-24"
+  },
+  {
+    "address": "0x8c3Bad30cc7563A2D0357F49509FFd063666bb00",
+    "label": "Memecoin rug factory: GoPlus-identified collection wallet for hundreds of fraudulent memecoins (about $9M in flows, Sep 2026)",
+    "source": "https://www.chaincatcher.com/en/tags/rug",
+    "addedAt": "2026-11-24"
+  },
+  {
+    "address": "0x2323a3d19c6181b0e854209f405e6fdef6ad821d",
+    "label": "Step Drainer collector contract on Robinhood Chain, used in the Name.com DNS hijack of DeFi sites (Oct 31, 2026)",
+    "source": "https://bitquery.io/investigations/name-com-dns-hijack",
+    "addedAt": "2026-11-24"
+  },
+  {
+    "address": "0x40ea475e8b31fb8e86b9bd23b986d6e09cdadf7b",
+    "label": "Step Drainer attacker contract that pulled tokenized stocks out of Morpho on Robinhood Chain (Name.com DNS hijack, Oct 31, 2026)",
+    "source": "https://bitquery.io/investigations/name-com-dns-hijack",
+    "addedAt": "2026-11-24"
+  },
+  {
+    "address": "0xafb51dfeee427bf49b28ded45f8aac8881ccf448",
+    "label": "Key that controls the Step Drainer contracts on Robinhood Chain (Name.com DNS hijack, Oct 31, 2026)",
+    "source": "https://bitquery.io/investigations/name-com-dns-hijack",
+    "addedAt": "2026-11-24"
+  },
+  {
+    "address": "0x012f89ff307568f8409bbe379ca92ed41bc4d386",
+    "label": "Step Drainer payout wallet (55% of every drain, same address on every chain)",
+    "source": "https://bitquery.io/investigations/name-com-dns-hijack",
+    "addedAt": "2026-11-24"
+  },
+  {
+    "address": "0x7bf2037264efbff55bd52777772779c1d9e87695",
+    "label": "Step Drainer payout wallet (30% of every drain, same address on every chain)",
+    "source": "https://bitquery.io/investigations/name-com-dns-hijack",
+    "addedAt": "2026-11-24"
+  },
+  {
+    "address": "0x5aff449b63c033df386af0c45384cd20c5918dbf",
+    "label": "Step Drainer payout wallet (15% of every drain)",
+    "source": "https://bitquery.io/investigations/name-com-dns-hijack",
+    "addedAt": "2026-11-24"
   }
 ]
