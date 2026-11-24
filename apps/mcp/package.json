@@ -5,15 +5,17 @@
   "description": "Hosted Heimdall MCP server (Streamable HTTP) at mcp.heimdall.fund",
   "license": "BUSL-1.1",
   "scripts": {
-    "test": "node --import tsx --test test/*.test.ts",
+    "postinstall": "node scripts/bundle.mjs",
+    "bundle": "node scripts/bundle.mjs",
+    "test": "node scripts/bundle.mjs && node --import tsx --test test/*.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@heimdallfund/mcp": "file:../../packages/mcp",
-    "@heimdallfund/sdk": "file:../../packages/sdk",
     "@modelcontextprotocol/sdk": "^1.32.2",
     "@types/node": "^26.6.6",
-    "viem": "^2.58.4"
+    "esbuild": "^0.28.2",
+    "viem": "^2.58.4",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "tsx": "^4.23.15",

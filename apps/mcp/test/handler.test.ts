@@ -1,6 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { handle } from "../src/handler.js";
+// tests run against the same bundle the function ships
+// @ts-expect-error built by scripts/bundle.mjs
+import { handle } from "../build/handler.mjs";
 
 const env = { HEIMDALL_API_URL: "https://shield.test", SHIELD_RELAY_KEY: "relay-key", RPC_URL: "http://127.0.0.1:1" };
 const rpc = (id: number, method: string, params: unknown = {}) => JSON.stringify({ jsonrpc: "2.0", id, method, params });

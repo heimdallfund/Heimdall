@@ -1,7 +1,23 @@
 {
   "compilerOptions": {
-    "target": "ES2022", "module": "NodeNext", "moduleResolution": "NodeNext",
-    "strict": true, "skipLibCheck": true, "noEmit": true, "types": ["node"]
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "paths": {
+      "@heimdallfund/sdk": [
+        "../../packages/sdk/src/index.ts"
+      ],
+      "@heimdallfund/mcp": [
+        "../../packages/mcp/src/index.ts"
+      ]
+    }
   },
-  "include": ["api", "src", "test"]
+  "include": [
+    "api",
+    "src",
+    "test"
+  ]
 }
