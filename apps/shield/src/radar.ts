@@ -151,7 +151,11 @@ export async function runChecks(snap: RadarSnapshot, d: Pick<RadarDeps, "check" 
     while (next < todo.length) {
       const t = todo[next++]!;
       const r = await Promise.race([d.check(t.token), new Promise<null>((res) => setTimeout(() => res(null), 45_000))]).catch(() => null);
-      if (r) { t.check = compact(r); done++; await d.putCheck(t.token, t.check).catch(() => {}); }
+      if (r) {
+        t.check = compact(r); done++;
+        // a check that could not reach the chain is shown once but not kept
+        if (!r.findings.some((f) => f.code === "SIM_UNAVAILABLE")) await d.putCheck(t.token, t.check).catch(() => {});
+      }
     }
   };
   await Promise.all([worker(), worker()]); // two at a time: the radar must not slow down users' own checks

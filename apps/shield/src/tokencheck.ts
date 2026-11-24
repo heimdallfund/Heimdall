@@ -37,7 +37,7 @@ const PERMIT2: Address = getAddress("0x000000000022d473030f116ddee9f6b43ac78ba3"
 const STATE_VIEW: Address = getAddress("0xf3334192d15450cdd385c8b70e03f9a6bd9e673b");
 const NATIVE: Address = "0x0000000000000000000000000000000000000000";
 /** The public RPC serves wide log queries (10M blocks each); paid RPCs on free plans often allow only a few blocks. */
-export const logsClient = createPublicClient({ transport: http(process.env.LOGS_RPC_URL ?? "https://rpc.mainnet.chain.robinhood.com", { timeout: 8_000 }) });
+export const logsClient = createPublicClient({ transport: http(process.env.LOGS_RPC_URL ?? "https://rpc.mainnet.chain.robinhood.com", { timeout: 15_000 }) });
 const INITIALIZE = parseAbiItem("event Initialize(bytes32 indexed id, address indexed currency0, address indexed currency1, uint24 fee, int24 tickSpacing, address hooks, uint160 sqrtPriceX96, int24 tick)");
 type V4Key = { currency0: Address; currency1: Address; fee: number; tickSpacing: number; hooks: Address };
 const v4Caches = new WeakMap<PublicClient, Map<string, { at: number; pool: (V4Key & { id: Hex; liquidity: bigint; block: bigint }) | null }>>();
@@ -51,7 +51,7 @@ async function findV4Pool(client: PublicClient, token: Address, logs: PublicClie
   if (hit && Date.now() - hit.at < 600_000) return hit.pool;
   const head = await logs.getBlockNumber().catch(() => 0n);
   const found = await eachWindow(head, 10_000_000n, async (from, to) => (await Promise.all([{ currency1: token }, { currency0: token }].map((args) =>
-    logs.getLogs({ address: POOL_MANAGER, event: INITIALIZE, args: args as never, fromBlock: from, toBlock: to })))).flat());
+    logs.getLogs({ address: POOL_MANAGER, event: INITIALIZE, args: args as never, fromBlock: from, toBlock: to })))).flat(), 4, 1n, true);
   const pair = (l: (typeof found)[number]) => (l.args.currency0!.toLowerCase() === k ? l.args.currency1! : l.args.currency0!).toLowerCase();
   // pools against ETH or WETH, newest first; spam pools are common, so only the 25 newest are measured
   const cands = found.filter((l) => [NATIVE.toLowerCase(), WETH.toLowerCase()].includes(pair(l))).sort((a, b) => Number((b.blockNumber ?? 0n) - (a.blockNumber ?? 0n))).slice(0, 25);
@@ -240,7 +240,13 @@ export async function tokenCheck(rawClient: PublicClient, raw: Address, now = Da
     return done(out);
   }
   if (!pool) {
-    const v4 = await findV4Pool(client, token, logs).catch(() => null);
+    let searchFailed = false;
+    const v4 = await findV4Pool(client, token, logs).catch(() => { searchFailed = true; return null; });
+    if (searchFailed) {
+      startExtra(null);
+      add("SIM_UNAVAILABLE", "warn", "Could not search the Uniswap v4 pools right now (the chain's log service did not answer), so buying and selling were not tested. Try again in a minute.");
+      return done(out);
+    }
     if (v4) {
       startExtra(v4Route(token, v4), v4Liquidity(client, logs, v4.id, v4.block));
       return done(finishV4(client, out, token, v4, add));
