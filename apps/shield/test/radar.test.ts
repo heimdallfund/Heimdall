@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { pad, type Hex, type PublicClient } from "viem";
-import { buildRadar } from "../src/radar.js";
+import { buildRadar, runChecks } from "../src/radar.js";
 import type { TokenCheck } from "../src/tokencheck.js";
 
 const PONS_LAUNCH = "0x8d4aad4953d0ca700d468f3753aa14432d1b35b43ec6409f051fb6aa43a89607";
@@ -45,6 +45,9 @@ describe("Launch Radar", () => {
       getCheck: async (token) => (token.toLowerCase() === TOKEN_B ? { verdict: "DENY", riskScore: 95, flags: ["HONEYPOT"], holders: 2, top10Pct: 100, devSoldPct: null, progressPct: 3, checkedAt: 1 } : null),
       putCheck: async () => {},
     });
+    expect(snap.tokens[0]!.check).toBeNull();
+    expect(await runChecks(snap, { check: async (token) => { checked.push(token); return { verdict: "ALLOW", riskScore: 0, findings: [], checkedAt: 1, launch: null, holders: null } as unknown as TokenCheck; }, putCheck: async () => {} })).toBe(1);
+    expect(snap.tokens[0]!.check?.verdict).toBe("ALLOW");
     expect(snap.launched24h).toBe(2);
     expect(snap.tokens.map((x) => x.token.toLowerCase())).toEqual([TOKEN_A, TOKEN_B]);
     expect(snap.tokens[0]).toMatchObject({ venue: "Pons", buyers1h: 3, buys1h: 3, sells1h: 1 });

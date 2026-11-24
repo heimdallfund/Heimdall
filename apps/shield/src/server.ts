@@ -34,7 +34,7 @@ import { checkTransaction, toJSON } from "./shield.js";
 import { checkAuthorization, checkPersonalMessage, checkTypedData } from "./typed.js";
 import { keysRoutes, lookupStoredKey } from "./keys.js";
 import { background, deliver, hookOwnersOf } from "./webhooks.js";
-import { buildRadar, compact, type RadarCheck, type RadarSnapshot } from "./radar.js";
+import { buildRadar, runChecks, type RadarCheck, type RadarSnapshot } from "./radar.js";
 import { storeFromEnv, type CounterStore } from "./store.js";
 import { checkDailyQuota, checkRate, identify, limitsFromEnv, type Caller, type LimitsConfig } from "./limits.js";
 
@@ -465,6 +465,10 @@ export function buildApp(opts: AppOptions = {}) {
       putCheck: (t, ck) => store.put(`radar:check:${t.toLowerCase()}`, JSON.stringify(ck), 1_200),
     });
     await store.put(RADAR_KEY, JSON.stringify(snap), 86_400);
+    // verdicts for the busiest unchecked tokens, then the snapshot again with them filled in
+    if (await runChecks(snap, { check: (t) => cachedTokenCheck(t as `0x${string}`), putCheck: (t, ck) => store.put(`radar:check:${t.toLowerCase()}`, JSON.stringify(ck), 1_200) })) {
+      await store.put(RADAR_KEY, JSON.stringify(snap), 86_400);
+    }
     return snap;
   };
   app.get("/v1/radar", async (c) => {

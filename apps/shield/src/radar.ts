@@ -141,6 +141,21 @@ export interface RadarDeps {
   size?: number;
 }
 
+/** Runs Token Check on the busiest tokens that have no fresh verdict, a few at a time, and fills them into the snapshot. */
+export async function runChecks(snap: RadarSnapshot, d: Pick<RadarDeps, "check" | "putCheck" | "maxChecks">): Promise<number> {
+  const todo = snap.tokens.filter((t) => !t.check).slice(0, d.maxChecks ?? 6);
+  let next = 0, done = 0;
+  const worker = async () => {
+    while (next < todo.length) {
+      const t = todo[next++]!;
+      const r = await Promise.race([d.check(t.token), new Promise<null>((res) => setTimeout(() => res(null), 45_000))]).catch(() => null);
+      if (r) { t.check = compact(r); done++; await d.putCheck(t.token, t.check).catch(() => {}); }
+    }
+  };
+  await Promise.all([worker(), worker(), worker()]);
+  return done;
+}
+
 export async function buildRadar(d: RadarDeps): Promise<RadarSnapshot> {
   const now = d.now ?? Date.now();
   const head = await d.logs.getBlockNumber();
@@ -150,28 +165,16 @@ export async function buildRadar(d: RadarDeps): Promise<RadarSnapshot> {
   const all = await launches(d.logs, head - day, head);
   const stats = await activity(d.logs, all, head - hour, head);
   // an empty hour on a chain with hundreds of launches a day means the log queries failed: keep the last snapshot
-  if (all.size > 50 && stats.size === 0) throw new Error(`no activity read for ${all.size} launches`);
+  if (all.size < 100 || stats.size === 0) throw new Error(`radar read incomplete: ${all.size} launches, ${stats.size} with activity`);
   const ranked = [...all.values()]
     .map((l) => ({ l, s: stats.get(l.token.toLowerCase()) }))
     .filter((x) => x.s && x.s.buyers.size > 0 && !TOKENS[x.l.token.toLowerCase()]) // known tokens (USDG, stocks) are not launches
     .sort((a, b) => b.s!.buyers.size - a.s!.buyers.size || b.s!.buys - a.s!.buys)
     .slice(0, d.size ?? 40);
 
-  // Token Check for the busiest first; earlier results are reused while fresh
+  // earlier Token Check results are reused while fresh; new checks run after the snapshot is saved (runChecks)
   const cached = await Promise.all(ranked.map((x) => d.getCheck(x.l.token).catch(() => null)));
-  const todo = ranked.map((x, i) => ({ x, i })).filter(({ i }) => !cached[i]).slice(0, d.maxChecks ?? 8);
-  let next = 0;
-  const worker = async () => {
-    while (next < todo.length) {
-      const { x, i } = todo[next++]!;
-      const r = await Promise.race([d.check(x.l.token), new Promise<null>((res) => setTimeout(() => res(null), 50_000))]).catch(() => null);
-      if (r) { cached[i] = compact(r); await d.putCheck(x.l.token, cached[i]!).catch(() => {}); }
-    }
-  };
-  const [meta] = await Promise.all([
-    d.client.multicall({ contracts: ranked.flatMap((x) => [{ address: x.l.token, abi: META, functionName: "symbol" }, { address: x.l.token, abi: META, functionName: "name" }]) as never, allowFailure: true }).catch(() => []) as Promise<{ status: string; result?: string }[]>,
-    Promise.all([worker(), worker(), worker(), worker()]),
-  ]);
+  const meta = await (d.client.multicall({ contracts: ranked.flatMap((x) => [{ address: x.l.token, abi: META, functionName: "symbol" }, { address: x.l.token, abi: META, functionName: "name" }]) as never, allowFailure: true }) as Promise<{ status: string; result?: string }[]>).catch(() => [] as { status: string; result?: string }[]);
   const text = (r?: { status: string; result?: string }) => (r?.status === "success" && typeof r.result === "string" ? r.result.slice(0, 40) : null);
   return {
     generatedAt: now, block: head.toString(), launched24h: all.size,
