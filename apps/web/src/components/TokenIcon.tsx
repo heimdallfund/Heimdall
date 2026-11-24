@@ -10,8 +10,11 @@ const COINS: Record<string, string> = {
 };
 const STOCKS: Record<string, string> = {
   NVDA: "/logos/stock-NVDA.svg", TSLA: "/logos/stock-TSLA.svg", GOOGL: "/logos/stock-GOOGL.svg", GOOG: "/logos/stock-GOOGL.svg", AAPL: "/logos/stock-AAPL.svg",
+  AMZN: "/logos/stock-AMZN.png", MSFT: "/logos/stock-MSFT.png", QQQ: "/logos/stock-QQQ.png", GME: "/logos/stock-GME.png", MU: "/logos/stock-MU.png", USO: "/logos/stock-USO.png", SGOV: "/logos/stock-SGOV.png",
   META: "/logos/stock-META.svg", COIN: "/logos/stock-COIN.svg", SPCX: "/logos/stock-SPCX.svg", CRCL: "/logos/stock-CRCL.svg", DELL: "/logos/stock-DELL.svg",
 };
+/** Marks drawn in white: they sit on a dark coin. */
+const DARK = new Set(["AMZN", "GME", "QQQ", "SGOV"]);
 export const TOKEN_LOGOS = new Set<string>([...Object.keys(COINS), ...Object.keys(STOCKS)]);
 
 /** `plain` skips the logo: a fake token with a real ticker must not borrow the real token's logo. */
@@ -21,7 +24,7 @@ export function TokenIcon({ symbol, size = 28, plain = false }: { symbol: string
   if (!plain && STOCKS[sym]) {
     const inner = Math.round(size * 0.56);
     return (
-      <span aria-hidden="true" style={{ width: size, height: size }} className="inline-flex shrink-0 items-center justify-center rounded-full border border-line bg-white">
+      <span aria-hidden="true" style={{ width: size, height: size }} className={`inline-flex shrink-0 items-center justify-center rounded-full border ${DARK.has(sym) ? "border-ink bg-ink" : "border-line bg-white"}`}>
         <img src={STOCKS[sym]} alt="" width={inner} height={inner} />
       </span>
     );
