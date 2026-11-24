@@ -52,6 +52,6 @@ Review 2 restricted `HeimdallStaking.notifyReward` to the splitter, but `Heimdal
 
 ## Operational points (not code)
 
-1. **The admin Safe owns every vault and can change its manager, Shield signer and limits.** With one signer, a stolen owner key could appoint itself manager and lose up to the daily limit (at most 15%) per day. Add a second signer, ideally a hardware wallet, before raising the 10,000 USDG per-vault deposit cap.
+1. **The admin Safe owns every vault and can change its manager, Shield signer and limits.** With one signer, a stolen owner key could appoint itself manager and lose up to the daily limit (at most 15%) per day. Add a second signer, ideally a hardware wallet, before raising the 10,000 USDG per-vault deposit cap. **Resolved 2026-11-24:** the Safe is now 2 of 3, so one stolen key can no longer act.
 2. **The Shield signer key is held in an environment variable**, not in a KMS. A leaked key lets a rogue manager skip Shield, but not the onchain limits, which now include the recipient check. Move to a KMS key later with a Safe rotation (`OP=signer`); no redeploy is needed.
 3. **The deployer key is used once.** After the Safe accepts ownership it controls nothing; the leftover ETH can pay gas for the monitor and the x402 facilitator.

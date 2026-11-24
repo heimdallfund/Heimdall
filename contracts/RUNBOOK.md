@@ -1,6 +1,6 @@
 # Heimdall operations runbook
 
-All times UTC. All admin power lives in the **Safe** (`adminSafe`). The deployer key only deploys and hands over ownership; after launch it holds nothing.
+All times UTC. All admin power lives in the **Safe** (`adminSafe`), a 2-of-3 multisig since 2026-11-24 (owner, signer 2, and an offline backup signer). The deployer key only deploys and hands over ownership; after launch it holds nothing.
 
 ## Roles
 

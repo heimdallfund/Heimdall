@@ -8,7 +8,7 @@ export const PHASES: Phase[] = [
     steps: [
       { id: "domain", title: "Register heimdall.fund", detail: "Bought on Vercel 2026-11-24 (turn auto-renew on). Attached: heimdall.fund + www → heimdall-web, api. → heimdall-shield, mcp. → heimdall-mcp. The site, api.heimdall.fund, security@ and hello@ email, and the MCP Registry DNS proof all depend on it." },
       { id: "audit-report", title: "Independent audit report in, every fix reviewed", detail: "The auditor's fix review covers the exact commit you will deploy. Note that commit." },
-      { id: "safe-ready", title: "Admin Safe ready on Robinhood Chain", detail: "Safe 1.4.1 with every signer added and a test transaction signed by the threshold." },
+      { id: "safe-ready", title: "Admin Safe ready on Robinhood Chain", detail: "Done 2026-11-24: Safe 1.4.1, 2 of 3 signers (owner, signer 2, offline backup)." },
       { id: "kms-signer", title: "Shield signer key", detail: "Done 2026-11-24: 0xa6ce235055039a55aa438aFFAD18F7d0Ccf092d9, key in SHIELD_SIGNER_KEY (sensitive, production) on heimdall-shield, already in the deploy config as shieldSigner. Moving to AWS KMS later is a Safe rotation, no redeploy." },
       { id: "upstash", title: "Upstash Redis for the Shield API", detail: "Vercel → Storage → Upstash for Redis, connected to heimdall-shield, heimdall-monitor and heimdall-web (vault NAV history). It adds KV_REST_API_URL and KV_REST_API_TOKEN, which all three read." },
       { id: "rpc", title: "Paid RPC and a backup", detail: "Alchemy plus a second provider: RPC_URL_MAINNET / _BACKUP on Shield, RPC_URL / RPC_URL_BACKUP on the monitor." },

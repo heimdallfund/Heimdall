@@ -26,7 +26,7 @@ All Heimdall contracts run on Robinhood Chain mainnet (chain ID 4663). None is u
 | ERC-8004 Reputation Registry | Where Heimdall publishes agent scores (not Heimdall's) | `0x8004BAa17C55a88189AE136b182e5fdA19dE9b63` |
 | USDG (Paxos) | Settlement currency | [`0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168`](https://robinhoodchain.blockscout.com/address/0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168) |
 
-Deployed 2026-11-24 at block 122,057,226. Admin Safe: [`0xaF1c3b55D204899CEd14d23C996153bC82424168`](https://robinhoodchain.blockscout.com/address/0xaF1c3b55D204899CEd14d23C996153bC82424168). Shield receipt signer: `0xa6ce235055039a55aa438aFFAD18F7d0Ccf092d9`. All ten contracts are source-verified on [Sourcify](https://repo.sourcify.dev/4663/0x838fdede1ae6fbdc15f784030d78ca7543d1154d): the deployed bytecode matches this repository at the commit that was deployed.
+Deployed 2026-11-24 at block 122,057,226. Admin Safe (2 of 3 signers): [`0xaF1c3b55D204899CEd14d23C996153bC82424168`](https://robinhoodchain.blockscout.com/address/0xaF1c3b55D204899CEd14d23C996153bC82424168). Shield receipt signer: `0xa6ce235055039a55aa438aFFAD18F7d0Ccf092d9`. All ten contracts are source-verified on [Sourcify](https://repo.sourcify.dev/4663/0x838fdede1ae6fbdc15f784030d78ca7543d1154d): the deployed bytecode matches this repository at the commit that was deployed.
 
 ## Roles
 
