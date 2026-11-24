@@ -24,7 +24,7 @@ export const PHASES: Phase[] = [
     steps: [
       { id: "size", title: "Production build under the size limit", detail: "Fails if any contract is over 24,576 bytes.", code: "npm run size" },
       { id: "deploy-core", title: "Deploy the contracts", detail: "Vault factory, Signals, Pay, Auto-Invest, Risk Oracle, Guard module and price adapters. Writes the Safe batch to deployments/.", code: "npm run deploy" },
-      { id: "accept-ownership", title: "Safe accepts ownership", detail: "Transaction Builder → import deployments/robinhood.safe-accept-ownership.json → review → execute." },
+      { id: "accept-ownership", title: "Safe accepts ownership", detail: "Done 2026-11-24: the admin Safe 0xaF1c…4168 owns the factory, Signals, Pay, Auto-Invest, Risk Oracle and Guard module (one owner transaction through MultiSendCallOnly)." },
       { id: "verify", title: "Verify sources on Blockscout", detail: "Every contract shows a green check on the explorer.", code: "npx hardhat verify --network robinhood <address> <constructor args…>" },
       { id: "staking", title: "$HEIM staking and fee splitter", detail: "After the token exists: deploy-staking.ts, then the Safe executes robinhood.safe-route-fees.json." },
     ],
