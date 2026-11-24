@@ -345,11 +345,22 @@ export function buildApp(opts: AppOptions = {}) {
 
     // 5. check
     try {
+      const peersKey = `agent:${b.from.toLowerCase()}:peers`;
+      const history = b.probe ? [] : await store.members(peersKey).catch(() => [] as string[]);
       const result = await checkTransaction(
         { chainId: b.chainId, from: b.from as `0x${string}`, to: (b.to ?? null) as `0x${string}` | null, data: b.data as `0x${string}`, value: BigInt(b.value) },
         b.policy,
-        { client: getClient(b.chainId) },
+        { client: getClient(b.chainId), history },
       );
+      // Remember where this wallet sends and what it approves, but only from clean checks: a poisoned address
+      // must never become "familiar". Capped so one wallet cannot grow its set without limit.
+      if (!b.probe && result.verdict === "ALLOW" && history.length < 200) {
+        const peers = new Set<string>();
+        if (b.to) peers.add(b.to.toLowerCase());
+        for (const a of result.approvals) if (!a.revoke) peers.add(a.spender.toLowerCase());
+        for (const ch of result.assetChanges) if (ch.delta < 0n) for (const p of ch.counterparties) peers.add(p.toLowerCase());
+        await Promise.all([...peers].map((p) => store.addMember(peersKey, p))).catch(() => {});
+      }
       const bucket = result.verdict === "ALLOW" ? "allowed" : result.verdict === "WARN" ? "warned" : "denied";
       await countVerdict(store, bucket).catch(() => {});
       // For approvals the threat is the spender, not the token contract.

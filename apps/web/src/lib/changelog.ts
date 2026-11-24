@@ -8,6 +8,8 @@ export const CHANGELOG: ChangeEntry[] = [
     title: "Agents can find and use Heimdall on their own",
     summary: "A hosted MCP server, an OpenAPI spec and discovery files mean an agent or a developer tool can connect without anyone setting it up. Plus a live status page, a bigger sourced blocklist and a security pass on the Shield API.",
     changes: [
+      { tag: "Shield", text: "Catches the three scams Robinhood Chain is known for: honeypots that cannot be sold back to their pool, tokens that vanish or can be pulled out of your wallet after you buy, and fake tokens with a real ticker such as USDG or NVDA." },
+      { tag: "Shield", text: "Address poisoning: a recipient that starts and ends like an address you already use, but is not it, is denied." },
       { tag: "Agents", text: "Remote MCP server at mcp.heimdall.fund/mcp over Streamable HTTP, with a server card for discovery. Each caller keeps their own free tier." },
       { tag: "Agents", text: "llms.txt at heimdall.fund/llms.txt: what Heimdall is and where every piece lives, for language models." },
       { tag: "Docs", text: "OpenAPI 3.1 spec at /openapi.json, generated from the same schemas the API validates with, and an API reference with a live Try it for every endpoint." },

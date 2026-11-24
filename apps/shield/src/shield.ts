@@ -2,14 +2,17 @@ import {
   type Address, type Hex, type PublicClient,
   getAddress, keccak256, encodePacked, parseAbi, toHex,
 } from "viem";
-import { knownContract, NATIVE_ASSET } from "./chains.js";
+import { KNOWN_CONTRACTS, knownContract, NATIVE_ASSET } from "./chains.js";
 import { approvalsFromCall, decodeCall, expandBatch } from "./decode.js";
 import { isBlocklisted } from "./blocklist.js";
 import { inList, lc, type Policy, PolicySchema } from "./policy.js";
 import { signReceipt } from "./receipt.js";
 import { prelaunch } from "./signer.js";
-import { probeTransferability, simulate, type SimResult } from "./simulate.js";
+import { probeReceivedToken, probeTransferability, simulate, STRANGER, type SimResult } from "./simulate.js";
 import { fmt, tokenMeta } from "./tokens.js";
+import { fakeTokenCheck } from "./impersonation.js";
+import { lookalikeOf } from "./poison.js";
+import { TOKENS, KNOWN_SPENDERS } from "./registry.js";
 import type { ApprovalInfo, AssetChange, CheckResult, Finding, TxIntent, Verdict } from "./types.js";
 
 const BALANCE_ABI = parseAbi(["function balanceOf(address) view returns (uint256)"]);
@@ -19,6 +22,8 @@ export interface ShieldDeps {
   client: PublicClient;
   sign?: boolean;
   now?: () => number;
+  /** Addresses this wallet has already sent to or approved through Shield (for look-alike detection). */
+  history?: string[];
 }
 
 function label(chainId: number, a: string | null | undefined) {
@@ -94,6 +99,24 @@ async function assetChanges(client: PublicClient, tx: TxIntent, sim: SimResult):
     if (tx.to) c.counterparties.push(tx.to);
   }
   return [...map.values()].filter((c) => c.delta !== 0n);
+}
+
+/** Tokens the agent receives and loses again within the same transaction, to someone other than itself. */
+function vanishing(sim: SimResult, agent: Address): { token: Address }[] {
+  const me = lc(agent);
+  const byToken = new Map<string, { token: Address; inn: bigint; out: bigint }>();
+  for (const t of sim.transfers) {
+    if (t.kind !== "erc20") continue;
+    const k = lc(t.asset);
+    const e = byToken.get(k) ?? { token: t.asset, inn: 0n, out: 0n };
+    if (lc(t.to) === me && lc(t.from) !== me) e.inn += t.amount;
+    if (lc(t.from) === me && lc(t.to) !== me) e.out += t.amount;
+    byToken.set(k, e);
+  }
+  // received first, then (almost) all of it removed again
+  const firstIn = (k: string) => sim.transfers.findIndex((t) => lc(t.asset) === k && lc(t.to) === me);
+  const lastOut = (k: string) => { let i = -1; sim.transfers.forEach((t, j) => { if (lc(t.asset) === k && lc(t.from) === me) i = j; }); return i; };
+  return [...byToken.entries()].filter(([k, e]) => e.inn > 0n && e.out * 100n >= e.inn * 90n && firstIn(k) < lastOut(k)).map(([, e]) => ({ token: e.token }));
 }
 
 function verdictOf(findings: Finding[], policy: Policy): Verdict {
@@ -214,19 +237,73 @@ export async function checkTransaction(rawTx: TxIntent, rawPolicy: unknown, deps
     for (const cp of c.counterparties) if (isBlocklisted(cp)) add("BLOCKLISTED_RECIPIENT", "deny", `Sends ${c.symbol} to ${short(cp)}, a blocklisted address.`);
   }
 
-  // 5b. Can the agent move what it receives? (honeypots, transfer taxes)
+  // 4b. Address poisoning: a recipient or spender that looks like an address the wallet trusts, but is not it.
+  const familiar = new Set<string>([
+    ...Object.keys(KNOWN_CONTRACTS[tx.chainId] ?? {}), ...Object.keys(TOKENS), ...Object.keys(KNOWN_SPENDERS),
+    ...policy.trustedRecipients, ...policy.trustedSpenders, ...(policy.allowTargets ?? []), ...(deps.history ?? []),
+  ].map(lc));
+  const destinations = new Map<string, Address>();
+  const dest = (a?: Address | null) => { if (a && !familiar.has(lc(a))) destinations.set(lc(a), a); };
+  dest(tx.to);
+  for (const a of approvals) if (!a.revoke) dest(a.spender);
+  for (const c of changes) if (c.delta < 0n) c.counterparties.forEach(dest);
+  if (decoded && /^(transfer|transferFrom)$/.test(decoded.functionName)) for (const arg of decoded.args) if (typeof arg === "string" && /^0x[0-9a-fA-F]{40}$/.test(arg) && lc(arg) !== lc(tx.from)) dest(arg as Address);
+  for (const d of destinations.values()) {
+    const twin = lookalikeOf(d, familiar);
+    if (twin) add("LOOKALIKE_ADDRESS", "deny", `${short(d)} looks like ${short(getAddress(twin))}${deps.history?.some((h) => lc(h) === twin) ? ", an address this wallet used before" : ""}, but it is a different address. This is address poisoning: check every character.`);
+  }
+
+  // 5a. Fake tokens: a known ticker or name at the wrong address, wherever the token shows up in this call.
+  const tokensTouched = new Map<string, Address>();
+  const touchToken = (a?: Address | null) => { if (a && lc(a) !== lc(NATIVE_ASSET)) tokensTouched.set(lc(a), a); };
+  for (const c of changes) if (c.kind === "erc20") touchToken(c.asset);
+  for (const a of approvals) touchToken(a.token);
+  if (tx.to && decoded && /^(approve|transfer|transferFrom|permit|increaseAllowance)$/.test(decoded.functionName)) touchToken(tx.to);
+  const fakes = await Promise.all([...tokensTouched.values()].slice(0, 6).map(async (t) => ({ t, f: await fakeTokenCheck(client, t) })));
+  for (const { t, f } of fakes) {
+    if (!f) continue;
+    if (f.by === "symbol") add("FAKE_TOKEN", "deny", `${short(t)} calls itself ${f.symbol}, but the real ${f.symbol} is ${short(f.real)}. A copy with the same ticker is a common scam.`);
+    else add("FAKE_TOKEN", "warn", `${short(t)} uses the name of ${f.symbol} but is not the real ${f.symbol} (${short(f.real)}).`);
+  }
+
+  // 5b. Tokens that arrive and are taken back in the same transaction: you pay and end up with nothing.
+  for (const v of vanishing(sim, tx.from)) {
+    if (knownContract(tx.chainId, v.token)) continue;
+    const meta = await tokenMeta(client, tx.chainId, v.token);
+    add("VANISHING_TOKEN", outflows.length ? "deny" : "warn", `${meta.symbol} arrives in the wallet and is taken out again in the same transaction${outflows.length ? ", so you pay and keep nothing" : ""}. This is the vanishing-token scam.`);
+  }
+
+  // 5c. Can the agent move, sell and keep what it receives? (honeypots, sell blocks, taxes, allowance backdoors)
   const unknownIn = inflows.filter((c) => c.kind === "erc20" && !knownContract(tx.chainId, c.asset));
   if (sim.ok && unknownIn.length) {
-    const probes = await probeTransferability(client, tx, unknownIn.map((c) => ({ token: c.asset, amount: c.delta })));
+    const sourceOf = (token: Address) => sim.transfers.find((t) => lc(t.asset) === lc(token) && lc(t.to) === lc(tx.from) && lc(t.from) !== lc(tx.from))?.from;
+    const [probes, deep] = await Promise.all([
+      probeTransferability(client, tx, unknownIn.map((c) => ({ token: c.asset, amount: c.delta }))),
+      Promise.all(unknownIn.slice(0, 3).map((c) => probeReceivedToken(client, tx, c.asset, c.delta, sourceOf(c.asset)))),
+    ]);
+    const taxFinding = (sym: string, sent: bigint, received: bigint, what: string) => {
+      if (sent <= 0n || received >= sent) return;
+      const taxBps = Number(((sent - received) * 10_000n) / sent);
+      const pct = (taxBps / 100).toFixed(1);
+      if (taxBps >= 5_000) add("TRANSFER_TAX", "deny", `${sym} takes a ${pct}% tax ${what}.`);
+      else if (taxBps >= 500) add("TRANSFER_TAX", "warn", `${sym} takes a ${pct}% tax ${what}.`);
+      else add("TRANSFER_TAX", "info", `${sym} takes a ${pct}% tax ${what}.`);
+    };
+    const symOf = (t: Address) => unknownIn.find((c) => lc(c.asset) === lc(t))?.symbol ?? short(t);
+    const honeypot = new Set<string>();
     for (const p of probes) {
-      const sym = unknownIn.find((c) => c.asset.toLowerCase() === p.token.toLowerCase())?.symbol ?? short(p.token);
-      if (!p.ok) { add("HONEYPOT", "deny", `The ${sym} you receive cannot be moved again (${p.reason}). Likely a honeypot.`); continue; }
-      if (p.sent > 0n && p.received < p.sent) {
-        const taxBps = Number(((p.sent - p.received) * 10_000n) / p.sent);
-        const pct = (taxBps / 100).toFixed(1);
-        if (taxBps >= 5_000) add("TRANSFER_TAX", "deny", `${sym} takes a ${pct}% tax on every transfer.`);
-        else if (taxBps >= 500) add("TRANSFER_TAX", "warn", `${sym} takes a ${pct}% tax on every transfer.`);
-        else add("TRANSFER_TAX", "info", `${sym} takes a ${pct}% tax on transfers.`);
+      if (!p.ok) { honeypot.add(lc(p.token)); add("HONEYPOT", "deny", `The ${symOf(p.token)} you receive cannot be moved again (${p.reason}). Likely a honeypot.`); continue; }
+      taxFinding(symOf(p.token), p.sent, p.received, "on every transfer");
+    }
+    for (const d of deep) {
+      const sym = symOf(d.token);
+      if (d.sell && !honeypot.has(lc(d.token))) {
+        if (!d.sell.ok) add("HONEYPOT", "deny", `The ${sym} you receive can be moved but not sold back to its pool (${d.sell.reason}). This is a sell-blocking honeypot.`);
+        else if (!F.some((f) => f.code === "TRANSFER_TAX" && f.message.startsWith(sym))) taxFinding(sym, d.amount, d.sell.received, "when you sell");
+      }
+      if (d.pulledBy.length) {
+        const who = d.pulledBy.map((a) => (lc(a) === lc(STRANGER) ? "anyone" : `its owner ${short(a)}`)).join(" and ");
+        add("ALLOWANCE_BYPASS", "deny", `${sym} lets ${who} take it out of your wallet without your approval. The tokens can be clawed back after you buy.`);
       }
     }
   }

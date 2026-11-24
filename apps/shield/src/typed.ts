@@ -1,4 +1,5 @@
 import { type Address, type PublicClient, getAddress, isAddress, isHex, maxUint256 } from "viem";
+import { fakeTokenCheck } from "./impersonation.js";
 import { knownContract } from "./chains.js";
 import { isBlocklisted } from "./blocklist.js";
 import { inList, type Policy } from "./policy.js";
@@ -66,6 +67,8 @@ export async function checkTypedData(
     const label = knownContract(chainId, token)?.name ?? short(token);
     summary.push(`${std}: lets ${short(spender)} spend ${unlimited ? "UNLIMITED" : amount?.toString() ?? "?"} ${label}${expiresAt ? ` until ${new Date(expiresAt * 1000).toISOString().slice(0, 10)}` : ""}`);
     if (isBlocklisted(spender)) { add("BLOCKLISTED_SPENDER", "deny", `Spender ${short(spender)} is on the Heimdall blocklist.`); return; }
+    const fake = await fakeTokenCheck(client, token).catch(() => undefined);
+    if (fake) add("FAKE_TOKEN", fake.by === "symbol" ? "deny" : "warn", `${short(token)} calls itself ${fake.symbol}, but the real ${fake.symbol} is ${short(fake.real)}.`);
     const trusted = inList(policy.trustedSpenders, spender);
     if (!trusted && !(await isContract(client, spender))) {
       add(unlimited ? "PERMIT_UNLIMITED_TO_EOA" : "PERMIT_TO_EOA", "deny", `Signing lets the plain wallet ${short(spender)} take your ${label}: the most common drainer signature.`);

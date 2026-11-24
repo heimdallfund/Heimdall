@@ -106,6 +106,8 @@ export async function simulate(client: PublicClient, tx: TxIntent): Promise<SimR
 
 /** Address with no code used to test whether received tokens can be moved again. */
 export const PROBE: Address = "0x5eeD5EED5eeD5EEd5eed5eEd5eEd5eed5EeD5EEd";
+/** A stranger with no allowance: if it can pull tokens out of the agent's wallet, the token has a backdoor. */
+export const STRANGER: Address = "0x5714a6E75714a6e75714a6E75714a6e75714A6E7";
 
 export interface ProbeResult { token: Address; sent: bigint; received: bigint; ok: boolean; reason?: string }
 
@@ -136,4 +138,63 @@ export async function probeTransferability(client: PublicClient, tx: TxIntent, t
     const received = transfers.filter((x) => x.asset.toLowerCase() === t.token.toLowerCase() && x.to.toLowerCase() === PROBE.toLowerCase()).reduce((a, x) => a + x.amount, 0n);
     return { token: t.token, sent: t.amount, received, ok: true };
   });
+}
+
+const ERC20X = parseAbi([
+  "function transfer(address,uint256) returns (bool)",
+  "function transferFrom(address,address,uint256) returns (bool)",
+]);
+
+/** Run the transaction, then one more call in the same block; returns that call's outcome and transfers. */
+async function afterMain(client: PublicClient, tx: TxIntent, call: { from: Address; to: Address; data: Hex }) {
+  const main: Record<string, unknown> = { from: tx.from, data: tx.data, value: toHex(tx.value) };
+  if (tx.to) main.to = tx.to;
+  try {
+    const res: any = await client.request({
+      method: "eth_simulateV1" as any,
+      params: [{ blockStateCalls: [{ calls: [main, call] }], traceTransfers: true, validation: false }, "latest"] as any,
+    });
+    const c = res?.[0]?.calls?.[1];
+    if (!c) return null;
+    const ok = c.status === "0x1";
+    return { ok, reason: ok ? undefined : decodeRevert(c.error?.data ?? c.returnData, c.error?.message), transfers: parseLogs((c.logs ?? []) as RawLog[]).transfers };
+  } catch {
+    return null;
+  }
+}
+
+export interface TokenProbe {
+  token: Address;
+  amount: bigint;
+  /** Selling: sending the tokens back to where they came from (the pool). */
+  sell?: { ok: boolean; reason?: string; received: bigint; to: Address };
+  /** Who could pull the tokens out of the agent's wallet without an approval (the hidden-allowance backdoor). */
+  pulledBy: Address[];
+}
+
+/**
+ * For a token the agent is about to receive: can it be sold back to its source, and can a stranger or the token's
+ * owner take it out of the wallet without any approval? Each question is its own simulation, after the real call.
+ */
+export async function probeReceivedToken(client: PublicClient, tx: TxIntent, token: Address, amount: bigint, source?: Address): Promise<TokenProbe> {
+  const out: TokenProbe = { token, amount, pulledBy: [] };
+  const owner = await client.readContract({ address: token, abi: parseAbi(["function owner() view returns (address)"]), functionName: "owner" }).catch(() => undefined) as Address | undefined;
+  const pullers = [STRANGER, ...(owner && owner !== "0x0000000000000000000000000000000000000000" && owner.toLowerCase() !== tx.from.toLowerCase() ? [owner] : [])];
+  const pull = (who: Address) => afterMain(client, tx, { from: who, to: token, data: encodeFunctionData({ abi: ERC20X, functionName: "transferFrom", args: [tx.from, who, amount] }) });
+  const [sell, ...pulls] = await Promise.all([
+    source && source.toLowerCase() !== tx.from.toLowerCase()
+      ? afterMain(client, tx, { from: tx.from, to: token, data: encodeFunctionData({ abi: ERC20X, functionName: "transfer", args: [source, amount] }) })
+      : Promise.resolve(null),
+    ...pullers.map(pull),
+  ]);
+  if (sell && source) {
+    const received = sell.transfers.filter((x) => x.asset.toLowerCase() === token.toLowerCase() && x.to.toLowerCase() === source.toLowerCase()).reduce((a, x) => a + x.amount, 0n);
+    out.sell = { ok: sell.ok, reason: sell.reason, received, to: source };
+  }
+  pulls.forEach((p, i) => {
+    const who = pullers[i]!;
+    // a real pull moves the agent's tokens; "returns false" without a transfer is not a backdoor
+    if (p?.ok && p.transfers.some((x) => x.asset.toLowerCase() === token.toLowerCase() && x.from.toLowerCase() === tx.from.toLowerCase())) out.pulledBy.push(who);
+  });
+  return out;
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it, afterEach } from "vitest";
-import { encodeAbiParameters, encodeFunctionData, pad, parseAbi, toHex, type Address, type Hex, type PublicClient } from "viem";
+import { decodeFunctionData, encodeAbiParameters, encodeFunctionData, pad, parseAbi, toHex, type Address, type Hex, type PublicClient } from "viem";
 import { checkPersonalMessage, checkTypedData } from "../src/typed.js";
 import { checkTransaction } from "../src/shield.js";
 import { PolicySchema } from "../src/policy.js";
@@ -18,23 +18,40 @@ const MAX160 = (1n << 160n) - 1n;
 const topic = (a: Address) => pad(a, { size: 32 }).toLowerCase() as Hex;
 const log = (token: Address, from: Address, to: Address, amount: bigint) => ({ address: token, topics: [TRANSFER, topic(from), topic(to)] as Hex[], data: pad(toHex(amount), { size: 32 }) });
 
-function client(opts: { probe?: "ok" | "tax" | "revert" } = {}): PublicClient {
+function client(opts: { probe?: "ok" | "tax" | "revert"; sellBlocked?: boolean; backdoor?: "anyone" | "owner"; vanish?: boolean; symbol?: string } = {}): PublicClient {
   const contracts = new Set([TOKEN, ROUTER, PERMIT2].map((a) => a.toLowerCase()));
+  const OWNER: Address = "0x9999999999999999999999999999999999999999";
+  const X = parseAbi(["function transfer(address,uint256) returns (bool)", "function transferFrom(address,address,uint256) returns (bool)"]);
   return {
     getCode: async ({ address }: { address: Address }) => (contracts.has(address.toLowerCase()) ? "0x6080" : undefined),
     getBalance: async () => 10n ** 18n,
-    readContract: async ({ functionName }: { functionName: string }) => (functionName === "symbol" ? "MEME" : functionName === "decimals" ? 18 : 10n ** 30n),
+    readContract: async ({ functionName }: { functionName: string }) => (functionName === "symbol" ? (opts.symbol ?? "MEME") : functionName === "name" ? "Meme" : functionName === "decimals" ? 18 : functionName === "owner" ? (opts.backdoor === "owner" ? OWNER : "0x0000000000000000000000000000000000000000") : 10n ** 30n),
     request: async ({ params }: { params: any }) => {
       const calls = params[0].blockStateCalls[0].calls;
-      const main = { status: "0x1", gasUsed: "0x1", logs: [log(TOKEN, ROUTER, AGENT, 1000n)] };
+      const mainLogs = [log(TOKEN, ROUTER, AGENT, 1000n), ...(opts.vanish ? [log(USDG_, AGENT, ROUTER, 500n), log(TOKEN, AGENT, OWNER, 1000n)] : [])];
+      const main = { status: "0x1", gasUsed: "0x1", logs: mainLogs };
       if (calls.length === 1) return [{ calls: [main] }];
-      const probe = opts.probe === "revert"
-        ? { status: "0x0", returnData: "0x", error: { message: "trading not enabled" }, logs: [] }
-        : { status: "0x1", gasUsed: "0x1", logs: [log(TOKEN, AGENT, PROBE, opts.probe === "tax" ? 880n : 1000n)] };
+      const c = calls[1];
+      const revert = (message: string) => ({ status: "0x0", returnData: "0x", error: { message }, logs: [] });
+      let probe;
+      try {
+        const d = decodeFunctionData({ abi: X, data: c.data });
+        if (d.functionName === "transfer") {
+          const [to, amount] = d.args as [Address, bigint];
+          if (opts.probe === "revert") probe = revert("trading not enabled");
+          else if (opts.sellBlocked && to.toLowerCase() === ROUTER.toLowerCase()) probe = revert("sell not allowed");
+          else probe = { status: "0x1", gasUsed: "0x1", logs: [log(TOKEN, AGENT, to, opts.probe === "tax" ? (amount * 88n) / 100n : amount)] };
+        } else {
+          const [from, to, amount] = d.args as [Address, Address, bigint];
+          const can = (opts.backdoor === "anyone") || (opts.backdoor === "owner" && c.from.toLowerCase() === OWNER.toLowerCase());
+          probe = can ? { status: "0x1", gasUsed: "0x1", logs: [log(TOKEN, from, to, amount)] } : revert("ERC20: insufficient allowance");
+        }
+      } catch { probe = revert("unknown"); }
       return [{ calls: [main, probe] }];
     },
   } as unknown as PublicClient;
 }
+const USDG_: Address = "0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168";
 
 describe("Signature checks (offchain)", () => {
   it("denies an EIP-2612 permit to a plain wallet", async () => {
@@ -94,6 +111,32 @@ describe("Received-token checks", () => {
     const tax = r.findings.find((f) => f.code === "TRANSFER_TAX");
     expect(tax?.severity).toBe("warn");
     expect(tax?.message).toContain("12.0%");
+  });
+
+  it("denies a token that moves but cannot be sold back to its pool", async () => {
+    const r = await checkTransaction({ chainId: 4663, from: AGENT, to: ROUTER, data: "0xdeadbeef", value: 0n }, {}, { client: client({ probe: "ok", sellBlocked: true }), sign: false });
+    expect(r.verdict).toBe("DENY");
+    expect(r.findings.find((f) => f.code === "HONEYPOT")?.message).toContain("not sold back");
+  });
+
+  it("denies a token anyone, or its owner, can pull out of the wallet without an approval", async () => {
+    for (const backdoor of ["anyone", "owner"] as const) {
+      const r = await checkTransaction({ chainId: 4663, from: AGENT, to: ROUTER, data: "0xdeadbeef", value: 0n }, {}, { client: client({ probe: "ok", backdoor }), sign: false });
+      expect(r.verdict).toBe("DENY");
+      expect(r.findings.find((f) => f.code === "ALLOWANCE_BYPASS")?.message).toContain(backdoor === "anyone" ? "lets anyone" : "its owner 0x9999");
+    }
+  });
+
+  it("denies the vanishing-token scam: you pay, the token arrives and is taken back in the same transaction", async () => {
+    const r = await checkTransaction({ chainId: 4663, from: AGENT, to: ROUTER, data: "0xdeadbeef", value: 0n }, {}, { client: client({ probe: "ok", vanish: true }), sign: false });
+    expect(r.verdict).toBe("DENY");
+    expect(r.findings.map((f) => f.code)).toContain("VANISHING_TOKEN");
+  });
+
+  it("denies receiving a fake NVDA: the real ticker at the wrong address", async () => {
+    const r = await checkTransaction({ chainId: 4663, from: AGENT, to: ROUTER, data: "0xdeadbeef", value: 0n }, {}, { client: client({ probe: "ok", symbol: "NVDА" }), sign: false });
+    expect(r.verdict).toBe("DENY");
+    expect(r.findings.find((f) => f.code === "FAKE_TOKEN")?.message).toContain("the real NVDA is 0xd060");
   });
 
   it("passes a normal token", async () => {
