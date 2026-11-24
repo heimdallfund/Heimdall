@@ -6,7 +6,7 @@ import { Faq, Steps } from "@/components/ProductSections";
 import { InvestPanel } from "./InvestPanel";
 import { LogoRow } from "@/components/BrandLogo";
 
-export const metadata: Metadata = { title: "Auto-Invest", description: "Buy NVDA, TSLA or GOOGL stock tokens on a schedule with USDG, straight from your own wallet, never above the Chainlink price you allow." };
+export const metadata: Metadata = { title: "Auto-Invest", description: "Buy 16 Robinhood stock tokens (NVDA, AAPL, AMZN, META, QQQ and more) on a schedule with USDG, straight from your own wallet, never above the Chainlink price you allow." };
 
 export default function Page() {
   return (
@@ -25,7 +25,7 @@ export default function Page() {
       ]} />
       <Faq items={[
         ["Who holds my money?", "You do. Auto-Invest only has an allowance for the budget you approve, and takes one buy's worth at a time. Revoke the allowance or stop the plan whenever you want."],
-        ["Which stocks can I buy?", "NVDA, TSLA and GOOGL at launch: the stock tokens with 24/7 Chainlink feeds on Robinhood Chain. More come as feeds are added."],
+        ["Which stocks can I buy?", "16 stock tokens with a Chainlink feed and a USDG pool on Uniswap: NVDA, TSLA and GOOGL (priced 24/7), plus AMZN, AAPL, MSFT, META, COIN, QQQ, SPCX, GME, MU, CRCL, DELL, USO and SGOV (priced Monday to Friday; a buy that falls on the weekend runs on Monday)."],
         ["What does it cost?", "0.25% of each buy, paid to $HEIM stakers, plus the Uniswap pool fee."],
         ["Are stock tokens available to everyone?", "No. Robinhood Stock Tokens are not offered to US persons and have their own restrictions. Check Robinhood's terms for your country before you buy."],
       ]} />

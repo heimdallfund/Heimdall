@@ -294,7 +294,7 @@ const { hash } = await guardedSend(wallet, { to, data, value }, { shield }); // 
         </ul>
 
         <h2 id="shield">What Heimdall checks</h2>
-        <p>Shield and Token Check fold case, spaces, punctuation, invisible characters and look-alike letters, then compare the token&apos;s symbol and name with the tokens Heimdall knows: USDG, WETH and the Robinhood stock tokens NVDA, TSLA, GOOGL, AAPL, MSFT and AMZN. The same symbol at a different address is denied with <C>FAKE_TOKEN</C>; the same name with another symbol is a warning. The check runs on everything a transaction touches, on Permit signatures and in Token Check.</p>
+        <p>Shield and Token Check fold case, spaces, punctuation, invisible characters and look-alike letters, then compare the token&apos;s symbol and name with the tokens Heimdall knows: USDG, WETH and the 16 Robinhood stock tokens Heimdall trades (NVDA, TSLA, GOOGL, AAPL, MSFT, AMZN, META, COIN, QQQ, SPCX, GME, MU, CRCL, DELL, USO and SGOV). The same symbol at a different address is denied with <C>FAKE_TOKEN</C>; the same name with another symbol is a warning. The check runs on everything a transaction touches, on Permit signatures and in Token Check.</p>
 
         <h2 id="real">Finding the real address</h2>
         <p>Use the issuer&apos;s own published contract list, such as Robinhood&apos;s documentation for its stock tokens, and bookmark it. For agents, keep the real addresses in the policy. Then a fake has nowhere to hide.</p>

@@ -67,10 +67,10 @@ export function InvestPanel({ ai }: { ai: Address }) {
   return (
     <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_400px]">
       <section className="flex min-w-0 flex-col gap-4">
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
           {INVEST_TOKENS.map((t, i) => {
             const p = prices?.[i]?.result as bigint | undefined;
-            return <div key={t.symbol} className="card p-4"><p className="text-[13px] text-muted">{t.name}</p><p className="mt-1 flex items-center gap-2 font-mono text-[22px] font-semibold"><TokenIcon symbol={t.symbol} size={26} />{t.symbol} <span className="text-[15px] text-muted">{p ? `$${Number(formatUnits(p, 6)).toFixed(2)}` : "—"}</span></p></div>;
+            return <div key={t.symbol} className="card p-4"><p className="flex items-center justify-between gap-2 text-[13px] text-muted"><span className="truncate">{t.name}</span>{t.weekdays && <span className="shrink-0 rounded-sm bg-ink-2 px-1.5 py-0.5 text-[11px] font-semibold">Mon–Fri</span>}</p><p className="mt-1 flex items-center gap-2 font-mono text-[20px] font-semibold"><TokenIcon symbol={t.symbol} size={24} />{t.symbol}</p><p className="font-mono text-[14px] text-muted">{p ? `$${Number(formatUnits(p, 6)).toFixed(2)}` : t.weekdays ? "Market closed" : "—"}</p></div>;
           })}
         </div>
         <div className="card min-w-0 overflow-hidden">
@@ -91,7 +91,7 @@ export function InvestPanel({ ai }: { ai: Address }) {
       </section>
       <form onSubmit={create} className="card flex flex-col gap-4 p-5">
         <h2 className="text-[17px] font-semibold">New plan</h2>
-        <div className="grid grid-cols-3 gap-1 rounded-xl bg-ink-2 p-1">
+        <div className="grid grid-cols-4 gap-1 rounded-xl bg-ink-2 p-1">
           {INVEST_TOKENS.map((t) => <button key={t.symbol} type="button" onClick={() => setToken(t.address)} className={`inline-flex min-h-10 items-center justify-center gap-1.5 rounded-lg text-[14.5px] font-semibold ${token === t.address ? "bg-white shadow-sm" : "text-muted"}`}><TokenIcon symbol={t.symbol} size={18} />{t.symbol}</button>)}
         </div>
         <label className="flex flex-col gap-1.5 text-[13.5px] font-medium">Amount per buy (USDG)<input className={`${input} font-mono`} value={amount} onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ""))} inputMode="decimal" /></label>
@@ -106,7 +106,7 @@ export function InvestPanel({ ai }: { ai: Address }) {
         </div>
         {address ? <button type="submit" disabled={busy || !valid} className="btn btn-primary min-h-12 disabled:opacity-50">{busy ? "Confirm in wallet…" : "Start plan"}</button> : <ConnectButton />}
         {msg && <p role="status" className={`text-[13.5px] ${msg.ok ? "text-allow" : "text-deny"}`}>{msg.text}</p>}
-        <p className="text-[12.5px] leading-relaxed text-muted">Your USDG stays in your wallet until each buy. Stocks go straight to you. 0.25% per buy goes to $HEIM stakers, and the fee your plan starts with never changes. Stop any time.</p>
+        <p className="text-[12.5px] leading-relaxed text-muted">Your USDG stays in your wallet until each buy. Stocks go straight to you. Stocks marked Mon–Fri are priced on weekdays only: a buy that falls on the weekend runs on Monday. 0.25% per buy goes to $HEIM stakers, and the fee your plan starts with never changes. Stop any time.</p>
       </form>
     </div>
   );

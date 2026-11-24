@@ -10,6 +10,7 @@ const COINS: Record<string, string> = {
 };
 const STOCKS: Record<string, string> = {
   NVDA: "/logos/stock-NVDA.svg", TSLA: "/logos/stock-TSLA.svg", GOOGL: "/logos/stock-GOOGL.svg", GOOG: "/logos/stock-GOOGL.svg", AAPL: "/logos/stock-AAPL.svg",
+  META: "/logos/stock-META.svg", COIN: "/logos/stock-COIN.svg", SPCX: "/logos/stock-SPCX.svg", CRCL: "/logos/stock-CRCL.svg", DELL: "/logos/stock-DELL.svg",
 };
 export const TOKEN_LOGOS = new Set<string>([...Object.keys(COINS), ...Object.keys(STOCKS)]);
 
@@ -38,7 +39,7 @@ export function TokenLabel({ symbol, size = 18, className = "" }: { symbol: stri
   return <span className={`inline-flex items-center gap-1.5 ${className}`}><TokenIcon symbol={symbol} size={size} />{symbol}</span>;
 }
 
-const SYMBOLS = /\b(USDG|USDC|WETH|ETH|NVDA|TSLA|GOOGL|AAPL|HEIM)\b/g;
+const SYMBOLS = /\b(USDG|USDC|WETH|ETH|NVDA|TSLA|GOOGL|AAPL|AMZN|MSFT|META|COIN|QQQ|SPCX|GME|MU|CRCL|DELL|USO|SGOV|HEIM)\b/g;
 /** Text with a small logo before every token symbol it mentions ("Swap 2,500 USDG → NVDA"). */
 export function TokenText({ text, size = 14 }: { text: string; size?: number }) {
   const parts = text.split(SYMBOLS);

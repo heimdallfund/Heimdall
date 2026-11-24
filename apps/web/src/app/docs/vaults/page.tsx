@@ -31,7 +31,7 @@ await executeThroughVault(manager, { vault, target: router, data: swapCalldata }
         ["Trade size", "Value leaving the vault in one call ≤ maxTradeBps of NAV."],
         ["Loss per trade", "NAV after the call ≥ NAV before × (1 − maxLossBps)."],
         ["Loss per day", "Trades can lose at most 5% of NAV in total per 24-hour window."],
-        ["Prices", "Chainlink-style feeds per asset with a heartbeat; a stale or broken feed pauses valuation-dependent actions, never in-kind exits. The multisig can replace a feed."],
+        ["Prices", "Chainlink feeds per asset with a heartbeat; a stale or broken feed pauses valuation-dependent actions, never in-kind exits. The multisig can replace a feed. Vaults can hold up to 16 stock tokens: NVDA, TSLA and GOOGL (priced 24/7) and AMZN, AAPL, MSFT, META, COIN, QQQ, SPCX, GME, MU, CRCL, DELL, USO and SGOV (priced Monday to Friday). A vault that holds a weekday stock pauses deposits, NAV withdrawals and trades from Saturday 00:00 to Monday 01:00 UTC, like a closed market; in-kind exits keep working and a vault that does not hold one is never paused."],
         ["Re-entrancy", "Every state-changing entry point is non-reentrant."],
       ]} />
       <Note>The vault owner is the Heimdall multisig, never the manager. The owner can pause, update targets, spenders, assets and feeds, rotate the manager and the Shield signer, and set the deposit cap.</Note>

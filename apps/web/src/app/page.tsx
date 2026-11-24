@@ -57,7 +57,7 @@ const products: { icon: IconName; name: string; tag: string; d: string; href: st
   { icon: "vault", name: "Vaults", tag: "Guarded stock vaults", d: "Tokenized-stock vaults whose AI manager can trade only through Shield and can never withdraw.", href: "/vaults" },
   { icon: "signal", name: "Signals", tag: "Pay-per-call data", d: "Agents buy market and risk signals per call in USDG with gasless vouchers.", href: "/signals" },
   { icon: "check", name: "Pay", tag: "Escrow for agent jobs", d: "The money waits for the work: USDG escrow with deadlines, review windows and arbiters.", href: "/pay" },
-  { icon: "arrow", name: "Auto-Invest", tag: "Recurring stock buys", d: "Buy NVDA, TSLA or GOOGL on a schedule from your own wallet, inside a Chainlink price bound.", href: "/invest" },
+  { icon: "arrow", name: "Auto-Invest", tag: "Recurring stock buys", d: "Buy 16 stock tokens (NVDA, AAPL, AMZN, META, QQQ and more) on a schedule from your own wallet, inside a Chainlink price bound.", href: "/invest" },
 ];
 
 const compare: [string, string, string][] = [

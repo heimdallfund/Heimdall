@@ -117,6 +117,7 @@ export async function postArena(shieldUrl: string, adminKey: string, rows: unkno
 export const STOCK_TOKENS: Record<string, Address> = {
   NVDA: "0xd0601ce157db5bdc3162bbac2a2c8af5320d9eec", TSLA: "0x322f0929c4625ed5bad873c95208d54e1c003b2d", GOOGL: "0x2e0847e8910a9732eb3fb1bb4b70a580adad4fe3",
   AAPL: "0xaf3d76f1834a1d425780943c99ea8a608f8a93f9", MSFT: "0xe93237c50d904957cf27e7b1133b510c669c2e74", AMZN: "0x12f190a9f9d7d37a250758b26824b97ce941bf54",
+  META: "0xc0d6457c16cc70d6790dd43521c899c87ce02f35", COIN: "0x6330d8c3178a418788df01a47479c0ce7ccf450b", QQQ: "0xd5f3879160bc7c32ebb4dc785f8a4f505888de68", SPCX: "0x4a0e65a3eccec6dbe60ae065f2e7bb85fae35eea", GME: "0x1b0e319c6a659f002271b69db8a7df2f911c153e", MU: "0xff080c8ce2e5feadaca0da81314ae59d232d4afd", CRCL: "0xdf0992e440dd0be65bd8439b609d6d4366bf1cb5", DELL: "0x941ae714ec6d8130c7b75d67160ca08f1e7d11dd", USO: "0xa30fa36db767ad9ed3f7a60fc79526fb4d56d344", SGOV: "0x92fd66527192e3e61d4ddd13322aa222de86f9b5",
 };
 const STOCK = parseAbi(["function oraclePaused() view returns (bool)", "function uiMultiplier() view returns (uint256)", "function newUIMultiplier() view returns (uint256)", "function effectiveAt() view returns (uint256)"]);
 

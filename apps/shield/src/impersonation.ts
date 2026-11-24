@@ -14,6 +14,16 @@ const NAMES: Record<string, string[]> = {
   AAPL: ["Apple", "Apple Inc"],
   MSFT: ["Microsoft", "Microsoft Corporation"],
   AMZN: ["Amazon", "Amazon.com", "Amazon.com Inc"],
+  META: ["Meta Platforms", "Meta Platforms Inc", "Meta"],
+  COIN: ["Coinbase", "Coinbase Global"],
+  QQQ: ["Invesco QQQ", "Invesco QQQ Trust"],
+  SPCX: ["SpaceX", "Space Exploration Technologies"],
+  GME: ["GameStop", "GameStop Corp"],
+  MU: ["Micron", "Micron Technology"],
+  CRCL: ["Circle", "Circle Internet Group"],
+  DELL: ["Dell", "Dell Technologies"],
+  USO: ["United States Oil Fund", "US Oil Fund"],
+  SGOV: ["iShares 0-3 Month Treasury Bond"],
 };
 
 // Letters from other scripts that render like Latin ones, the usual trick for a ticker that looks identical.

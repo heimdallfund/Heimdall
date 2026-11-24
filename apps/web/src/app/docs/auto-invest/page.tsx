@@ -22,7 +22,7 @@ export default function Page() {
         [<><C>{"oraclePrice(token)"}</C></>, <>The price used, or 0 while stale or paused</>],
       ]} />
       <p>Approve <C>{"amountPerBuy \u00d7 buys"}</C> USDG to the contract first; the SDK&apos;s <C>{"HeimdallAutoInvest.createPlan"}</C> does both.</p>
-      <p><strong>Fee:</strong> 0.25% per buy (capped at 1%), paid to $HEIM stakers. A plan keeps the fee it started with for its whole life, even if the fee changes later. <strong>Stocks at launch:</strong> NVDA (Uniswap 0.05% pool), TSLA (0.3%) and GOOGL (0.05%), the stock tokens with 24/7 Chainlink feeds.</p>
+      <p><strong>Fee:</strong> 0.25% per buy (capped at 1%), paid to $HEIM stakers. A plan keeps the fee it started with for its whole life, even if the fee changes later. <strong>Stocks:</strong> 16 stock tokens with a Chainlink feed and a USDG pool on Uniswap. NVDA, TSLA and GOOGL are priced 24/7. AMZN, AAPL, MSFT, META, COIN, QQQ, SPCX, GME, MU, CRCL, DELL, USO and SGOV are priced Monday to Friday: from Saturday 00:00 to Monday 01:00 UTC their price counts as closed, and a buy due then runs once Monday&apos;s price arrives.</p>
       <p>Robinhood Stock Tokens are not offered to US persons; check the terms for your country.</p>
     </>
   );

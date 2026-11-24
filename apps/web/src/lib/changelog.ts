@@ -8,6 +8,9 @@ export const CHANGELOG: ChangeEntry[] = [
     title: "Agents can find and use Heimdall on their own",
     summary: "A hosted MCP server, an OpenAPI spec and discovery files mean an agent or a developer tool can connect without anyone setting it up. Plus a live status page, a bigger sourced blocklist and a security pass on the Shield API.",
     changes: [
+      { tag: "Contracts", text: "Vaults and Auto-Invest now hold 16 stock tokens: AMZN, AAPL, MSFT, META, COIN, QQQ, SPCX, GME, MU, CRCL, DELL, USO and SGOV join NVDA, TSLA and GOOGL. The new ones are priced Monday to Friday: from Saturday 00:00 to Monday 01:00 UTC a vault holding one pauses deposits, NAV withdrawals and trades, like a closed market, and in-kind exits keep working." },
+      { tag: "Shield", text: "Fake-ticker detection covers the 10 new stocks too, including the many tokens that call themselves GME." },
+      { tag: "Integrations", text: "SDK 0.2.1: HEIMDALL_MAINNET.stocks lists every stock token with its price feed and trading hours." },
       { tag: "Security", text: "Review 6, before the contracts go to mainnet: a vault now refuses any swap whose output goes to anyone but the vault, so a manager can never route trades to itself even inside the loss limits. Stakers' rewards are passed on once a day, so nobody can stretch them out with dust. Report on the Security page." },
       { tag: "Web", text: "Token Check reports can be shared: a preview card with the verdict for X, a copy-link button, and your recent checks kept on the Token Check page." },
       { tag: "Web", text: "Wallet Check now looks at the tokens you hold too: fake tokens with a real ticker, blocklisted tokens and traps such as honeypots are listed at the top of the report." },
