@@ -2,14 +2,24 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { WagmiProvider, createConfig, http } from "wagmi";
-import { injected, walletConnect } from "wagmi/connectors";
+import { coinbaseWallet, injected, walletConnect } from "wagmi/connectors";
 import { chain } from "@/lib/config";
 
 const wcId = process.env.NEXT_PUBLIC_WC_PROJECT_ID;
 
 export const wagmiConfig = createConfig({
   chains: [chain],
-  connectors: [injected(), ...(wcId ? [walletConnect({ projectId: wcId, showQrModal: true })] : [])],
+  // browser wallets announce themselves (EIP-6963) and are added automatically; WalletConnect covers phone wallets
+  // (Robinhood Wallet, MetaMask, Trust, Rainbow…) by QR code or deep link; Coinbase Wallet has its own SDK
+  connectors: [
+    injected(),
+    ...(wcId ? [walletConnect({
+      projectId: wcId, showQrModal: true,
+      metadata: { name: "Heimdall", description: "The guardian layer for AI agents on Robinhood Chain", url: "https://heimdall.fund", icons: ["https://heimdall.fund/apple-icon.png"] },
+      qrModalOptions: { themeMode: "light" },
+    })] : []),
+    coinbaseWallet({ appName: "Heimdall", appLogoUrl: "https://heimdall.fund/apple-icon.png", preference: { options: "eoaOnly" } }),
+  ],
   transports: { [chain.id]: http() },
   ssr: true,
 });
