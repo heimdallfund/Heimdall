@@ -3,6 +3,7 @@ import { Faq } from "@/components/ProductSections";
 import { IconTile } from "@/components/Icons";
 import { FacetDivider } from "@/components/Motif";
 import { TokenCheckForm } from "./TokenCheckForm";
+import { RecentChecks } from "./TokenCheckShare";
 
 export const metadata: Metadata = {
   title: "Token Check: Robinhood Chain honeypot checker",
@@ -17,6 +18,7 @@ export default function Page() {
         <h1 className="max-w-[860px] text-[50px] md:text-[75px]">Can you sell it after you buy it?</h1>
         <p className="max-w-[640px] text-[18px] leading-relaxed text-muted">Paste a token. Heimdall simulates a real buy and sell through its Uniswap v3 or v4 pool on the current state of Robinhood Chain, then checks the traps a chart cannot show you.</p>
         <TokenCheckForm />
+        <RecentChecks />
       </section>
       <FacetDivider />
       <section className="grid gap-4 py-14 md:grid-cols-3">

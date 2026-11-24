@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { getAddress } from "viem";
 import { impersonates, normalizeTicker } from "../src/impersonation.js";
 
 const NVDA = "0xd0601ce157db5bdc3162bbac2a2c8af5320d9eec";
@@ -14,7 +15,7 @@ describe("fake token detection", () => {
   });
 
   it("flags a known ticker at another address, by symbol first, then by name", () => {
-    expect(impersonates(FAKE, "NVDA", "Whatever")).toMatchObject({ symbol: "NVDA", real: NVDA, by: "symbol" });
+    expect(impersonates(FAKE, "NVDA", "Whatever")).toMatchObject({ symbol: "NVDA", real: getAddress(NVDA), by: "symbol" });
     expect(impersonates(FAKE, "UЅDG")).toMatchObject({ symbol: "USDG", by: "symbol" });
     expect(impersonates(FAKE, "TSLA2", "Tesla")).toMatchObject({ symbol: "TSLA", by: "name" });
   });

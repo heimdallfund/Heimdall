@@ -57,7 +57,7 @@ export async function flagHoldings(client: PublicClient, holdings: Holding[], o:
     const base = { token: h.token, symbol: h.symbol, balance: formatUnits(h.value, h.decimals) };
     if (isBlocklisted(h.token)) return { ...base, risk: "danger", code: "BLOCKLISTED_TOKEN", reason: "This token is on the Heimdall blocklist. Do not trade it or approve anything for it." };
     const fake = await fakeTokenCheck(client, h.token).catch(() => undefined);
-    if (fake) return { ...base, risk: "danger", code: "FAKE_TOKEN", reason: `Pretends to be ${fake.symbol}, but it is not the real ${fake.symbol} contract (${getAddress(fake.real)}). Often airdropped to bait a swap or a poisoned transfer.` };
+    if (fake) return { ...base, risk: "danger", code: "FAKE_TOKEN", reason: `Pretends to be ${fake.symbol}, but it is not the real ${fake.symbol} contract (${fake.real}). Often airdropped to bait a swap or a poisoned transfer.` };
     if (!o.check || deep >= deepLimit) return null;
     deep++;
     const r = await within(o.check(h.token).catch(() => null), o.timeoutMs ?? 8_000);

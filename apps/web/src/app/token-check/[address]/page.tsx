@@ -5,15 +5,10 @@ import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { getAddress, isAddress } from "viem";
 import { ScanLoader } from "@/components/Motif";
-import { explorerAddress, short, SHIELD_API_URL } from "@/lib/config";
+import { explorerAddress, short } from "@/lib/config";
+import { fetchTokenCheck, legState, VERDICT_HEAD, type Leg } from "@/lib/tokencheck";
 import { TokenCheckForm } from "../TokenCheckForm";
-
-type Leg = { ok: boolean; taxPct: number | null; reason?: string } | null;
-type Report = {
-  token: string; symbol: string | null; name: string | null; decimals: number | null; owner: string | null;
-  verdict: "ALLOW" | "WARN" | "DENY"; riskScore: number; findings: { code: string; severity: "info" | "warn" | "deny"; message: string }[];
-  pool: { version?: 3 | 4; address: string; fee: number; pair: string; liquidity: string; hooks?: string } | null; buy: Leg; sell: Leg; transfer: Leg; pullableBy: string[]; checkedAt: number;
-};
+import { TokenCheckShare } from "../TokenCheckShare";
 
 export async function generateMetadata({ params }: { params: Promise<{ address: string }> }): Promise<Metadata> {
   const { address } = await params;
@@ -29,11 +24,11 @@ export default function Page({ params }: { params: Promise<{ address: string }> 
   );
 }
 
-const TONE = { ALLOW: ["border-allow/50 bg-allow-soft", "text-allow", "Looks tradable"], WARN: ["border-warn/50 bg-warn-soft", "text-warn", "Be careful"], DENY: ["border-deny/50 bg-deny-soft", "text-deny", "Do not buy"] } as const;
+const TONE = { ALLOW: ["border-allow/50 bg-allow-soft", "text-allow", VERDICT_HEAD.ALLOW], WARN: ["border-warn/50 bg-warn-soft", "text-warn", VERDICT_HEAD.WARN], DENY: ["border-deny/50 bg-deny-soft", "text-deny", VERDICT_HEAD.DENY] } as const;
 const SEV = { deny: "bg-deny", warn: "bg-warn", info: "bg-line-strong" } as const;
 
 function LegCard({ title, leg, good, extra }: { title: string; leg: Leg; good: string; extra?: string }) {
-  const state = leg === null ? "skip" : !leg.ok ? "bad" : (leg.taxPct ?? 0) >= 50 ? "bad" : (leg.taxPct ?? 0) >= 10 ? "warn" : "ok";
+  const state = legState(leg);
   const dot = { ok: "bg-allow", warn: "bg-warn", bad: "bg-deny", skip: "bg-line-strong" }[state];
   const text = leg === null ? "Not simulated" : !leg.ok ? `Fails${leg.reason ? `: ${leg.reason}` : ""}` : leg.taxPct ? `${leg.taxPct.toFixed(1)}% tax` : good;
   return (
@@ -50,13 +45,12 @@ async function Content({ params }: { params: Promise<{ address: string }> }) {
   if (!isAddress(address)) notFound();
   const a = getAddress(address);
   await connection();
-  const res = await fetch(`${SHIELD_API_URL}/v1/token/${a}`, { signal: AbortSignal.timeout(25_000), cache: "no-store" }).catch(() => null);
-  const r = res?.ok ? ((await res.json()) as Report) : null;
+  const { report: r, status } = await fetchTokenCheck(a);
   if (!r) {
     return (
       <section className="card flex flex-col gap-3 p-6">
         <h1 className="text-[28px]">Token Check could not finish</h1>
-        <p className="text-muted">{res?.status === 402 || res?.status === 429 ? "You have used the free checks for now. Try again in a minute." : "Shield did not answer. Treat the token as unsafe until a check completes."}</p>
+        <p className="text-muted">{status === 402 || status === 429 ? "You have used the free checks for now. Try again in a minute." : "Shield did not answer. Treat the token as unsafe until a check completes."}</p>
         <TokenCheckForm compact initial={a} />
       </section>
     );
@@ -71,10 +65,11 @@ async function Content({ params }: { params: Promise<{ address: string }> }) {
         <span className="eyebrow">Token Check</span>
         <h1 className="text-[40px] leading-tight md:text-[50px]">{r.symbol ?? "Unknown token"}{r.name && r.name !== r.symbol ? <span className="text-muted"> · {r.name}</span> : null}</h1>
         <a href={explorerAddress(a)} target="_blank" rel="noopener" className="break-all font-mono text-[13px] text-muted hover:text-brand">{a}</a>
+        <div className="mt-2"><TokenCheckShare check={{ address: a, symbol: r.symbol ?? short(a), verdict: r.verdict, at: r.checkedAt }} /></div>
       </header>
       <section className={`flex flex-col gap-2 rounded-[3px] border p-5 sm:flex-row sm:items-center sm:gap-4 ${box}`}>
         <span className={`font-mono text-[28px] font-bold ${color}`}>{r.verdict}</span>
-        <div className="min-w-0 flex-1"><p className={`text-[18px] font-semibold ${color}`}>{head}</p><p className="text-[14.5px] text-ink">{notable[0]?.message ?? "Buying, selling and moving it worked in the simulation, without a tax or a clawback."}</p></div>
+        <div className="min-w-0 flex-1"><p className={`text-[18px] font-semibold ${color}`}>{head}</p><p className="text-[14.5px] text-ink [overflow-wrap:anywhere]">{notable[0]?.message ?? "Buying, selling and moving it worked in the simulation, without a tax or a clawback."}</p></div>
         <span className="font-mono text-[13px] text-muted">risk {r.riskScore}/100</span>
       </section>
       <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -86,7 +81,7 @@ async function Content({ params }: { params: Promise<{ address: string }> }) {
       {notable.length > 0 && (
         <section className="card flex flex-col gap-3 p-5">
           <h2 className="text-[18px] font-semibold">What Heimdall found</h2>
-          <ul className="flex flex-col gap-2.5">{notable.map((f, i) => <li key={i} className="flex items-start gap-3 text-[15px] leading-relaxed"><span className={`mt-2 size-2 shrink-0 rounded-full ${SEV[f.severity]}`} /><span className="min-w-0">{f.message}</span></li>)}</ul>
+          <ul className="flex flex-col gap-2.5">{notable.map((f, i) => <li key={i} className="flex items-start gap-3 text-[15px] leading-relaxed"><span className={`mt-2 size-2 shrink-0 rounded-full ${SEV[f.severity]}`} /><span className="min-w-0 [overflow-wrap:anywhere]">{f.message}</span></li>)}</ul>
         </section>
       )}
       <section className="grid gap-3 text-[14px] md:grid-cols-2">

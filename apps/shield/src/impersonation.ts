@@ -1,4 +1,4 @@
-import { parseAbi, type Address, type PublicClient } from "viem";
+import { getAddress, parseAbi, type Address, type PublicClient } from "viem";
 import { TOKENS } from "./registry.js";
 
 /**
@@ -44,8 +44,8 @@ export function impersonates(address: string, symbol?: string, name?: string): {
   const sym = symbol && symbol !== "UNKNOWN" ? normalizeTicker(symbol) : "";
   const nm = name ? normalizeTicker(name) : "";
   for (const p of PROTECTED) {
-    if (sym && p.keys.has(sym)) return { symbol: p.symbol, real: p.address, by: "symbol" };
-    if (nm && p.keys.has(nm)) return { symbol: p.symbol, real: p.address, by: "name" };
+    if (sym && p.keys.has(sym)) return { symbol: p.symbol, real: getAddress(p.address), by: "symbol" };
+    if (nm && p.keys.has(nm)) return { symbol: p.symbol, real: getAddress(p.address), by: "name" };
   }
   return undefined;
 }
