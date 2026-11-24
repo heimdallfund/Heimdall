@@ -3,7 +3,7 @@ import { scanWallet } from "./approvals.js";
 import { currentSeason, recordSnapshots, standings, type Snapshot } from "./arena.js";
 import { openApi } from "./openapi.js";
 import { agentCard, handleA2A } from "./a2a.js";
-import { logsClient, tokenCheck } from "./tokencheck.js";
+import { tokenCheck } from "./tokencheck.js";
 import { summarize } from "./ai.js";
 import { alchemyHoldings, explorerHoldings, flagHoldings } from "./holdings.js";
 import { countVerdict, listIncidents, recordHeartbeat, status, upsertIncident } from "./status.js";
@@ -454,10 +454,12 @@ export function buildApp(opts: AppOptions = {}) {
    * verdicts for the busiest. Served from a snapshot; a request older than two minutes refreshes it in the background.
    */
   const RADAR_KEY = "radar:snapshot:v1";
+  // the public RPC serves wide, many-address log queries; they need more time than the default
+  const radarLogs = createPublicClient({ transport: http(process.env.LOGS_RPC_URL ?? "https://rpc.mainnet.chain.robinhood.com", { timeout: 25_000, retryCount: 1 }) });
   const refreshRadar = async () => {
     const client = getClient(4663);
     const snap = await buildRadar({
-      client, logs: logsClient,
+      client, logs: radarLogs,
       check: (t) => cachedTokenCheck(t as `0x${string}`),
       getCheck: async (t) => { const v = await store.fetch(`radar:check:${t.toLowerCase()}`); return v ? JSON.parse(v) as RadarCheck : null; },
       putCheck: (t, ck) => store.put(`radar:check:${t.toLowerCase()}`, JSON.stringify(ck), 1_200),

@@ -94,7 +94,7 @@ async function activity(logs: PublicClient, all: Map<string, Launch>, from: bigi
   const stats = new Map<string, { buyers: Set<string>; buys: number; sells: number }>();
   const tokens = [...all.values()].map((l) => l.token);
   const batches: Address[][] = [];
-  for (let i = 0; i < tokens.length; i += 100) batches.push(tokens.slice(i, i + 100));
+  for (let i = 0; i < tokens.length; i += 50) batches.push(tokens.slice(i, i + 50));
   let next = 0;
   const worker = async () => {
     while (next < batches.length) {
@@ -115,7 +115,7 @@ async function activity(logs: PublicClient, all: Map<string, Launch>, from: bigi
       }
     }
   };
-  await Promise.all([worker(), worker(), worker(), worker()]);
+  await Promise.all([worker(), worker(), worker()]);
   return stats;
 }
 
@@ -149,6 +149,8 @@ export async function buildRadar(d: RadarDeps): Promise<RadarSnapshot> {
   const day = BigInt(Math.round(bps * 86_400)), hour = BigInt(Math.round(bps * 3_600));
   const all = await launches(d.logs, head - day, head);
   const stats = await activity(d.logs, all, head - hour, head);
+  // an empty hour on a chain with hundreds of launches a day means the log queries failed: keep the last snapshot
+  if (all.size > 50 && stats.size === 0) throw new Error(`no activity read for ${all.size} launches`);
   const ranked = [...all.values()]
     .map((l) => ({ l, s: stats.get(l.token.toLowerCase()) }))
     .filter((x) => x.s && x.s.buyers.size > 0 && !TOKENS[x.l.token.toLowerCase()]) // known tokens (USDG, stocks) are not launches
