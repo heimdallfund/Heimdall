@@ -11,14 +11,55 @@
       "registryBaseUrl": "https://registry.npmjs.org",
       "identifier": "@heimdallfund/mcp",
       "version": "0.2.0",
-      "transport": { "type": "stdio" },
+      "transport": {
+        "type": "stdio"
+      },
       "environmentVariables": [
-        { "name": "HEIMDALL_API_KEY", "description": "Shield API key. Optional: without one the free tier applies.", "isRequired": false, "isSecret": true },
-        { "name": "HEIMDALL_API_URL", "description": "Shield API base URL. Defaults to the public Heimdall API.", "isRequired": false },
-        { "name": "RPC_URL", "description": "Robinhood Chain RPC used for onchain reads.", "isRequired": false },
-        { "name": "HEIMDALL_PAY_ADDRESS", "description": "HeimdallPay contract, for the Pay tools.", "isRequired": false },
-        { "name": "HEIMDALL_FACTORY_ADDRESS", "description": "HeimdallVaultFactory, for the vault tools.", "isRequired": false },
-        { "name": "HEIMDALL_SIGNALS_ADDRESS", "description": "HeimdallSignals, for the signal tools.", "isRequired": false }
+        {
+          "name": "HEIMDALL_API_KEY",
+          "description": "Shield API key. Optional: without one the free tier applies.",
+          "isRequired": false,
+          "isSecret": true
+        },
+        {
+          "name": "HEIMDALL_API_URL",
+          "description": "Shield API base URL. Defaults to the public Heimdall API.",
+          "isRequired": false
+        },
+        {
+          "name": "RPC_URL",
+          "description": "Robinhood Chain RPC used for onchain reads.",
+          "isRequired": false
+        },
+        {
+          "name": "HEIMDALL_PAY_ADDRESS",
+          "description": "HeimdallPay contract, for the Pay tools.",
+          "isRequired": false
+        },
+        {
+          "name": "HEIMDALL_FACTORY_ADDRESS",
+          "description": "HeimdallVaultFactory, for the vault tools.",
+          "isRequired": false
+        },
+        {
+          "name": "HEIMDALL_SIGNALS_ADDRESS",
+          "description": "HeimdallSignals, for the signal tools.",
+          "isRequired": false
+        }
+      ]
+    }
+  ],
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://mcp.heimdall.fund/mcp",
+      "headers": [
+        {
+          "name": "Authorization",
+          "description": "Optional: Bearer <Heimdall API key> lifts the free-tier limit",
+          "isRequired": false,
+          "isSecret": true
+        }
       ]
     }
   ]

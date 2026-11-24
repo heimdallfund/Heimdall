@@ -156,6 +156,21 @@ describe("$HEIM holder quota", () => {
   });
 });
 
+describe("hosted MCP relay", () => {
+  beforeEach(() => resetSigner());
+  it("counts relayed callers under their own IP only with the relay key; a forged client-ip header is ignored", async () => {
+    const RELAY = "relay-secret";
+    const a = app({ SHIELD_FREE_DAILY: "1000", SHIELD_RELAY_KEY_SHA256: sha256(RELAY).toString("hex") });
+    const as = (ip: string, key?: string) => post(a, { "x-heimdall-client-ip": ip, ...(key ? { "x-heimdall-relay": key } : {}) });
+    for (let i = 0; i < 3; i++) expect((await as("1.1.1.1", RELAY)).status).toBe(200);
+    expect((await as("1.1.1.1", RELAY)).status).toBe(429);
+    expect((await as("2.2.2.2", RELAY)).status).toBe(200);
+    // without the key the header means nothing: these count against the real IP 9.9.9.9
+    for (let i = 0; i < 3; i++) expect((await as("3.3.3.3", "wrong")).status).toBe(200);
+    expect((await as("4.4.4.4")).status).toBe(429);
+  });
+});
+
 describe("Shareable verdicts, threats and agents endpoints", () => {
   beforeEach(() => resetSigner());
   it("stores a shared check without its receipt and serves it back", async () => {

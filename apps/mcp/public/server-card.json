@@ -1,0 +1,20 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/v1/server-card.schema.json",
+  "name": "fund.heimdall/mcp",
+  "title": "Heimdall Shield",
+  "version": "0.2.0",
+  "description": "Firewall for AI agents on Robinhood Chain: check transactions and signatures before signing.",
+  "websiteUrl": "https://heimdall.fund/docs/mcp",
+  "repository": { "url": "https://github.com/heimdallfund/Heimdall", "source": "github", "subfolder": "packages/mcp" },
+  "icons": [{ "src": "https://heimdall.fund/icon.svg", "mimeType": "image/svg+xml", "sizes": ["any"] }],
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://mcp.heimdall.fund/mcp",
+      "supportedProtocolVersions": ["2025-11-25", "2025-06-18", "2025-03-26"],
+      "headers": [
+        { "name": "Authorization", "description": "Optional: Bearer <Heimdall API key> lifts the free-tier limit", "isRequired": false, "isSecret": true }
+      ]
+    }
+  ]
+}

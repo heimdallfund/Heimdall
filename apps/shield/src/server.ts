@@ -246,7 +246,7 @@ export function buildApp(opts: AppOptions = {}) {
     }
     const auth = c.req.header("authorization");
     const apiKey = auth?.startsWith("Bearer ") ? auth.slice(7).trim() : c.req.header("x-api-key") ?? undefined;
-    const ip = c.req.header("x-forwarded-for")?.split(",")[0]?.trim() || c.req.header("x-real-ip") || "unknown";
+    const ip = clientIp(c, "unknown");
     const caller = await resolveCaller(apiKey, ip);
     if (!caller) return c.json({ error: "invalid_api_key" }, 401);
     if (caller.plan === "free" && limits.requireKey) {
@@ -464,7 +464,7 @@ export function buildApp(opts: AppOptions = {}) {
     const w = facilitatorWallet();
     if (!w) return c.json({ success: false, errorReason: "not_configured", transaction: "", network: NET.network }, 503);
     // settling costs gas: a per-IP limit stops anyone from making the facilitator burn it
-    const ip = c.req.header("x-forwarded-for")?.split(",")[0]?.trim() || c.req.header("x-real-ip") || "unknown";
+    const ip = clientIp(c, "unknown");
     const rate = await checkRate(store, { ...limits, freePerMinute: Number(env.X402_SETTLE_RPM ?? 120) }, { id: `x402settle:${ip}`, plan: "free" } as Caller);
     if (!rate.ok) return c.json({ success: false, errorReason: "rate_limited", transaction: "", network: NET.network }, 429);
     const parsed = facilitatorBody.safeParse(await c.req.json().catch(() => ({})));
@@ -630,6 +630,23 @@ export function buildApp(opts: AppOptions = {}) {
     const token = h.startsWith("Session ") ? h.slice(8) : "";
     return token ? await store.fetch(`session:${createHash("sha256").update(token).digest("hex")}`) : null;
   };
+  /**
+   * The caller's IP for rate limits and quotas. Behind Vercel, x-forwarded-for is set by the platform. Heimdall's own
+   * hosted MCP server calls in from one IP for many users, so it may name the real caller with x-heimdall-client-ip,
+   * but only together with the relay key (SHIELD_RELAY_KEY_SHA256): nobody else can pick the IP they are counted under.
+   */
+  const relayOk = (c: any) => {
+    const want = env.SHIELD_RELAY_KEY_SHA256, got = c.req.header("x-heimdall-relay");
+    if (!want || !got) return false;
+    const a = createHash("sha256").update(got).digest(), b = Buffer.from(want, "hex");
+    return a.length === b.length && timingSafeEqual(a, b);
+  };
+  function clientIp(c: any, fallback: string): string {
+    const relayed = c.req.header("x-heimdall-client-ip");
+    if (relayed && /^[0-9a-fA-F:.]{2,45}$/.test(relayed) && relayOk(c)) return relayed;
+    return c.req.header("x-forwarded-for")?.split(",")[0]?.trim() || c.req.header("x-real-ip") || fallback;
+  }
+
   const isAdmin = (c: any) => {
     const want = env.SHIELD_ADMIN_KEY_SHA256;
     const got = c.req.header("x-admin-key");
@@ -690,7 +707,7 @@ export function buildApp(opts: AppOptions = {}) {
     const owner = await sessionOwner(c);
     if (!owner) return c.json({ error: "not_signed_in", message: "Sign in with your wallet first." }, 401);
     const b = (await c.req.json().catch(() => ({}))) as { code?: string };
-    const ip = c.req.header("x-forwarded-for")?.split(",")[0]?.trim() || c.req.header("x-real-ip") || "local";
+    const ip = clientIp(c, "local");
     const r = await registerEarly(store, getClient(4663), owner, { ipKey: ipKey(ip), code: typeof b.code === "string" ? b.code : undefined, env });
     return c.json(r, r.ok ? 200 : r.error === "too_many" ? 429 : 400);
   });
@@ -724,7 +741,7 @@ export function buildApp(opts: AppOptions = {}) {
     if (!env.VAPID_PUBLIC_KEY) return c.json({ error: "not_configured", message: "Wallet Watch is not switched on yet." }, 503);
     const b = (await c.req.json().catch(() => ({}))) as { address?: string; subscription?: unknown };
     if (!b.address || !isAddress(b.address) || !validSubscription(b.subscription)) return c.json({ error: "invalid_request" }, 400);
-    const ip = c.req.header("x-forwarded-for")?.split(",")[0]?.trim() || c.req.header("x-real-ip") || "local";
+    const ip = clientIp(c, "local");
     if ((await store.incr(`watch:rl:${ipKey(ip)}`, 3_600)) > 20) return c.json({ error: "too_many_requests" }, 429);
     const r = await subscribe(store, b.address, b.subscription);
     return c.json(r, r.ok ? 200 : 400);

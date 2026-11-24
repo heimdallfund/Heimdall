@@ -1,0 +1,18 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "installCommand": "cd ../../packages/sdk && npm ci && npm run build && cd ../mcp && npm ci && npm run build && cd ../../apps/mcp && npm ci",
+  "buildCommand": "",
+  "outputDirectory": "public",
+  "rewrites": [
+    { "source": "/mcp", "destination": "/api/mcp" },
+    { "source": "/mcp/server-card", "destination": "/server-card.json" },
+    { "source": "/.well-known/mcp/server-card.json", "destination": "/server-card.json" }
+  ],
+  "headers": [
+    { "source": "/(mcp/server-card|server-card.json|.well-known/mcp/server-card.json)", "headers": [
+      { "key": "access-control-allow-origin", "value": "*" },
+      { "key": "content-type", "value": "application/json" },
+      { "key": "cache-control", "value": "public, max-age=3600" }
+    ] }
+  ]
+}

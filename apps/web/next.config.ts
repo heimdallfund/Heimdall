@@ -20,7 +20,16 @@ const nextConfig: NextConfig = {
     return [
       ...Object.entries(DOCS_MAP).map(([source, path]) => ({ source, destination: `${DOCS_URL}${path}`, permanent: false })),
       // any docs page not in the map lands on the GitBook home instead of a 404
-      { source: "/docs/:path+", destination: DOCS_URL, permanent: false },
+      // (the API reference stays here: it is generated from the live OpenAPI spec)
+      { source: "/docs/:path((?!api$).+)", destination: DOCS_URL, permanent: false },
+    ];
+  },
+  async headers() {
+    // discovery files are public metadata: any origin may read them
+    const open = [{ key: "access-control-allow-origin", value: "*" }, { key: "cache-control", value: "public, max-age=3600" }];
+    return [
+      { source: "/.well-known/mcp/server-card.json", headers: open },
+      { source: "/llms.txt", headers: open },
     ];
   },
   cacheComponents: true,
