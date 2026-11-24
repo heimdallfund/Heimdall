@@ -1,11 +1,11 @@
+import { connection } from "next/server";
 import { getAddress, zeroAddress } from "viem";
 import { client } from "@/lib/reads";
 import { BATCH_DATA, MULTISEND_CALL_ONLY, NONCE, SAFE, SAFE_ABI } from "@/app/safe-setup/batch";
 
-export const dynamic = "force-dynamic";
-
 /** Admin Safe state for /safe-setup, read server-side over the private RPC (the public one rate-limits phones). */
 export async function GET() {
+  await connection(); // always live: never prerendered or cached
   try {
     const [owners, threshold, nonce, hash] = await Promise.all([
       client.readContract({ address: SAFE, abi: SAFE_ABI, functionName: "getOwners" }),

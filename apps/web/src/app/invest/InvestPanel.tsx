@@ -1,6 +1,6 @@
 "use client";
 import { track } from "@/lib/track";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { formatUnits, parseUnits, type Address } from "viem";
 import { useAccount, usePublicClient, useReadContract, useReadContracts, useWriteContract } from "wagmi";
 import { heimdallAutoInvestAbi } from "@/lib/abi";
@@ -23,6 +23,8 @@ const weekendClosed = () => { const t = (Math.floor(Date.now() / 1000) % (7 * 86
 
 export function InvestPanel({ ai }: { ai: Address }) {
   const { address } = useAccount();
+  const [closed, setClosed] = useState(false); // read the clock after mount: Date.now() cannot run during prerender
+  useEffect(() => setClosed(weekendClosed()), []);
   const pc = usePublicClient();
   const { writeContractAsync } = useWriteContract();
   const [token, setToken] = useState(INVEST_TOKENS[0].address);
@@ -73,7 +75,7 @@ export function InvestPanel({ ai }: { ai: Address }) {
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
           {INVEST_TOKENS.map((t, i) => {
             const p = prices?.[i]?.result as bigint | undefined;
-            return <div key={t.symbol} className="card p-4"><p className="flex items-center justify-between gap-2 text-[13px] text-muted"><span className="truncate">{t.name}</span>{t.weekdays && <span className="shrink-0 rounded-sm bg-ink-2 px-1.5 py-0.5 text-[11px] font-semibold">Mon–Fri</span>}</p><p className="mt-1 flex items-center gap-2 font-mono text-[20px] font-semibold"><TokenIcon symbol={t.symbol} size={24} />{t.symbol}</p><p className="font-mono text-[14px] text-muted">{p ? `$${Number(formatUnits(p, 6)).toFixed(2)}` : t.weekdays && weekendClosed() ? "Market closed" : "—"}</p></div>;
+            return <div key={t.symbol} className="card p-4"><p className="flex items-center justify-between gap-2 text-[13px] text-muted"><span className="truncate">{t.name}</span>{t.weekdays && <span className="shrink-0 rounded-sm bg-ink-2 px-1.5 py-0.5 text-[11px] font-semibold">Mon–Fri</span>}</p><p className="mt-1 flex items-center gap-2 font-mono text-[20px] font-semibold"><TokenIcon symbol={t.symbol} size={24} />{t.symbol}</p><p className="font-mono text-[14px] text-muted">{p ? `$${Number(formatUnits(p, 6)).toFixed(2)}` : t.weekdays && closed ? "Market closed" : "—"}</p></div>;
           })}
         </div>
         <div className="card min-w-0 overflow-hidden">
