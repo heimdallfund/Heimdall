@@ -56,11 +56,11 @@ test("Stake: $HEIM is staked and still counts for holder benefits", async ({ pag
   await useWallet(page, E.STAKER);
   await page.goto("/stake");
   await connect(page);
-  await page.getByLabel("Amount (HEIM)").fill("200000");
+  await page.getByLabel("Amount (HEIM)").fill("6000000");
   await page.getByRole("button", { name: "Stake", exact: true }).click();
   await expect(page.getByText("Staked.", { exact: true })).toBeVisible();
   const held = await rpc("eth_call", [{ to: E.HOLDER, data: encodeFunctionData({ abi: erc20Abi, functionName: "balanceOf", args: [E.STAKER] }) }, "latest"]);
-  expect(BigInt(held)).toBe(250_000n * 10n ** 18n);
+  expect(BigInt(held)).toBe(6_250_000n * 10n ** 18n);
 });
 
 test("Admin: the key opens the panel, seasons save, keeper numbers load", async ({ page }) => {

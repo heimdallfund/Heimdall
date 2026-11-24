@@ -45,6 +45,19 @@ describe("rug log", () => {
   });
 });
 
+describe("tokens first seen without a pool", () => {
+  it("take their first check with a pool as the before, and are never filed against a no-pool check", async () => {
+    const s = new MemoryStore();
+    const noPool = { code: "NO_POOL", severity: "warn" as const, message: "No pool yet." };
+    await recordSeen(s, "0xN", tc("WARN", [noPool]), 0);
+    expect(await noteOutcome(s, "0xN", tc("DENY", [rug]), 30 * min)).toBeNull(); // nothing was judged before
+    await recordSeen(s, "0xM", tc("WARN", [noPool]), 0);
+    await recordSeen(s, "0xM", tc("WARN", [lp]), 10 * min); // the pool exists now: this is the before
+    const e = await noteOutcome(s, "0xM", tc("DENY", [rug]), 40 * min);
+    expect(e?.before).toMatchObject({ verdict: "WARN", flags: ["LP_REMOVABLE"], at: 10 * min });
+  });
+});
+
 describe("token.rugged webhooks", () => {
   it("keeps the owners who take token.rugged in one set", async () => {
     const { setHook, deleteHook, rugHookOwners } = await import("../src/webhooks.js");

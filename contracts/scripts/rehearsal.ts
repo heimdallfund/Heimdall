@@ -54,7 +54,7 @@ check("Pay fee 1% to splitter", getAddress(await r(C.HeimdallPay!, "function fee
 check("Auto-Invest fee 0.25% to splitter", getAddress(await r(C.HeimdallAutoInvest!, "function feeRecipient() view returns (address)") as Address) === splitter && Number(await r(C.HeimdallAutoInvest!, "function feeBps() view returns (uint16)")) === 25);
 const holderBalance = getAddress(C.HeimdallHolderBalance!);
 check("Factory $HEIM holder terms (held + staked)", getAddress(await r(C.HeimdallVaultFactory!, "function heimToken() view returns (address)") as Address) === holderBalance);
-check("Signals $HEIM holder terms", (await r(C.HeimdallSignals!, "function holderMin() view returns (uint256)") as bigint) === 100_000n * 10n ** 18n);
+check("Signals $HEIM holder terms", (await r(C.HeimdallSignals!, "function holderMin() view returns (uint256)") as bigint) === 5_000_000n * 10n ** 18n); // the 5,000,000 $HEIM holder line
 
 // 3. Real USDG for the test wallets, taken from the deepest USDG pool on the fork
 const usdg = getAddress(await r(C.HeimdallSignals!, "function usdg() view returns (address)") as Address);
@@ -69,7 +69,7 @@ check("Test wallets funded with 500 USDG each", (await pc.readContract({ address
 
 // E2E setup: stop here with funded wallets and live contracts (no time travel), and write the env the apps need.
 if (process.env.SETUP_ONLY === "1") {
-  await wait(deployer.writeContract({ address: HEIM, abi: erc20Abi, functionName: "transfer", args: [staker.account.address, 250_000n * 10n ** 18n] }));
+  await wait(deployer.writeContract({ address: HEIM, abi: erc20Abi, functionName: "transfer", args: [staker.account.address, 6_250_000n * 10n ** 18n] }));
   const e2e = {
     HEIM, HOLDER: C.HeimdallHolderBalance, STAKING: C.HeimdallStaking, SPLITTER: C.HeimdallFeeSplitter, FACTORY: C.HeimdallVaultFactory,
     PAY: C.HeimdallPay, AUTOINVEST: C.HeimdallAutoInvest, SIGNALS: C.HeimdallSignals, USDG: usdg,
@@ -81,7 +81,7 @@ if (process.env.SETUP_ONLY === "1") {
 }
 
 // 4. Stake $HEIM before any fee arrives
-const heimAmount = 200_000n * 10n ** 18n;
+const heimAmount = 6_000_000n * 10n ** 18n; // above the 5,000,000 holder line
 await wait(deployer.writeContract({ address: HEIM, abi: erc20Abi, functionName: "transfer", args: [staker.account.address, heimAmount] }));
 await wait(staker.writeContract({ address: HEIM, abi: erc20Abi, functionName: "approve", args: [staking, heimAmount] }));
 await wait(staker.writeContract({ address: staking, abi: parseAbi(["function stake(uint256)"]), functionName: "stake", args: [heimAmount] }));

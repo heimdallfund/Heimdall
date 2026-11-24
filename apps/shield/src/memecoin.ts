@@ -45,18 +45,25 @@ const BURN = new Set(["0x0000000000000000000000000000000000000000", "0x000000000
 
 interface Log { blockNumber: `0x${string}`; topics: `0x${string}`[]; data: `0x${string}` }
 
-async function transferLogs(logs: PublicClient, token: Address, from: bigint, to: bigint, budget = { left: MAX_LOGS }): Promise<Log[] | null> {
-  if (budget.left <= 0) return null;
+async function transferLogs(logs: PublicClient, token: Address, from: bigint, to: bigint, budget = { left: MAX_LOGS, until: Date.now() + 12_000 }, depth = 0): Promise<Log[] | null> {
+  // a token this busy is established, not a fresh memecoin: give up rather than keep a buyer waiting
+  if (budget.left <= 0 || Date.now() > budget.until) return null;
   try {
     const res = await logs.request({ method: "eth_getLogs", params: [{ address: token, fromBlock: `0x${from.toString(16)}`, toBlock: `0x${to.toString(16)}`, topics: [TRANSFER] }] }) as Log[];
     budget.left -= res.length;
     return budget.left < 0 ? null : res;
   } catch (e) {
     if (to - from < 2_000n || !/exceed|limit|too many|range/i.test((e as Error).message)) return null;
+    // the first two splits run side by side (at most four reads at once, under the public RPC's rate limit);
+    // deeper ones go one after another so a busy token runs out of budget instead of flooding the RPC
     const mid = (from + to) / 2n;
-    const a = await transferLogs(logs, token, from, mid, budget);
+    if (depth < 2) {
+      const [a, b] = await Promise.all([transferLogs(logs, token, from, mid, budget, depth + 1), transferLogs(logs, token, mid + 1n, to, budget, depth + 1)]);
+      return a && b ? [...a, ...b] : null;
+    }
+    const a = await transferLogs(logs, token, from, mid, budget, depth + 1);
     if (!a) return null;
-    const b = await transferLogs(logs, token, mid + 1n, to, budget);
+    const b = await transferLogs(logs, token, mid + 1n, to, budget, depth + 1);
     return b ? [...a, ...b] : null;
   }
 }
@@ -73,6 +80,15 @@ export async function memecoinSignals(
   const infra = new Set([...NOT_HOLDERS, token.toLowerCase()]);
   for (const a of [ctx.launch?.curve, ctx.launch?.pool, ctx.pool]) if (a) infra.add(a.toLowerCase());
 
+  // the dev's track record depends only on who launched it: read it alongside the transfers, not after them
+  const launcherP = ctx.launch?.launchpad === "Klik" && ctx.launch.dev ? isKlikPlatform(client, logs, ctx.launch.dev).catch(() => false) : Promise.resolve(false);
+  const historyP = launcherP.then((launcher) => {
+    const d = launcher ? null : ctx.launch?.dev ?? null;
+    return d && ctx.launch?.launchpad === "Pons" ? ponsDevHistory(client, logs, d, token).catch(() => null)
+      : d && ctx.launch?.launchpad === "Klik" ? klikDevHistory(client, logs, d, token).catch(() => null)
+      : null;
+  });
+  historyP.catch(() => {});
   const latest = await logs.getBlockNumber();
   const start = latest > 9_900_000n ? latest - 9_900_000n : 0n;
   const all = await transferLogs(logs, token, start, latest);
@@ -105,7 +121,7 @@ export async function memecoinSignals(
   const top10 = ranked.slice(0, 10).reduce((s, [, v]) => s + v, 0n);
 
   // a launchpad's own launcher account is not a dev: its "sales" are the platform's, and it has no history of its own
-  const launcher = ctx.launch?.launchpad === "Klik" && ctx.launch.dev ? await isKlikPlatform(client, logs, ctx.launch.dev) : false;
+  const launcher = await launcherP;
   const dev = launcher ? null : ctx.launch?.dev ?? null;
   const devBal = dev ? (balances.get(dev) ?? (await client.readContract({ address: token, abi: ERC20, functionName: "balanceOf", args: [dev] }).catch(() => 0n))) : null;
   const devIn = dev ? received.get(dev) ?? 0n : 0n;
@@ -126,9 +142,7 @@ export async function memecoinSignals(
     launchBuyers = { wallets: early.size, pct: pct(held, supply) };
   }
   const [devHistory, smart] = await Promise.all([
-    dev && ctx.launch?.launchpad === "Pons" ? ponsDevHistory(client, logs, dev, token).catch(() => null)
-      : dev && ctx.launch?.launchpad === "Klik" ? klikDevHistory(client, logs, dev, token).catch(() => null)
-      : Promise.resolve(null),
+    historyP,
     ctx.smartCount ? ctx.smartCount(ranked.slice(0, 30).map(([a]) => a.toLowerCase()).filter((a) => a !== dev?.toLowerCase())).catch(() => null) : Promise.resolve(null),
   ]);
   const devLaunches = devHistory ? devHistory.launches : null;

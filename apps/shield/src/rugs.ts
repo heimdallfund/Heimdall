@@ -30,17 +30,23 @@ const RISKY = new Set(["LP_REMOVABLE", "LOW_LIQUIDITY", "SERIAL_DUMPER", "OWNER_
 
 export const flagsOf = (r: TokenCheck) => [...r.findings].filter((f) => f.severity !== "info").sort((a, b) => RANK[a.severity] - RANK[b.severity]).map((f) => f.code).slice(0, 8);
 const unusable = (r: TokenCheck) => r.findings.some((f) => f.code === "SIM_UNAVAILABLE");
+/** A check with no market to trade on (no pool yet) cannot judge a rug risk, so it is not a "before" to compare with. */
+const NO_MARKET = "NO_POOL";
+const judged = (flags: string[]) => !flags.includes(NO_MARKET);
 
 /** Keeps the first usable check of a token, and puts tokens that were alive then on the rug watch. */
 export async function recordSeen(store: CounterStore, token: string, r: TokenCheck, now = Date.now()) {
   if (unusable(r)) return null;
   const t = token.toLowerCase();
   const k = `seen:${t}`;
-  const had = await store.fetch(k);
-  if (had) return JSON.parse(had) as FirstSeen;
+  const had = JSON.parse((await store.fetch(k)) ?? "null") as FirstSeen | null;
   const flags = flagsOf(r);
-  const s: FirstSeen = { verdict: r.verdict, riskScore: r.riskScore, flags, at: now, symbol: r.symbol, alive: outcomeOf(r).outcome === "fine" };
+  const alive = outcomeOf(r).outcome === "fine";
+  // the first check stays the "before", unless it saw no market yet: then the first check with a pool replaces it
+  if (had && (judged(had.flags) || !alive || !judged(flags))) return had;
+  const s: FirstSeen = { verdict: r.verdict, riskScore: r.riskScore, flags, at: now, symbol: r.symbol, alive };
   await store.put(k, JSON.stringify(s), TTL);
+  if (had) return s; // already on the watch
   // the member carries what the sweep needs, so picking tokens to re-check costs one read
   if (s.alive) await store.addMember("rugwatch", `${t}|${now}|${flags.some((f) => RISKY.has(f)) ? 1 : 0}`);
   return s;
@@ -55,7 +61,7 @@ export async function noteOutcome(store: CounterStore, token: string, r: TokenCh
   if (await store.fetch(`rug:${t}`)) return null;
   const s = JSON.parse((await store.fetch(`seen:${t}`)) ?? "null") as FirstSeen | null;
   // only tokens Heimdall saw alive, at least a couple of minutes before
-  if (!s || !s.alive || now - s.at < 120_000) return null;
+  if (!s || !s.alive || !judged(s.flags) || now - s.at < 120_000) return null;
   const e: RugEvent = {
     token: t, symbol: r.symbol ?? s.symbol, name: r.name, venue: r.launch?.launchpad ?? null,
     kind: o.outcome, detectedAt: now, evidence: o.evidence ?? "",
@@ -119,7 +125,8 @@ export interface RugLog {
 export async function rugLog(store: CounterStore, limit = 100): Promise<RugLog> {
   const all = await store.members("rugs:all");
   const events = (await Promise.all(all.map(async (t) => JSON.parse((await store.fetch(`rug:${t}`)) ?? "null") as RugEvent | null)))
-    .filter((e): e is RugEvent => !!e).sort((a, b) => b.detectedAt - a.detectedAt);
+    // early records whose "before" had no pool yet: Heimdall had nothing to judge then, so they are not counted
+    .filter((e): e is RugEvent => !!e && judged(e.before.flags)).sort((a, b) => b.detectedAt - a.detectedAt);
   return {
     events: events.slice(0, limit),
     total: events.length,

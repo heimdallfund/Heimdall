@@ -40,6 +40,9 @@ export async function connect(page: Page) {
   const btn = page.locator("main").getByRole("button", { name: "Connect wallet" }).first();
   await btn.waitFor({ state: "visible", timeout: 15_000 }).catch(() => {});
   if (await btn.isVisible().catch(() => false)) await btn.click();
+  // the wallet picker: choose the wallet injected in this browser (the test's stand-in)
+  const tile = page.getByRole("dialog", { name: "Connect a wallet" }).getByRole("button").filter({ hasText: "In this browser" }).first();
+  if (await tile.waitFor({ state: "visible", timeout: 10_000 }).then(() => true, () => false)) await tile.click();
   await btn.waitFor({ state: "hidden", timeout: 15_000 }).catch(() => {});
 }
 

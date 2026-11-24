@@ -19,7 +19,7 @@ export type TokenReport = {
 export const VERDICT_HEAD = { ALLOW: "Looks tradable", WARN: "Be careful", DENY: "Do not buy" } as const;
 
 /** One Token Check from Shield (which caches it for a minute). `status` explains a failure. */
-export async function fetchTokenCheck(address: string, timeout = 25_000): Promise<{ report: TokenReport | null; status: number | null }> {
+export async function fetchTokenCheck(address: string, timeout = 55_000): Promise<{ report: TokenReport | null; status: number | null }> {
   let h: Headers | null = null;
   try { h = (await headers()) as unknown as Headers; } catch { /* outside a request */ }
   const res = await fetch(`${SHIELD_API_URL}/v1/token/${address}`, { headers: relayHeaders(h), signal: AbortSignal.timeout(timeout), cache: "no-store" }).catch(() => null);
