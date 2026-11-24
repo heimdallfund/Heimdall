@@ -1,0 +1,60 @@
+{
+  "usdg": "0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168",
+  "adminSafe": "0xaF1c3b55D204899CEd14d23C996153bC82424168",
+  "treasury": "0xaF1c3b55D204899CEd14d23C996153bC82424168",
+  "shieldSigner": "0xa6ce235055039a55aa438aFFAD18F7d0Ccf092d9",
+  "calls": [
+    {
+      "name": "Uniswap SwapRouter02.exactInputSingle",
+      "target": "0xcaf681a66d020601342297493863e78c959e5cb2",
+      "signature": "exactInputSingle((address,address,uint24,address,uint256,uint256,uint160))"
+    },
+    {
+      "name": "Uniswap SwapRouter02.exactInput",
+      "target": "0xcaf681a66d020601342297493863e78c959e5cb2",
+      "signature": "exactInput((bytes,address,uint256,uint256))"
+    }
+  ],
+  "spenders": [
+    "0xcaf681a66d020601342297493863e78c959e5cb2"
+  ],
+  "usdgUsdFeed": "0x61B7e5650328764B076A108EFF5fa7282a1B9aD2",
+  "usdgFeedMaxAge": 90000,
+  "$assetsNote": "Chainlink 24/7 feeds only (NVDA, TSLA, GOOGL). 24/5 feeds hold their last price over weekends with no heartbeat, so they would make the vault NAV stale every weekend; add them only with a weekend-aware policy. Source: reference-data-directory feeds-robinhood-mainnet.json, verified onchain 2026-11-23. poolFee = the deepest USDG pool on Uniswap v3 per stock (checked 2026-11-23: NVDA 0.05%, TSLA 0.3%, GOOGL 0.05%), used by Auto-Invest.",
+  "assets": [
+    {
+      "symbol": "NVDA",
+      "token": "0xd0601CE157Db5bdC3162BbaC2a2C8aF5320D9EEC",
+      "chainlinkFeed": "0x321A36e441DfBadA01Aa6f9884F14a344E133D1F",
+      "heartbeat": 90000,
+      "poolFee": 500
+    },
+    {
+      "symbol": "TSLA",
+      "token": "0x322F0929c4625eD5bAd873c95208D54E1c003b2d",
+      "chainlinkFeed": "0x39eDf5ef54150A30d2C4F1b982FbB8f93050BC37",
+      "heartbeat": 90000,
+      "poolFee": 3000
+    },
+    {
+      "symbol": "GOOGL",
+      "token": "0x2e0847E8910a9732eB3fb1bb4b70a580ADAD4FE3",
+      "chainlinkFeed": "0x53e040D2C8c9278cBc4b702328aC652068a0E063",
+      "heartbeat": 90000,
+      "poolFee": 500
+    }
+  ],
+  "caps": {
+    "tradeBps": 2500,
+    "lossBps": 200,
+    "dailyLossBps": 300,
+    "depositCap": "10000000000"
+  },
+  "heim": {
+    "token": "",
+    "holderMin": "100000000000000000000000",
+    "signalsHolderFeeBps": 500
+  },
+  "riskReporter": "0x82D0b3B0c56175Cb3318Fcf64B5185d63CAD7De6",
+  "guardian": "0x82D0b3B0c56175Cb3318Fcf64B5185d63CAD7De6"
+}

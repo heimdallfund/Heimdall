@@ -1,0 +1,41 @@
+{
+  "version": "1.0",
+  "chainId": "4663",
+  "createdAt": 1795505636265,
+  "meta": {
+    "name": "Heimdall: accept ownership",
+    "description": "Safe accepts ownership of HeimdallVaultFactory, HeimdallSignals, HeimdallPay, HeimdallAutoInvest, HeimdallRiskOracle and HeimdallGuardModule"
+  },
+  "transactions": [
+    {
+      "to": "0x838fdede1ae6fbdc15f784030d78ca7543d1154d",
+      "value": "0",
+      "data": "0x79ba5097"
+    },
+    {
+      "to": "0x14bd445999dd254090ce86bfcf96df5d4a3e301d",
+      "value": "0",
+      "data": "0x79ba5097"
+    },
+    {
+      "to": "0xd8bd0bfc6ad1c5cee42c4f64bfcea9555a170265",
+      "value": "0",
+      "data": "0x79ba5097"
+    },
+    {
+      "to": "0xeacf613ff7d6dbc8acbf51b411ad092d48e5a932",
+      "value": "0",
+      "data": "0x79ba5097"
+    },
+    {
+      "to": "0x84da850303db7cca6d5194b9d9f8f392a6c9e3e0",
+      "value": "0",
+      "data": "0x79ba5097"
+    },
+    {
+      "to": "0xd2a8815c10f1d71fc854edb7a78405db8fe86ae6",
+      "value": "0",
+      "data": "0x79ba5097"
+    }
+  ]
+}
