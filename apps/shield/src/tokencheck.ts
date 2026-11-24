@@ -40,7 +40,7 @@ const NATIVE: Address = "0x0000000000000000000000000000000000000000";
 export const logsClient = createPublicClient({ transport: http(process.env.LOGS_RPC_URL ?? "https://rpc.mainnet.chain.robinhood.com", { timeout: 8_000 }) });
 const INITIALIZE = parseAbiItem("event Initialize(bytes32 indexed id, address indexed currency0, address indexed currency1, uint24 fee, int24 tickSpacing, address hooks, uint160 sqrtPriceX96, int24 tick)");
 type V4Key = { currency0: Address; currency1: Address; fee: number; tickSpacing: number; hooks: Address };
-const v4Caches = new WeakMap<PublicClient, Map<string, { at: number; pool: (V4Key & { id: Hex; liquidity: bigint }) | null }>>();
+const v4Caches = new WeakMap<PublicClient, Map<string, { at: number; pool: (V4Key & { id: Hex; liquidity: bigint; block: bigint }) | null }>>();
 
 /** The deepest Uniswap v4 pool of a token against ETH or WETH, found from PoolManager Initialize events. */
 async function findV4Pool(client: PublicClient, token: Address, logs: PublicClient = logsClient) {
@@ -70,7 +70,7 @@ async function findV4Pool(client: PublicClient, token: Address, logs: PublicClie
   // launchpad pools (Klik and others) start with one-sided liquidity above the price: zero in range until the first buy,
   // so with no pool in range the newest one is still tried
   const best = measured.filter((m) => m.liquidity > 0n).sort((a, b) => (b.liquidity > a.liquidity ? 1 : -1))[0] ?? measured[0];
-  const pool = best ? { id: best.l.args.id!, currency0: getAddress(best.l.args.currency0!), currency1: getAddress(best.l.args.currency1!), fee: Number(best.l.args.fee), tickSpacing: Number(best.l.args.tickSpacing), hooks: getAddress(best.l.args.hooks!), liquidity: best.liquidity } : null;
+  const pool = best ? { id: best.l.args.id!, currency0: getAddress(best.l.args.currency0!), currency1: getAddress(best.l.args.currency1!), fee: Number(best.l.args.fee), tickSpacing: Number(best.l.args.tickSpacing), hooks: getAddress(best.l.args.hooks!), liquidity: best.liquidity, block: best.l.blockNumber ?? 1n } : null;
   if (v4Cache.size > 2_000) v4Cache.delete(v4Cache.keys().next().value!);
   v4Cache.set(k, { at: Date.now(), pool });
   return pool;
@@ -193,7 +193,9 @@ export async function tokenCheck(rawClient: PublicClient, raw: Address, now = Da
     if (TOKENS[token.toLowerCase()]) return;
     const t0 = Date.now(), lap: Record<string, number> = {};
     const timed = <T,>(k: string, p: Promise<T>) => p.finally(() => { lap[k] = Date.now() - t0; });
-    extra = Promise.all([timed("deep", deepTests(client, token, code!, out.owner, route)).catch(() => null), timed("lp", liq).catch(() => null)])
+    // time budgets: a slow RPC must not hold the whole report; a test that runs out shows as not tested
+    const within = <T,>(ms: number, p: Promise<T>) => Promise.race([p, new Promise<null>((r) => setTimeout(() => r(null), ms))]);
+    extra = Promise.all([timed("deep", within(25_000, deepTests(client, token, code!, out.owner, route))).catch(() => null), timed("lp", within(15_000, liq)).catch(() => null)])
       .finally(() => { if (Date.now() - t0 > 8_000) console.log(JSON.stringify({ level: "info", path: "tokencheck", token, slow: lap })); })
       .then(([d, l]) => ({ findings: [...(d?.findings ?? []), ...(l ? liquidityFindings(l, launch?.dev ?? null) : [])], powers: d?.powers ?? null, liquidity: l }));
   };
@@ -240,7 +242,7 @@ export async function tokenCheck(rawClient: PublicClient, raw: Address, now = Da
   if (!pool) {
     const v4 = await findV4Pool(client, token, logs).catch(() => null);
     if (v4) {
-      startExtra(v4Route(token, v4), v4Liquidity(client, logs, v4.id));
+      startExtra(v4Route(token, v4), v4Liquidity(client, logs, v4.id, v4.block));
       return done(finishV4(client, out, token, v4, add));
     }
     startExtra(null);

@@ -32,9 +32,9 @@ const STEP = 10_000_000n;
 
 interface Log { transactionHash: Hex; address: Address; topics: Hex[]; data: Hex; blockNumber: Hex }
 
-async function wideLogs(logs: PublicClient, filter: { address: Address; topics: (Hex | null)[] }): Promise<Log[]> {
+async function wideLogs(logs: PublicClient, filter: { address: Address; topics: (Hex | null)[] }, floor = 1n): Promise<Log[]> {
   const head = await logs.getBlockNumber();
-  return eachWindow(head, STEP, (from, to) => logs.request({ method: "eth_getLogs", params: [{ address: filter.address, topics: filter.topics, fromBlock: `0x${from.toString(16)}`, toBlock: `0x${to.toString(16)}` }] } as never) as Promise<Log[]>);
+  return eachWindow(head, STEP, (from, to) => logs.request({ method: "eth_getLogs", params: [{ address: filter.address, topics: filter.topics, fromBlock: `0x${from.toString(16)}`, toBlock: `0x${to.toString(16)}` }] } as never) as Promise<Log[]>, 4, floor);
 }
 
 async function classify(client: PublicClient, holders: Map<string, bigint>): Promise<LpOwnership | null> {
@@ -89,8 +89,9 @@ export async function v3Liquidity(client: PublicClient, logs: PublicClient, pool
 }
 
 /** Uniswap v4: ModifyLiquidity events of the pool, netted per position; a position manager's salt is the NFT id. */
-export async function v4Liquidity(client: PublicClient, logs: PublicClient, poolId: Hex): Promise<Liquidity> {
-  const mods = await wideLogs(logs, { address: POOL_MANAGER, topics: [MODIFY_V4, poolId] }).catch(() => []);
+export async function v4Liquidity(client: PublicClient, logs: PublicClient, poolId: Hex, fromBlock = 1n): Promise<Liquidity> {
+  // positions can only exist after the pool was initialized: scan from there
+  const mods = await wideLogs(logs, { address: POOL_MANAGER, topics: [MODIFY_V4, poolId] }, fromBlock).catch(() => []);
   const pos = new Map<string, { sender: Address; salt: Hex; liq: bigint }>();
   for (const m of mods) {
     const sender = getAddress(`0x${m.topics[2]!.slice(26)}`);

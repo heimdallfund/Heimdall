@@ -2,9 +2,9 @@
  * Runs one log query per window with a small concurrency limit and one retry: public RPCs throttle bursts of wide
  * eth_getLogs calls, and a dropped window silently hides pools or positions.
  */
-export async function eachWindow<T>(head: bigint, step: bigint, fn: (from: bigint, to: bigint) => Promise<T[]>, concurrency = 4): Promise<T[]> {
+export async function eachWindow<T>(head: bigint, step: bigint, fn: (from: bigint, to: bigint) => Promise<T[]>, concurrency = 4, floor = 1n): Promise<T[]> {
   const windows: [bigint, bigint][] = [];
-  for (let to = head; to > 0n; to -= step) windows.push([to - step + 1n > 1n ? to - step + 1n : 1n, to]);
+  for (let to = head; to >= floor; to -= step) windows.push([to - step + 1n > floor ? to - step + 1n : floor, to]);
   const out: T[][] = new Array(windows.length);
   let next = 0;
   const worker = async () => {

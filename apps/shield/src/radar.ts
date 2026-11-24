@@ -154,7 +154,7 @@ export async function runChecks(snap: RadarSnapshot, d: Pick<RadarDeps, "check" 
       if (r) { t.check = compact(r); done++; await d.putCheck(t.token, t.check).catch(() => {}); }
     }
   };
-  await Promise.all([worker(), worker(), worker()]);
+  await Promise.all([worker(), worker()]); // two at a time: the radar must not slow down users' own checks
   return done;
 }
 
