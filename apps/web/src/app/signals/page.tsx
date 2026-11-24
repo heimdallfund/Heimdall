@@ -15,6 +15,9 @@ const catStyle: Record<string, string> = {
   sentiment: "bg-[#FBEAFB] text-[#8A2C8F]", crypto: "bg-[#EEF2F7] text-[#3A4560]",
 };
 
+/** Signals Heimdall lists itself (registered from its deployer wallet). */
+const HEIMDALL_PROVIDER = "0xa9326286e8c62b95aca20d4973d1962a7d06e147";
+
 async function SignalGrid() {
   const signals = await getSignals();
   if (!signals.length) {
@@ -53,7 +56,7 @@ async function SignalGrid() {
         <article key={s.id} className="card card-hover flex flex-col gap-3.5 p-[22px]">
           <div className="flex items-center justify-between">
             <span className={`rounded-md px-2 py-1 text-xs font-semibold ${catStyle[s.meta.category ?? ""] ?? catStyle.crypto}`}>{s.meta.category ?? "signal"}</span>
-            <a href={explorerAddress(s.provider)} className="font-mono text-xs text-muted hover:text-violet-ink">{short(s.provider)}</a>
+            <a href={explorerAddress(s.provider)} className="font-mono text-xs text-muted hover:text-violet-ink">{s.provider.toLowerCase() === HEIMDALL_PROVIDER ? "by Heimdall" : short(s.provider)}</a>
           </div>
           <h2 className="text-[19px] font-semibold">{s.meta.name ?? `Signal #${s.id}`}{!s.active && <span className="ml-2 text-sm font-normal text-muted">(paused)</span>}</h2>
           {s.meta.description && <p className="text-sm leading-relaxed text-muted">{s.meta.description}</p>}
