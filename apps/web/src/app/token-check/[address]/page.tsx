@@ -11,6 +11,8 @@ import { TokenCheckForm } from "../TokenCheckForm";
 import { WatchButton } from "@/components/WatchButton";
 import { TokenCheckShare } from "../TokenCheckShare";
 import { TokenAiSummary } from "../TokenAiSummary";
+import { RUG_WORD, span, utc, type RugEvent } from "@/lib/rugs";
+import { CODE_LABEL } from "@/lib/codes";
 
 export async function generateMetadata({ params }: { params: Promise<{ address: string }> }): Promise<Metadata> {
   const { address } = await params;
@@ -101,6 +103,7 @@ async function Content({ params }: { params: Promise<{ address: string }> }) {
         <a href={explorerAddress(a)} target="_blank" rel="noopener" className="break-all font-mono text-[13px] text-muted hover:text-brand">{a}</a>
         <div className="mt-2 flex flex-wrap items-start gap-3"><TokenCheckShare check={{ address: a, symbol: r.symbol ?? short(a), verdict: r.verdict, at: r.checkedAt }} /><WatchButton address={a} kind="token" /></div>
       </header>
+      {r.rug && <RugBanner rug={r.rug} />}
       <section className={`flex flex-col gap-2 rounded-[3px] border p-5 sm:flex-row sm:items-center sm:gap-4 ${box}`}>
         <span className={`font-mono text-[28px] font-bold ${color}`}>{r.verdict}</span>
         <div className="min-w-0 flex-1"><p className={`text-[18px] font-semibold ${color}`}>{head}</p><p className="text-[14.5px] text-ink [overflow-wrap:anywhere]">{notable[0]?.message ?? "Buying, selling and moving it worked in the simulation, without a tax or a clawback."}</p></div>
@@ -171,5 +174,23 @@ async function Content({ params }: { params: Promise<{ address: string }> }) {
       <p className="text-[13px] text-muted">Simulated on the Robinhood Chain block at {new Date(r.checkedAt).toISOString().slice(0, 16).replace("T", " ")} UTC with a throwaway wallet. Owner powers are tested where the contract exposes them, by acting as the owner in the simulation; a contract can still hide behavior no test reaches. Holder and dev figures are read from the token&apos;s transfers on chain.</p>
       <section className="flex flex-col gap-3 border-t border-line pt-6"><h2 className="text-[18px] font-semibold">Check another token</h2><TokenCheckForm compact /></section>
     </>
+  );
+}
+
+/** Shown when the rug log has this token: what happened, and what Heimdall's first check said before it did. */
+function RugBanner({ rug }: { rug: RugEvent }) {
+  return (
+    <section className="flex flex-col gap-3 rounded-[3px] border-2 border-deny bg-deny-soft p-5">
+      <div className="flex flex-wrap items-center gap-3">
+        <span className="rounded-[3px] bg-deny px-2.5 py-1 font-mono text-[15px] font-bold tracking-wider text-paper">RUGGED</span>
+        <span className="text-[18px] font-semibold text-deny">{RUG_WORD[rug.kind]}</span>
+        <span className="font-mono text-[12.5px] text-muted">detected {utc(rug.detectedAt)}</span>
+      </div>
+      {rug.evidence && <p className="text-[14.5px] text-ink [overflow-wrap:anywhere]">{rug.evidence}</p>}
+      <p className="text-[14px] text-ink">
+        Heimdall&apos;s first check, {span(rug.detectedAt - rug.before.at)} before it was caught, said <span className="font-mono font-bold">{rug.before.verdict}</span> (risk {rug.before.riskScore}/100){rug.before.flags.length ? <>: {rug.before.flags.slice(0, 4).map((f) => (CODE_LABEL[f] ?? f.replace(/_/g, " ").toLowerCase())).join(", ")}.</> : ", with no risk found at the time."}{" "}
+        <Link href="/rugs" className="font-semibold underline hover:text-brand">Hall of Rugs</Link>
+      </p>
+    </section>
   );
 }

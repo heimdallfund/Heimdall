@@ -8,7 +8,7 @@ import { summarize } from "./ai.js";
 import { alchemyHoldings, explorerHoldings, flagHoldings } from "./holdings.js";
 import { countVerdict, listIncidents, recordHeartbeat, status, upsertIncident } from "./status.js";
 import { runWatch, subscribe, unsubscribe, validSubscription, webPushSender } from "./watch.js";
-import { runTokenWatch, subscribeToken, unsubscribeToken } from "./tokenwatch.js";
+import { pushToWatchers, runTokenWatch, subscribeToken, unsubscribeToken } from "./tokenwatch.js";
 import { logsClient } from "./tokencheck.js";
 import { bindReferral, claimAction, earlyStatus, growthStats, ipKey, referralStats, registerEarly } from "./growth.js";
 import { analytics, loadSeasons, logDecision, recentDecisions, saveSeasons, trackEvent, validateSeasons } from "./admin.js";
@@ -35,11 +35,11 @@ import { getSigner, prelaunch } from "./signer.js";
 import { checkTransaction, toJSON } from "./shield.js";
 import { checkAuthorization, checkPersonalMessage, checkTypedData } from "./typed.js";
 import { keysRoutes, lookupStoredKey } from "./keys.js";
-import { background, deliver, hookOwnersOf } from "./webhooks.js";
+import { background, deliver, hookOwnersOf, rugHookOwners } from "./webhooks.js";
 import { buildRadar, runChecks, type RadarCheck, type RadarSnapshot } from "./radar.js";
 import { learnSmartMoney, smartCount } from "./smart.js";
 import { evaluateDue, recordPrediction, scorecard } from "./bench.js";
-import { noteOutcome, recordSeen, rugLog, sweepRugs } from "./rugs.js";
+import { noteOutcome, recordSeen, rugLog, sweepRugs, type RugEvent } from "./rugs.js";
 import { storeFromEnv, type CounterStore } from "./store.js";
 import { checkDailyQuota, checkRate, identify, limitsFromEnv, type Caller, type LimitsConfig } from "./limits.js";
 
@@ -424,13 +424,40 @@ export function buildApp(opts: AppOptions = {}) {
 
   /** Token Check: simulated buy, sell and transfer of a token through its Uniswap pool, plus backdoor and fake-token tests. */
   /** Token Check with the shared one-minute cache (also used by Wallet Check). */
+  /**
+   * A rug was filed: tell developers whose webhook takes token.rugged and every browser watching the token. Once per
+   * token, whichever path filed it.
+   */
+  const onRug = async (e: RugEvent) => {
+    if ((await store.incr(`rug:notified:${e.token}`, 90 * 86_400)) !== 1) return;
+    // the radar's cached verdict is stale now: drop it so the next refresh shows the rug
+    await store.remove(`radar:check:${e.token}`).catch(() => {});
+    log({ level: "info", path: "rugs", token: e.token, kind: e.kind, before: e.before.verdict });
+    const site = env.HEIMDALL_WEB_URL ?? "https://heimdall.fund";
+    const what = e.kind === "rugged" ? "liquidity pulled" : "selling stopped";
+    for (const owner of await rugHookOwners(store)) {
+      await deliver(store, owner, "token.rugged", { ...e, detectedAt: new Date(e.detectedAt).toISOString(), before: { ...e.before, at: new Date(e.before.at).toISOString() }, reportUrl: `${site}/token-check/${e.token}`, logUrl: `${site}/rugs` }, fetch, { allowInsecure: hookInsecure }).catch(() => null);
+    }
+    const send = await webPushSender(env).catch(() => null);
+    if (send) {
+      const payload = JSON.stringify({
+        title: `${e.symbol ?? "Token"} rugged: ${what}`,
+        body: `${e.evidence || "A re-check shows the token can no longer be traded normally."} Heimdall's first check said ${e.before.verdict}.`,
+        url: `${site}/token-check/${e.token}`,
+        // same tag as Token Watch's own liquidity alert, so the browser shows one notification, not two
+        tag: `twatch-${e.token}-liquidity_removed`,
+      });
+      await pushToWatchers(store, e.token, payload, send).catch(() => null);
+    }
+  };
   /** Every fresh check feeds the rug log: the first one is kept as the "before", later ones can show the rug. */
   const afterFreshCheck = (token: string, r: Awaited<ReturnType<typeof tokenCheck>>) => background((async () => {
     await recordSeen(store, token, r);
     const rug = await noteOutcome(store, token, r);
-    // the radar's cached verdict is stale now: drop it so the next refresh shows the rug
-    if (rug) { await store.remove(`radar:check:${token.toLowerCase()}`); log({ level: "info", path: "rugs", token, kind: rug.kind, before: rug.before.verdict }); }
+    if (rug) await onRug(rug);
   })().catch(() => {}));
+  /** The filed rug for a token, if any: added to Token Check answers so every surface can show it. */
+  const rugOf = async (token: string) => JSON.parse((await store.fetch(`rug:${token.toLowerCase()}`).catch(() => null)) ?? "null") as RugEvent | null;
   async function cachedTokenCheck(token: `0x${string}`) {
     const key = `tokencheck:${token.toLowerCase()}`;
     const hit = await store.fetch(key).catch(() => null);
@@ -447,7 +474,7 @@ export function buildApp(opts: AppOptions = {}) {
     const key = `tokencheck:${a.toLowerCase()}`;
     const hit = await store.fetch(key).catch(() => null);
     c.header("cache-control", "public, max-age=60");
-    if (hit) return c.json(JSON.parse(hit));
+    if (hit) return c.json({ ...JSON.parse(hit), rug: await rugOf(a) });
     // four simulations per token: counted like a check, but a cached answer is free
     const denied = await admit(c, PRICE.check);
     if (denied) return denied;
@@ -455,7 +482,7 @@ export function buildApp(opts: AppOptions = {}) {
       const r = await tokenCheck(getClient(4663), a as `0x${string}`, Date.now(), undefined, { smartCount: (w) => smartCount(store, w) });
       await store.put(key, JSON.stringify(r), 60).catch(() => {});
       afterFreshCheck(a, r);
-      return c.json(r);
+      return c.json({ ...r, rug: await rugOf(a) });
     } catch (e) {
       log({ level: "error", path: "/v1/token", message: (e as Error).message });
       return c.json({ error: "check_failed", message: "Token Check could not complete. Treat the token as unsafe." }, 500);
@@ -1002,7 +1029,11 @@ export function buildApp(opts: AppOptions = {}) {
     // the rug watch: tokens checked in the last three days, re-checked so a pulled pool shows up within minutes
     const rugs = await (async () => {
       if ((await store.incr("rugwatch:lock", 120).catch(() => 2)) !== 1) return { skipped: "busy" };
-      try { const x = await sweepRugs(store, (t) => cachedTokenCheck(t as `0x${string}`), { max: 8, budgetMs: 35_000 }); return { ...x, found: x.found.map((e) => e.symbol ?? e.token) }; }
+      try {
+        const x = await sweepRugs(store, (t) => cachedTokenCheck(t as `0x${string}`), { max: 8, budgetMs: 35_000 });
+        for (const e of x.found) await onRug(e).catch(() => {});
+        return { ...x, found: x.found.map((e) => e.symbol ?? e.token) };
+      }
       finally { await store.remove("rugwatch:lock").catch(() => {}); }
     })().catch((e) => ({ error: (e as Error).message.split("\n")[0] }));
     // keep the radar (and its predictions) moving even when nobody has the page open

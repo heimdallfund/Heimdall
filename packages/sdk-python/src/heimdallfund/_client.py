@@ -127,6 +127,10 @@ class Shield(_Base):
         """Measured accuracy: Radar verdicts against what happened to the same tokens a day later."""
         return self._get("/v1/bench")
 
+    def rugs(self, limit: int | None = None) -> dict[str, Any]:
+        """Rug log: tokens checked while they traded that later had their liquidity pulled or stopped selling, with the verdict from before."""
+        return self._get(f"/v1/rugs?limit={limit}" if limit else "/v1/rugs")
+
     def risk(self, address: str) -> RiskReport:
         """Risk level and flags of an address, as the Risk Oracle holds them."""
         return self._get(f"/v1/risk/{address}")
@@ -200,6 +204,9 @@ class AsyncShield(_Base):
 
     async def accuracy(self) -> dict[str, Any]:
         return await self._get("/v1/bench")
+
+    async def rugs(self, limit: int | None = None) -> dict[str, Any]:
+        return await self._get(f"/v1/rugs?limit={limit}" if limit else "/v1/rugs")
 
     async def risk(self, address: str) -> RiskReport:
         return await self._get(f"/v1/risk/{address}")

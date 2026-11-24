@@ -9,7 +9,7 @@ import { publicUrlProblem, type Resolver } from "./net.js";
  *
  * Signature: header `heimdall-signature: t=<unix seconds>,v1=<hex HMAC-SHA256(secret, "<t>.<raw body>")>`.
  */
-export const EVENTS = ["shield.deny", "shield.warn", "wallet.risky_approval"] as const;
+export const EVENTS = ["shield.deny", "shield.warn", "wallet.risky_approval", "token.rugged"] as const;
 export type HookEvent = (typeof EVENTS)[number] | "test";
 export interface Hook { url: string; events: HookEvent[]; wallets: string[]; secret: string; created: number; disabled?: string; failures: number }
 export interface Delivery { id: string; type: HookEvent; at: number; status: number | null; ok: boolean; ms: number; error?: string }
@@ -78,6 +78,8 @@ export async function setHook(store: CounterStore, owner: string, input: { url?:
   const secret = prev?.secret ?? `whsec_${randomBytes(24).toString("base64url")}`;
   const hook: Hook = { url, events, wallets: wallets.map(w), secret, created: prev?.created ?? Date.now(), failures: 0 };
   await store.put(hookKey(owner), JSON.stringify(hook), FOREVER);
+  // token.rugged is not tied to a wallet: subscribers are kept in one set
+  if (hook.events.includes("token.rugged")) await store.addMember(RUG_HOOKS, w(owner)); else await store.removeMember(RUG_HOOKS, w(owner));
   // watched agent wallets ride on Wallet Watch
   for (const a of prev?.wallets ?? []) if (!hook.wallets.includes(a)) await unwatch(store, owner, a);
   for (const a of hook.wallets) { await store.addMember(`watch:hooks:${a}`, w(owner)); await store.addMember("watch:addresses", a); }
@@ -103,6 +105,7 @@ export async function deleteHook(store: CounterStore, owner: string) {
   const h = await getHook(store, owner);
   if (!h) return false;
   for (const a of h.wallets) await unwatch(store, owner, a);
+  await store.removeMember(RUG_HOOKS, w(owner));
   await store.remove(hookKey(owner)); await store.remove(`hook:log:${w(owner)}`);
   return true;
 }
@@ -137,6 +140,9 @@ export async function deliver(store: CounterStore, owner: string, type: HookEven
   return d;
 }
 
+/** Owners whose webhook takes token.rugged. */
+export const RUG_HOOKS = "hooks:event:token.rugged";
+export const rugHookOwners = (store: CounterStore) => store.members(RUG_HOOKS);
 /** Owners whose webhook watches this wallet. */
 export const hookOwnersOf = (store: CounterStore, address: string) => store.members(`watch:hooks:${w(address)}`);
 

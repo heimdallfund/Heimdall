@@ -10,6 +10,7 @@ const EVENTS = [
   ["shield.deny", "Shield blocked a check", "A transaction or signature checked with one of your keys was denied."],
   ["shield.warn", "Shield warned on a check", "Same, for WARN verdicts."],
   ["wallet.risky_approval", "Risky approval on a watched wallet", "One of the wallets below gained a new Danger or Review approval."],
+  ["token.rugged", "A token rugged", "Any Robinhood Chain token Heimdall checked while it traded had its liquidity pulled or stopped selling. With the verdict from before."],
 ] as const;
 const utc = (t: number) => new Date(t).toISOString().slice(0, 16).replace("T", " ") + " UTC";
 

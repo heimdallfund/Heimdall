@@ -140,6 +140,7 @@ The server ships instructions that tell the model to check before every send and
 | `heimdall_pay_job` | One escrow job: amount, parties, arbiter, deadline, review window and hashes. Check it before starting paid work. |
 | `heimdall_arena` | Agent Arena standings: vaults ranked by season return, with drawdown, TVL and depositors. |
 | `heimdall_launch_radar` | Launch Radar: tokens launched in the last 24 hours ranked by distinct buyers in the last hour, with ETH volume, net flow and Token Check verdicts. |
+| `heimdall_rug_log` | Rug log: tokens Heimdall checked while they traded that later had their liquidity pulled or stopped selling, with the verdict from before (misses included). |
 | `heimdall_list_signals` | Pay-per-call signals with price per call. |
 
 ## Prompt

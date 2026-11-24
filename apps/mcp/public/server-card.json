@@ -2,7 +2,7 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/v1/server-card.schema.json",
   "name": "fund.heimdall/mcp",
   "title": "Heimdall Shield",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Firewall for AI agents on Robinhood Chain: check transactions and signatures before signing.",
   "websiteUrl": "https://heimdall.fund/docs/mcp",
   "repository": { "url": "https://github.com/heimdallfund/Heimdall", "source": "github", "subfolder": "packages/mcp" },

@@ -276,6 +276,11 @@ export class HeimdallShield {
     return this.request<Scorecard>("/v1/bench");
   }
 
+  /** Rug log: tokens Heimdall checked while they traded that later had their liquidity pulled or stopped selling, with the verdict from before. */
+  rugs(limit?: number): Promise<RugLog> {
+    return this.request<RugLog>(`/v1/rugs${limit ? `?limit=${limit}` : ""}`);
+  }
+
   /** Risk data for an address: what Shield knows, and what the onchain Risk Oracle holds right now. */
   risk(address: Address): Promise<RiskReport> {
     return this.request<RiskReport>(`/v1/risk/${address}`);
@@ -305,6 +310,8 @@ export interface TokenCheckResult {
   powers?: { renounced: boolean; upgradeable: boolean; mint: boolean; blacklist: boolean; pause: boolean; maxSellTaxPct: number | null; sellLater: boolean | null; bigTrade: boolean | null; ownerTested: boolean } | null;
   /** Pool depth in ETH (v3) and who holds the liquidity positions; `removed` when it was all pulled. */
   liquidity?: { pairEth: number | null; lp: { positions: number; burnedPct: number; lockedPct: number; contractPct: number; walletPct: number; topWallet: Address | null } | null; removed?: boolean } | null;
+  /** Set when a later re-check caught this token rugged; `before` is Heimdall's first verdict, recorded before it happened. */
+  rug?: RugEvent | null;
   checkedAt: number;
 }
 
@@ -351,6 +358,31 @@ export interface Scorecard {
   deniedBad: number;
   byOutcome: Record<"rugged" | "honeypot" | "dumped" | "fine", number>;
   recent: { token: Address; symbol: string | null; verdict: "ALLOW" | "WARN" | "DENY"; outcome: "rugged" | "honeypot" | "dumped" | "fine"; at: number }[];
+}
+
+export interface RugEvent {
+  token: Address;
+  symbol: string | null;
+  name: string | null;
+  venue: string | null;
+  kind: "rugged" | "honeypot";
+  detectedAt: number;
+  evidence: string;
+  before: { verdict: "ALLOW" | "WARN" | "DENY"; riskScore: number; flags: string[]; at: number };
+}
+
+export interface RugLog {
+  events: RugEvent[];
+  total: number;
+  /** Rugs whose first verdict was WARN or DENY. */
+  flagged: number;
+  denied: number;
+  /** Rugs Heimdall had passed (ALLOW). */
+  passed: number;
+  /** Rugs whose first check had said the liquidity could be pulled. */
+  lpWarned: number;
+  /** Tokens being re-checked right now. */
+  watching: number;
 }
 
 export interface Passport {

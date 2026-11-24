@@ -22,6 +22,7 @@ const fakeFetch = (async (url: string, init?: RequestInit) => {
   if (path.startsWith("/v1/wallet/")) return json({ owner: DRAINER, block: "1", scannedAt: 0, approvals: [{ kind: "erc20", token: DRAINER, symbol: "USDG", decimals: 6, spender: DRAINER, spenderLabel: null, spenderIsContract: false, allowance: "unlimited", unlimited: true, expiresAt: null, balance: "2500", atRiskUsd: 2500, risk: "danger", reasons: ["Spender is a plain wallet"] }], summary: { total: 1, danger: 1, review: 0, atRiskUsd: 2500 }, sources: [], complete: true, progress: 100 });
   if (path === "/v1/arena") return json({ season: { id: 1, name: "Season 1", start: Date.UTC(2026, 11, 1), end: Date.UTC(2026, 11, 31), minTvl: 500, minDepositors: 3 }, standings: [{ vault: DRAINER, name: "Alpha", manager: DRAINER, returnPct: 12.5, maxDrawdownPct: 3.1, tvl: 5000, depositors: 9, eligible: true, rank: 1 }] });
   if (path === "/v1/radar") return json({ generatedAt: 0, block: "1", launched24h: 640, ethUsd: 1700, tokens: [{ token: DRAINER, symbol: "MEME", name: "Meme", venue: "Pons", launchedAt: 0, buyers1h: 42, buys1h: 50, sells1h: 20, buyEth1h: 1.5, sellEth1h: 0.5, check: { verdict: "DENY", riskScore: 95, flags: ["SERIAL_DUMPER"], holders: 30, top10Pct: 40, devSoldPct: 100, progressPct: 30, checkedAt: 0 } }] });
+  if (path.startsWith("/v1/rugs")) return json({ events: [{ token: DRAINER, symbol: "PULL", name: "Pull", venue: "Pons", kind: "rugged", detectedAt: Date.UTC(2026, 10, 24, 18), evidence: "Liquidity was removed.", before: { verdict: "WARN", riskScore: 40, flags: ["LP_REMOVABLE"], at: Date.UTC(2026, 10, 24, 15) } }], total: 1, flagged: 1, denied: 0, passed: 0, lpWarned: 1, watching: 120 });
   if (path.startsWith("/v1/token/")) return json({ token: path.split("/").pop(), symbol: "MEME", name: "Meme", decimals: 18, owner: null, verdict: "DENY", riskScore: 95, findings: [{ code: "HONEYPOT", severity: "deny", message: "Buying works but selling reverts (TRANSFER_FROM_FAILED). This is a honeypot." }], pool: { address: DRAINER, fee: 10000, pair: "WETH", liquidity: "1" }, buy: { ok: true, taxPct: 0 }, sell: { ok: false, taxPct: null, reason: "TRANSFER_FROM_FAILED" }, transfer: { ok: true, taxPct: 0 }, pullableBy: [], checkedAt: 0 });
   if (path.startsWith("/v1/verdicts/")) return json({ kind: "tx", at: Date.UTC(2026, 10, 23), chainId: 4663, result: deny });
   return json({ error: "not_found" }, 404);
@@ -50,7 +51,7 @@ const textOf = (r: any) => r.content.map((x: any) => x.text).join("\n");
 test("lists all tools, the safe_send prompt and server instructions", async () => {
   const c = await connect();
   const names = (await c.listTools()).tools.map((t) => t.name).sort();
-  assert.deepEqual(names, ["heimdall_agent_reputation", "heimdall_arena", "heimdall_check_address", "heimdall_check_signature", "heimdall_check_transaction", "heimdall_check_tx_hash", "heimdall_get_verdict", "heimdall_launch_radar", "heimdall_list_signals", "heimdall_list_vaults", "heimdall_passport", "heimdall_pay_job", "heimdall_pay_jobs", "heimdall_risk", "heimdall_threats", "heimdall_token_check", "heimdall_vault_info", "heimdall_wallet_check"]);
+  assert.deepEqual(names, ["heimdall_agent_reputation", "heimdall_arena", "heimdall_check_address", "heimdall_check_signature", "heimdall_check_transaction", "heimdall_check_tx_hash", "heimdall_get_verdict", "heimdall_launch_radar", "heimdall_list_signals", "heimdall_list_vaults", "heimdall_passport", "heimdall_pay_job", "heimdall_pay_jobs", "heimdall_risk", "heimdall_rug_log", "heimdall_threats", "heimdall_token_check", "heimdall_vault_info", "heimdall_wallet_check"]);
   assert.equal((await c.listPrompts()).prompts[0].name, "safe_send");
   assert.match(c.getInstructions() ?? "", /heimdall_check_signature/);
 });
@@ -61,6 +62,14 @@ test("launch_radar lists busy launches with volume and verdicts", async () => {
   assert.match(t, /640 tokens launched in the last 24h/);
   assert.match(t, /MEME .* on Pons: 42 buyers, 50 buys \/ 20 sells, 2\.00 ETH volume \(net \+1\.00\)\. Token Check: DENY \(SERIAL_DUMPER\)/);
   assert.match(t, /heimdall\.test\/radar/);
+});
+
+test("rug_log lists rugs with the verdict from before", async () => {
+  const c = await connect();
+  const t = textOf(await c.callTool({ name: "heimdall_rug_log", arguments: { limit: 5 } }));
+  assert.match(t, /1 rug\(s\) recorded; 1 were WARN or DENY/);
+  assert.match(t, /PULL .* \(Pons\): liquidity pulled, detected 2026-11-24 18:00 UTC\. First check 3 h earlier said WARN \(LP_REMOVABLE\)/);
+  assert.match(t, /heimdall\.test\/rugs/);
 });
 
 test("token_check reports a honeypot with each leg and a report link", async () => {
@@ -154,7 +163,7 @@ test("remote mode answers MCP over Streamable HTTP", async () => {
   assert.equal(init.status, 200);
   assert.equal((await init.json()).result.serverInfo.name, "heimdall");
   const list = await fetch(`http://127.0.0.1:${port}/mcp`, { method: "POST", headers: h, body: JSON.stringify({ jsonrpc: "2.0", id: 2, method: "tools/list" }) });
-  assert.equal((await list.json()).result.tools.length, 18);
+  assert.equal((await list.json()).result.tools.length, 19);
   assert.equal((await fetch(`http://127.0.0.1:${port}/health`)).status, 200);
   srv.close();
 });

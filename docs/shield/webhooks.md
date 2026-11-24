@@ -20,6 +20,7 @@ Heimdall can POST to your server the moment Shield blocks one of your agents, or
 | `shield.deny` | A transaction or signature check made with one of your API keys returned DENY |
 | `shield.warn` | The same, for WARN |
 | `wallet.risky_approval` | A watched wallet gained a new Danger or Review approval (checked every 15 minutes) |
+| `token.rugged` | A token Heimdall checked while it still traded had its liquidity pulled or can no longer be sold (any token; re-checked for three days) |
 | `test` | Sent by the Send test event button |
 
 ## Payload

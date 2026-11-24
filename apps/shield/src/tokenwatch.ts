@@ -221,12 +221,21 @@ export async function runTokenWatch(store: CounterStore, d: TokenWatchDeps) {
       url: `${d.siteUrl ?? "https://heimdall.fund"}/token-check/${token}`,
       tag: `twatch-${t}-${found[0]!.kind}`,
     });
-    for (const id of await store.members(`twatch:tok:${t}`)) {
-      const sub = JSON.parse((await store.fetch(`twatch:sub:${id}`)) ?? "null") as StoredSub | null;
-      if (!sub) { await store.removeMember(`twatch:tok:${t}`, id); continue; }
-      const r = await d.send(sub, payload).catch(() => ({ gone: false }));
-      if (r.gone) { await unsubscribeToken(store, sub.endpoint); removed++; } else notified++;
-    }
+    const n = await pushToWatchers(store, t, payload, d.send);
+    notified += n.notified; removed += n.removed;
   }
   return { watched: all.length, scanned, alerts, notified, removed, failed };
+}
+
+/** Sends one notification to every browser watching a token; drops browsers whose push address is gone. */
+export async function pushToWatchers(store: CounterStore, token: string, payload: string, send: Sender) {
+  const t = w(token);
+  let notified = 0, removed = 0;
+  for (const id of await store.members(`twatch:tok:${t}`)) {
+    const sub = JSON.parse((await store.fetch(`twatch:sub:${id}`)) ?? "null") as StoredSub | null;
+    if (!sub) { await store.removeMember(`twatch:tok:${t}`, id); continue; }
+    const r = await send(sub, payload).catch(() => ({ gone: false }));
+    if (r.gone) { await unsubscribeToken(store, sub.endpoint); removed++; } else notified++;
+  }
+  return { notified, removed };
 }

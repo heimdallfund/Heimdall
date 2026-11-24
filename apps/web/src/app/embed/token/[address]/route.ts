@@ -26,9 +26,10 @@ function chips(r: TokenReport): string[] {
 function page(address: string, r: TokenReport | null, dark: boolean) {
   const v = r?.verdict;
   const tone = v === "ALLOW" ? "#0B7A3B" : v === "WARN" ? "#A86A00" : v === "DENY" ? "#C21F32" : "#5A6377";
-  const head = v === "ALLOW" ? "Passed the checks" : v === "WARN" ? "Be careful" : v === "DENY" ? "Do not buy" : "Not checked yet";
+  const rug = r?.rug ?? null;
+  const head = rug ? `Rugged: ${rug.kind === "rugged" ? "liquidity pulled" : "selling stopped"}` : v === "ALLOW" ? "Passed the checks" : v === "WARN" ? "Be careful" : v === "DENY" ? "Do not buy" : "Not checked yet";
   const notable = r?.findings.filter((f) => f.severity !== "info").sort((a, b) => (a.severity === b.severity ? 0 : a.severity === "deny" ? -1 : 1))[0];
-  const line = !r ? "Heimdall could not check this token right now. Treat it with care." : notable ? notable.message : "Buying, selling and moving it worked in a simulation on the current chain state.";
+  const line = rug ? `${rug.evidence || "A re-check shows it can no longer be traded normally."} Detected ${new Date(rug.detectedAt).toISOString().slice(0, 16).replace("T", " ")} UTC; Heimdall's first check said ${rug.before.verdict}.` : !r ? "Heimdall could not check this token right now. Treat it with care." : notable ? notable.message : "Buying, selling and moving it worked in a simulation on the current chain state.";
   const flags = r ? topFlags(r, 3) : [];
   const c = dark ? { bg: "#111318", panel: "#191C23", ink: "#F4F5F8", muted: "#9AA3B5", line: "#2A2F3A" } : { bg: "#FFFFFF", panel: "#F6F5F1", ink: "#14161B", muted: "#5A6377", line: "#E3E1DA" };
   const report = `${SITE}/token-check/${address}?ref=embed`;
@@ -51,9 +52,9 @@ body{font:14px/1.45 Inter,-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;co
 a{color:${c.ink};font-weight:600;text-decoration:underline;text-decoration-color:#3355FF;text-decoration-thickness:2px;text-underline-offset:3px}
 </style></head><body>
 <div class="card">
-<div class="top"><span class="brand">${MARK}Heimdall Token Check</span><span class="stamp">${esc(v ?? "—")}</span></div>
+<div class="top"><span class="brand">${MARK}Heimdall Token Check</span><span class="stamp">${esc(rug ? "RUGGED" : v ?? "—")}</span></div>
 <div class="name">${esc(r?.symbol ?? `${address.slice(0, 8)}…${address.slice(-4)}`)}${r?.name && r.name !== r.symbol ? ` <span>${esc(r.name)}</span>` : ""}</div>
-<div class="head">${head}${r ? ` · risk ${r.riskScore}/100` : ""}</div>
+<div class="head">${head}${r && !rug ? ` · risk ${r.riskScore}/100` : ""}</div>
 <div class="line">${esc(line)}</div>
 ${flags.length ? `<div class="flags">${flags.map((f) => `<span class="flag">${esc(f)}</span>`).join("")}</div>` : ""}
 ${r ? `<div class="chips">${chips(r).map((x) => `<span class="chip">${esc(x)}</span>`).join("")}</div>` : ""}

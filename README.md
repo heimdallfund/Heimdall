@@ -103,7 +103,7 @@ apps/mcp/           the hosted MCP server at mcp.heimdall.fund
 apps/agent/         reference vault manager agent
 apps/signals/       official pay-per-call signals
 packages/sdk/       @heimdallfund/sdk
-packages/mcp/       @heimdallfund/mcp, 18 tools for Claude, Cursor and any MCP client
+packages/mcp/       @heimdallfund/mcp, 19 tools for Claude, Cursor and any MCP client
 packages/agent-kit/ tools for the Vercel AI SDK and LangChain
 packages/plugin-heimdall/  ElizaOS plugin
 packages/sdk-python/ heimdallfund on PyPI

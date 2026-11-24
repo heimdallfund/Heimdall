@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "heimdallfund"
-version = "0.3.0"
+version = "0.4.0"
 description = "Heimdall Shield for Python: check Robinhood Chain transactions and signatures before your AI agent signs them"
 readme = "README.md"
 license = "BUSL-1.1"

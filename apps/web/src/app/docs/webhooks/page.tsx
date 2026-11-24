@@ -20,6 +20,7 @@ export default function Page() {
         [<C key="d">shield.deny</C>, "A transaction or signature check made with one of your API keys returned DENY."],
         [<C key="w">shield.warn</C>, "The same, for WARN."],
         [<C key="r">wallet.risky_approval</C>, "A watched wallet gained a new Danger or Review approval (checked every 15 minutes)."],
+        [<C key="g">token.rugged</C>, "A token Heimdall checked while it still traded had its liquidity pulled or can no longer be sold. Any token, not only yours; re-checked every 10 to 45 minutes for three days after its first check."],
         [<C key="t">test</C>, "Sent by the Send test event button."],
       ]} />
       <H2 id="payload">Payload</H2>
@@ -43,6 +44,7 @@ export default function Page() {
   }
 }`}</Code>
       <p><C>wallet.risky_approval</C> carries <C>wallet</C>, <C>approvals</C> (token, symbol, spender, risk, value at risk in USD) and <C>reportUrl</C>, the Wallet Check page where it can be revoked.</p>
+      <p><C>token.rugged</C> carries <C>token</C>, <C>symbol</C>, <C>name</C>, <C>venue</C> (the launchpad), <C>kind</C> (<C>rugged</C> or <C>honeypot</C>), <C>detectedAt</C>, <C>evidence</C>, <C>before</C> (Heimdall&apos;s first verdict: <C>verdict</C>, <C>riskScore</C>, <C>flags</C>, <C>at</C>), <C>reportUrl</C> and <C>logUrl</C>. The same record is in <C>GET /v1/rugs</C> and on <a href="/rugs" className="underline">the Hall of Rugs</a>.</p>
       <H2 id="verify">Verify the signature</H2>
       <p><C>heimdall-signature</C> is <C>{"t=<unix seconds>,v1=<hex>"}</C>, where the hex is HMAC-SHA256 of <C>{"<t>.<raw body>"}</C> with your secret. Check it against the raw body before parsing, and reject events older than five minutes. The SDK does both:</p>
       <Code lang="ts">{`import { parseWebhook } from "@heimdallfund/sdk";

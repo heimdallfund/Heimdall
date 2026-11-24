@@ -44,3 +44,18 @@ describe("rug log", () => {
     expect(x.watching).toBe(0);
   });
 });
+
+describe("token.rugged webhooks", () => {
+  it("keeps the owners who take token.rugged in one set", async () => {
+    const { setHook, deleteHook, rugHookOwners } = await import("../src/webhooks.js");
+    const s = new MemoryStore();
+    await setHook(s, "0xOwnerA", { url: "https://a.example/hook", events: ["token.rugged"] });
+    await setHook(s, "0xOwnerB", { url: "https://b.example/hook", events: ["shield.deny"] });
+    expect(await rugHookOwners(s)).toEqual(["0xownera"]);
+    await setHook(s, "0xOwnerA", { url: "https://a.example/hook", events: ["shield.warn"] });
+    expect(await rugHookOwners(s)).toEqual([]);
+    await setHook(s, "0xOwnerB", { url: "https://b.example/hook", events: ["token.rugged"] });
+    await deleteHook(s, "0xOwnerB");
+    expect(await rugHookOwners(s)).toEqual([]);
+  });
+});

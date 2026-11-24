@@ -16,7 +16,7 @@ import {
   HEIMDALL_MAINNET,
 } from "@heimdallfund/sdk";
 
-export const VERSION = "0.3.0";
+export const VERSION = "0.4.0";
 
 export interface Deps {
   shield: HeimdallShield;
@@ -155,6 +155,7 @@ export function buildServer(d: Deps) {
         ...(r.holders?.devHistory?.launches ? [`Dev's other launches (last month): ${r.holders.devHistory.launches}; of the last ${r.holders.devHistory.checked}: ${r.holders.devHistory.dumped} dumped, ${r.holders.devHistory.dead} dead, ${r.holders.devHistory.graduated} graduated, ${r.holders.devHistory.active} trading`] : []),
         ...(r.holders ? [`Holders: ${r.holders.count}${r.holders.top10Pct != null ? `, top 10 hold ${r.holders.top10Pct}%` : ""}${r.holders.devSoldPct != null ? `, dev sold ${r.holders.devSoldPct}% of theirs` : ""}${r.holders.smart ? `, ${r.holders.smart} early-winner wallets` : ""}`] : []),
         ...(r.powers ? [`Owner powers (tested): ${r.powers.renounced ? "ownership renounced" : [r.powers.mint && "can mint", r.powers.blacklist && "can block sellers", r.powers.pause && "can pause", r.powers.maxSellTaxPct != null && r.powers.maxSellTaxPct >= 10 && `can raise sell tax to ${r.powers.maxSellTaxPct}%`, r.powers.upgradeable && "code can be replaced"].filter(Boolean).join(", ") || (r.powers.ownerTested ? "none found" : "not tested")}`] : []),
+        ...(r.rug ? [`RUGGED: ${r.rug.kind === "rugged" ? "liquidity pulled" : "selling stopped"}, detected ${new Date(r.rug.detectedAt).toISOString().slice(0, 16).replace("T", " ")} UTC. Heimdall's first check said ${r.rug.before.verdict}${r.rug.before.flags.length ? ` (${r.rug.before.flags.slice(0, 3).join(", ")})` : ""}.`] : []),
         ...(r.liquidity?.removed ? ["Liquidity: ALL PULLED (rug pull)"] : r.liquidity?.lp ? [`Liquidity: ${r.liquidity.lp.walletPct}% held by a wallet, ${r.liquidity.lp.lockedPct + r.liquidity.lp.burnedPct}% locked or burned${r.liquidity.pairEth != null ? `, ${r.liquidity.pairEth.toFixed(3)} ETH in the pool` : ""}`] : []),
         ...r.findings.filter((f) => f.severity !== "info").map((f) => `- [${f.severity.toUpperCase()}] ${f.message}`),
         `Report: ${d.webUrl}/token-check/${r.token}`,
@@ -185,6 +186,26 @@ export function buildServer(d: Deps) {
       return { ...text(lines.join("\n")), structuredContent: r as unknown as Record<string, unknown> };
     } catch (e) {
       return fail(`Launch Radar failed: ${msg(e)}`);
+    }
+  });
+
+  server.registerTool("heimdall_rug_log", {
+    title: "Rug log: tokens that rugged after a check",
+    description: "Recent Robinhood Chain tokens that Heimdall checked while they still traded and that later had their liquidity pulled or stopped selling, each with the verdict Heimdall gave before it happened (misses included), plus totals: how many were flagged beforehand. Use it to judge how much to trust a Token Check, or to see what rugged recently.",
+    inputSchema: { limit: z.number().int().min(1).max(50).optional().describe("How many rugs to list (default 15)") },
+    annotations: { readOnlyHint: true, openWorldHint: true },
+  }, async ({ limit }) => {
+    try {
+      const r = await d.shield.rugs(limit ?? 15);
+      const lines = [`${r.total} rug(s) recorded; ${r.flagged} were WARN or DENY at their first check, ${r.passed} had been passed (ALLOW). ${r.watching} tokens are being re-checked now.`];
+      for (const e of r.events) {
+        const ago = Math.round((e.detectedAt - e.before.at) / 60_000);
+        lines.push(`- ${e.symbol ?? e.token} ${e.token}${e.venue ? ` (${e.venue})` : ""}: ${e.kind === "rugged" ? "liquidity pulled" : "selling stopped"}, detected ${new Date(e.detectedAt).toISOString().slice(0, 16).replace("T", " ")} UTC. First check ${ago < 120 ? `${ago} min` : `${Math.round(ago / 60)} h`} earlier said ${e.before.verdict}${e.before.flags.length ? ` (${e.before.flags.slice(0, 3).join(", ")})` : ""}.`);
+      }
+      lines.push(`Full record: ${d.webUrl}/rugs`);
+      return { ...text(lines.join("\n")), structuredContent: r as unknown as Record<string, unknown> };
+    } catch (e) {
+      return fail(`Rug log failed: ${msg(e)}`);
     }
   });
 
