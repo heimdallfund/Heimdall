@@ -7,6 +7,7 @@ import { parseLogs, decodeRevert, probeReceivedToken, STRANGER, type RawLog } fr
 import type { Finding, Verdict } from "./types.js";
 import { detectLaunch, LAUNCHPAD_HOOKS, type Launch } from "./launchpad.js";
 import { memecoinSignals, type Holders } from "./memecoin.js";
+import { eachWindow } from "./windowlogs.js";
 import { BUYER as DEEP_BUYER, deepTests, type Powers, type Route } from "./powers.js";
 import { liquidityFindings, v3Liquidity, v4Liquidity, type Liquidity } from "./lp.js";
 
@@ -49,16 +50,18 @@ async function findV4Pool(client: PublicClient, token: Address, logs: PublicClie
   const hit = v4Cache.get(k);
   if (hit && Date.now() - hit.at < 600_000) return hit.pool;
   const head = await logs.getBlockNumber().catch(() => 0n);
-  const STEP = 10_000_000n;
-  const windows: [bigint, bigint][] = [];
-  for (let to = head; to > 0n; to -= STEP) windows.push([to - STEP + 1n > 1n ? to - STEP + 1n : 1n, to]);
-  const found = (await Promise.all(windows.flatMap(([from, to]) => [{ currency1: token }, { currency0: token }].map((args) =>
-    logs.getLogs({ address: POOL_MANAGER, event: INITIALIZE, args: args as never, fromBlock: from, toBlock: to }).catch(() => []))))).flat();
+  const found = await eachWindow(head, 10_000_000n, async (from, to) => (await Promise.all([{ currency1: token }, { currency0: token }].map((args) =>
+    logs.getLogs({ address: POOL_MANAGER, event: INITIALIZE, args: args as never, fromBlock: from, toBlock: to })))).flat());
   const pair = (l: (typeof found)[number]) => (l.args.currency0!.toLowerCase() === k ? l.args.currency1! : l.args.currency0!).toLowerCase();
   // pools against ETH or WETH, newest first; spam pools are common, so only the 25 newest are measured
   const cands = found.filter((l) => [NATIVE.toLowerCase(), WETH.toLowerCase()].includes(pair(l))).sort((a, b) => Number((b.blockNumber ?? 0n) - (a.blockNumber ?? 0n))).slice(0, 25);
   const SV = parseAbi(["function getLiquidity(bytes32 poolId) view returns (uint128)"]);
-  const measured = await Promise.all(cands.map(async (l) => ({ l, liquidity: await client.readContract({ address: STATE_VIEW, abi: SV, functionName: "getLiquidity", args: [l.args.id!] }).catch(() => 0n) })));
+  // one multicall instead of 25 calls: paid RPC plans throttle bursts, and a dropped read made a deep pool look empty
+  type Res = { status: string; result?: bigint };
+  const one = (l: (typeof cands)[number]): Promise<Res> => client.readContract({ address: STATE_VIEW, abi: SV, functionName: "getLiquidity", args: [l.args.id!] }).then((result) => ({ status: "success", result }), () => ({ status: "failure" }));
+  const liq: Res[] = await (client.multicall({ contracts: cands.map((l) => ({ address: STATE_VIEW, abi: SV, functionName: "getLiquidity", args: [l.args.id!] })) as never, allowFailure: true }) as Promise<Res[]>)
+    .catch(() => Promise.all(cands.map(one)));
+  const measured = cands.map((l, i) => ({ l, liquidity: liq[i]?.status === "success" ? (liq[i]!.result ?? 0n) : 0n }));
   // launchpad pools (Klik and others) start with one-sided liquidity above the price: zero in range until the first buy,
   // so with no pool in range the newest one is still tried
   const best = measured.filter((m) => m.liquidity > 0n).sort((a, b) => (b.liquidity > a.liquidity ? 1 : -1))[0] ?? measured[0];

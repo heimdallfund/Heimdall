@@ -2,6 +2,7 @@ import { decodeAbiParameters, getAddress, parseAbi, type Address, type Hex, type
 import { LAUNCHPAD_CONTRACTS } from "./launchpad.js";
 import { POOL_MANAGER } from "./v4hooks.js";
 import type { Finding } from "./types.js";
+import { eachWindow } from "./windowlogs.js";
 
 /**
  * Who can pull a pool's liquidity. Every position in the pool is found from its events (Uniswap v3 Mint +
@@ -33,10 +34,7 @@ interface Log { transactionHash: Hex; address: Address; topics: Hex[]; data: Hex
 
 async function wideLogs(logs: PublicClient, filter: { address: Address; topics: (Hex | null)[] }): Promise<Log[]> {
   const head = await logs.getBlockNumber();
-  const windows: [bigint, bigint][] = [];
-  for (let to = head; to > 0n; to -= STEP) windows.push([to - STEP + 1n > 1n ? to - STEP + 1n : 1n, to]);
-  const all = await Promise.all(windows.map(([from, to]) => logs.request({ method: "eth_getLogs", params: [{ address: filter.address, topics: filter.topics, fromBlock: `0x${from.toString(16)}`, toBlock: `0x${to.toString(16)}` }] } as never).catch(() => []) as Promise<Log[]>));
-  return all.flat();
+  return eachWindow(head, STEP, (from, to) => logs.request({ method: "eth_getLogs", params: [{ address: filter.address, topics: filter.topics, fromBlock: `0x${from.toString(16)}`, toBlock: `0x${to.toString(16)}` }] } as never) as Promise<Log[]>);
 }
 
 async function classify(client: PublicClient, holders: Map<string, bigint>): Promise<LpOwnership | null> {
