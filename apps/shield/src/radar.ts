@@ -145,7 +145,7 @@ export interface RadarDeps {
 
 /** Runs Token Check on the busiest tokens that have no fresh verdict, a few at a time, and fills them into the snapshot. */
 export async function runChecks(snap: RadarSnapshot, d: Pick<RadarDeps, "check" | "putCheck" | "maxChecks">): Promise<number> {
-  const todo = snap.tokens.filter((t) => !t.check).slice(0, d.maxChecks ?? 6);
+  const todo = snap.tokens.filter((t) => !t.check).slice(0, d.maxChecks ?? 8);
   let next = 0, done = 0;
   const worker = async () => {
     while (next < todo.length) {

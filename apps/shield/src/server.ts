@@ -462,11 +462,11 @@ export function buildApp(opts: AppOptions = {}) {
       client, logs: radarLogs,
       check: (t) => cachedTokenCheck(t as `0x${string}`),
       getCheck: async (t) => { const v = await store.fetch(`radar:check:${t.toLowerCase()}`); return v ? JSON.parse(v) as RadarCheck : null; },
-      putCheck: (t, ck) => store.put(`radar:check:${t.toLowerCase()}`, JSON.stringify(ck), 1_200),
+      putCheck: (t, ck) => store.put(`radar:check:${t.toLowerCase()}`, JSON.stringify(ck), 2_700),
     });
     await store.put(RADAR_KEY, JSON.stringify(snap), 86_400);
     // verdicts for the busiest unchecked tokens, then the snapshot again with them filled in
-    if (await runChecks(snap, { check: (t) => cachedTokenCheck(t as `0x${string}`), putCheck: (t, ck) => store.put(`radar:check:${t.toLowerCase()}`, JSON.stringify(ck), 1_200) })) {
+    if (await runChecks(snap, { check: (t) => cachedTokenCheck(t as `0x${string}`), putCheck: (t, ck) => store.put(`radar:check:${t.toLowerCase()}`, JSON.stringify(ck), 2_700) })) {
       await store.put(RADAR_KEY, JSON.stringify(snap), 86_400);
     }
     return snap;

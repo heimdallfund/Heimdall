@@ -104,7 +104,7 @@ export function RadarList() {
       {!snap && !error && <div className="card p-6 text-muted">Scanning the last 24 hours of launches…</div>}
       {!snap && error && <div className="card p-6 text-muted">The radar is scanning launches and running the first checks. This page updates by itself in a few seconds.</div>}
       {snap && now !== null && (rows.length ? <div className="flex flex-col gap-2.5">{rows.map((t) => <Row key={t.token} t={t} now={now} />)}</div> : <div className="card p-6 text-muted">Nothing matches this filter right now.</div>)}
-      <p className="text-[12.5px] leading-relaxed text-muted">A buyer is a wallet that received the token from its curve or pool in the last hour; buys and sells are counted the same way. A verdict is Token Check on the current chain state, refreshed every 20 minutes; open a token for the full report. Busy does not mean safe, and passing the checks does not mean the price will hold.</p>
+      <p className="text-[12.5px] leading-relaxed text-muted">A buyer is a wallet that received the token from its curve or pool in the last hour; buys and sells are counted the same way. A verdict is Token Check on the current chain state, refreshed every 45 minutes or sooner; open a token for the full report. Busy does not mean safe, and passing the checks does not mean the price will hold.</p>
     </section>
   );
 }
