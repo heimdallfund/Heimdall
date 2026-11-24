@@ -123,6 +123,13 @@ export interface WalletReport {
   owner: Address; block: string; scannedAt: number; approvals: WalletApproval[];
   summary: { total: number; danger: number; review: number; atRiskUsd: number };
   sources: string[]; complete: boolean; progress: number;
+  /** Tokens the wallet holds that are themselves a risk: fakes, blocklisted tokens, honeypots, clawbacks. */
+  tokens?: WalletTokenFlag[];
+  tokensChecked?: number;
+}
+export interface WalletTokenFlag {
+  token: Address; symbol: string; balance: string;
+  risk: "danger" | "review"; code: string; reason: string;
 }
 export interface PointsSummary {
   address: Address; total: number; rank: number | null;

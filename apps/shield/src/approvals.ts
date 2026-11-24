@@ -49,6 +49,10 @@ export interface WalletReport {
   complete: boolean;
   /** Share of the wallet's token history scanned so far, 0–100. */
   progress: number;
+  /** Held tokens that are themselves a risk (set by the /v1/wallet route). */
+  tokens?: import("./holdings.js").TokenFlag[];
+  /** How many held tokens were looked at for {@link tokens}. */
+  tokensChecked?: number;
 }
 
 interface Candidate { kind: ApprovalRow["kind"]; token: string; spender: string }

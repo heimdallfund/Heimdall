@@ -33,6 +33,7 @@ export default function Page() {
         ["Does checking a wallet cost anything or need a signature?", "No. Checking is read-only and works for any address. Only revoking sends a transaction, from your own wallet."],
         ["What makes an approval dangerous?", "A spender that is a plain wallet instead of a contract, an address on the Heimdall blocklist, or one Shield has been denying. Unlimited approvals to contracts Heimdall does not recognise are marked for review."],
         ["Why does a scan sometimes take a little while?", "Older history is read in steps from the chain. Results appear right away and update as the scan finishes."],
+        ["Does it check the tokens I hold?", "Yes. Fake tokens with a real ticker, blocklisted tokens and traps such as honeypots or tokens that can vanish from your wallet are listed at the top, with a link to the full Token Check."],
         ["Is a clean result a guarantee?", "No. It means no live approvals were found. New signatures can still create new ones, so check what you sign with Shield."],
       ]} />
     </div>

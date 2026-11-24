@@ -22,6 +22,8 @@ export default function Page() {
         [<>OK</>, <>A known protocol contract (Uniswap routers, Permit2) or a limited allowance</>],
       ]} />
       <p><strong>Value at risk</strong> is the smaller of the allowance and the wallet&apos;s balance, priced with Chainlink feeds (USDG at $1).</p>
+      <H2 id="suspicious-tokens">Suspicious tokens</H2>
+      <p>Wallet Check also looks at the tokens the wallet holds, because the token itself can be the trap. Each one is checked against the blocklist and for a stolen ticker (a fake NVDA or USDG), and up to five unknown tokens get a full <Link className="text-brand" href="/token-check">Token Check</Link>: a token that cannot be sold, can vanish from the wallet, or can be pulled out by its owner is flagged. They are listed in <C>{"tokens"}</C>, each with a <C>{"code"}</C> (<C>{"FAKE_TOKEN"}</C>, <C>{"BLOCKLISTED_TOKEN"}</C>, <C>{"HONEYPOT"}</C>, <C>{"VANISHING_TOKEN"}</C>, <C>{"ALLOWANCE_BYPASS"}</C>, …). Do not swap, approve or send a flagged token.</p>
       <H2 id="api">API</H2>
       <Code lang="bash">{"curl https://api.heimdall.fund/v1/wallet/0xYourWallet"}</Code>
       <p>Large histories are read in steps. While <C>{"complete"}</C> is <C>{"false"}</C>, call again (add <C>{"?refresh=1"}</C>) and <C>{"progress"}</C> climbs to 100.</p>

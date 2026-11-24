@@ -13,7 +13,10 @@ import { TokenIcon } from "@/components/TokenIcon";
 
 type Risk = "danger" | "review" | "ok";
 interface Row { kind: "erc20" | "all" | "permit2"; token: Address; symbol: string; spender: Address; spenderLabel: string | null; spenderIsContract: boolean; allowance: string; unlimited: boolean; expiresAt: number | null; atRiskUsd: number | null; risk: Risk; reasons: string[] }
-interface Report { owner: Address; approvals: Row[]; summary: { total: number; danger: number; review: number; atRiskUsd: number }; complete: boolean; progress: number }
+interface TokenFlag { token: Address; symbol: string; balance: string; risk: "danger" | "review"; code: string; reason: string }
+interface Report { owner: Address; approvals: Row[]; summary: { total: number; danger: number; review: number; atRiskUsd: number }; complete: boolean; progress: number; tokens?: TokenFlag[]; tokensChecked?: number }
+const TOKEN_LABEL: Record<string, string> = { FAKE_TOKEN: "Fake token", BLOCKLISTED_TOKEN: "Blocklisted", HONEYPOT: "Honeypot", VANISHING_TOKEN: "Can vanish", ALLOWANCE_BYPASS: "Can be pulled", TRANSFER_BLOCKED: "Cannot transfer", BLOCKLISTED_CONTRACT: "Blocklisted" };
+const amount = (v: string) => { const n = Number(v); return n >= 1e9 ? n.toExponential(2) : n.toLocaleString("en-US", { maximumFractionDigits: n < 1 ? 6 : 2 }); };
 
 const PERMIT2 = "0x000000000022D473030F116dDEE9F6B43aC78BA3" as const;
 const ABI = parseAbi([
@@ -75,22 +78,46 @@ export function WalletReport({ address }: { address: Address }) {
   if (err && !r) return <div role="alert" className="card flex items-center gap-3 p-6 text-[15px]"><Icon name="alert" className="text-warn" />{err}</div>;
   if (!r) return <div className="card flex flex-col items-center gap-4 p-10 text-center"><ScanLoader /><p className="text-[15px] text-muted">Reading every approval this wallet has given…</p></div>;
 
-  const sc = score(r.summary);
+  const flags = r.tokens ?? [];
+  const badTokens = flags.filter((t) => t.risk === "danger").length;
+  const sc = Math.max(0, score(r.summary) - badTokens * 15 - (flags.length - badTokens) * 5);
   const risky = r.approvals.filter((x) => x.risk !== "ok");
   const shareText = encodeURIComponent(`My Robinhood Chain wallet scores ${sc}/100 on Heimdall Wallet Check${risky.length ? `, ${risky.length} risky approval${risky.length > 1 ? "s" : ""} found` : ", no risky approvals"}. Check yours:`);
   const shareUrl = encodeURIComponent(typeof window === "undefined" ? "" : `${location.origin}/check`);
 
   return (
     <div className="flex min-w-0 flex-col gap-6">
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="card flex flex-col gap-1 p-5"><span className="text-[13px] text-muted">Safety score</span><span className={`font-mono text-[34px] font-semibold ${sc >= 90 ? "text-allow" : sc >= 60 ? "text-warn" : "text-deny"}`}>{sc}<span className="text-[18px] text-muted">/100</span></span></div>
-        <div className="card flex flex-col gap-1 p-5"><span className="text-[13px] text-muted">Dangerous approvals</span><span className="font-mono text-[34px] font-semibold text-deny">{r.summary.danger}</span></div>
-        <div className="card flex flex-col gap-1 p-5"><span className="text-[13px] text-muted">To review</span><span className="font-mono text-[34px] font-semibold text-warn">{r.summary.review}</span></div>
-        <div className="card flex flex-col gap-1 p-5"><span className="text-[13px] text-muted">Value at risk</span><span className="font-mono text-[34px] font-semibold">{usd(r.summary.atRiskUsd)}</span></div>
+      <section className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+        <div className="card flex min-w-0 flex-col gap-1 p-4 sm:p-5"><span className="text-[13px] text-muted">Safety score</span><span className={`font-mono text-[26px] font-semibold sm:text-[34px] ${sc >= 90 ? "text-allow" : sc >= 60 ? "text-warn" : "text-deny"}`}>{sc}<span className="text-[15px] text-muted sm:text-[18px]">/100</span></span></div>
+        <div className="card flex min-w-0 flex-col gap-1 p-4 sm:p-5"><span className="text-[13px] text-muted">Dangerous approvals</span><span className="font-mono text-[26px] font-semibold sm:text-[34px] text-deny">{r.summary.danger}</span></div>
+        <div className="card flex min-w-0 flex-col gap-1 p-4 sm:p-5"><span className="text-[13px] text-muted">To review</span><span className="font-mono text-[26px] font-semibold sm:text-[34px] text-warn">{r.summary.review}</span></div>
+        <div className="card flex min-w-0 flex-col gap-1 p-4 sm:p-5"><span className="text-[13px] text-muted">Value at risk</span><span className="font-mono text-[26px] font-semibold sm:text-[34px]">{usd(r.summary.atRiskUsd)}</span></div>
       </section>
 
       {!r.complete && <div className="flex items-center gap-3 rounded-xl border border-brand/20 bg-brand-soft/60 px-4 py-3 text-[14.5px]"><span className="inline-block size-2 animate-pulse rounded-full bg-brand" />Scanning older history: {r.progress}% done. Results update by themselves.</div>}
       {toast && <div role="status" className="rounded-xl border border-allow/30 bg-allow-soft px-4 py-3 text-[14.5px] font-medium text-allow">{toast}</div>}
+
+      {flags.length > 0 && (
+        <section className="card min-w-0 overflow-hidden" aria-labelledby="held-tokens">
+          <div className="border-b border-line px-5 py-4">
+            <h2 id="held-tokens" className="text-[17px] font-semibold">{flags.length} suspicious token{flags.length === 1 ? "" : "s"} in this wallet</h2>
+            <p className="mt-0.5 text-[14px] text-muted">Tokens like these are often airdropped as bait. Do not swap, approve or send them, and never buy more.</p>
+          </div>
+          <ul className="divide-y divide-line">
+            {flags.map((t) => (
+              <li key={t.token} className="grid min-w-0 gap-3 px-5 py-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)_auto] md:items-center">
+                <div className="flex min-w-0 items-center gap-3">
+                  <span className={`shrink-0 rounded-sm px-2.5 py-1 text-[12px] font-semibold ${TONE[t.risk]}`}>{TOKEN_LABEL[t.code] ?? LABEL[t.risk]}</span>
+                  <TokenIcon symbol={t.symbol} size={30} plain />
+                  <div className="min-w-0"><div className="truncate text-[15px] font-semibold">{t.symbol}</div><div className="truncate font-mono text-[13px] text-muted">{amount(t.balance)} held</div></div>
+                </div>
+                <p className="min-w-0 break-words text-[14px] text-muted [overflow-wrap:anywhere]">{t.reason}</p>
+                <Link href={`/token-check/${t.token}`} className="btn btn-secondary min-h-10 justify-self-start px-4 md:justify-self-end">Full report</Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section className="card min-w-0 overflow-hidden">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4">
@@ -136,6 +163,7 @@ export function WalletReport({ address }: { address: Address }) {
           <ConnectButton />
         </div>
       )}
+      {!!r.tokensChecked && flags.length === 0 && <p className="flex items-center gap-2 text-[14px] text-muted"><Icon name="check" className="text-allow" />{r.tokensChecked} held token{r.tokensChecked === 1 ? "" : "s"} checked for fakes, blocklisted tokens and traps: none flagged.</p>}
       <p className="text-[13px] text-muted">Revoking sends one transaction per approval from your wallet. Heimdall never holds your keys. <Link href="/points" className="font-medium text-brand hover:underline">How Guardian Points work</Link></p>
     </div>
   );

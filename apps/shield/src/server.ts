@@ -4,6 +4,7 @@ import { currentSeason, recordSnapshots, standings, type Snapshot } from "./aren
 import { openApi } from "./openapi.js";
 import { agentCard, handleA2A } from "./a2a.js";
 import { tokenCheck } from "./tokencheck.js";
+import { explorerHoldings, flagHoldings } from "./holdings.js";
 import { countVerdict, listIncidents, recordHeartbeat, status, upsertIncident } from "./status.js";
 import { runWatch, subscribe, unsubscribe, validSubscription, webPushSender } from "./watch.js";
 import { bindReferral, claimAction, earlyStatus, growthStats, ipKey, referralStats, registerEarly } from "./growth.js";
@@ -415,6 +416,16 @@ export function buildApp(opts: AppOptions = {}) {
   });
 
   /** Token Check: simulated buy, sell and transfer of a token through its Uniswap pool, plus backdoor and fake-token tests. */
+  /** Token Check with the shared one-minute cache (also used by Wallet Check). */
+  async function cachedTokenCheck(token: `0x${string}`) {
+    const key = `tokencheck:${token.toLowerCase()}`;
+    const hit = await store.fetch(key).catch(() => null);
+    if (hit) return JSON.parse(hit) as Awaited<ReturnType<typeof tokenCheck>>;
+    const r = await tokenCheck(getClient(4663), token);
+    await store.put(key, JSON.stringify(r), 60).catch(() => {});
+    return r;
+  }
+
   app.get("/v1/token/:address", async (c) => {
     const a = c.req.param("address");
     if (!isAddress(a)) return c.json({ error: "invalid_address" }, 400);
@@ -662,8 +673,15 @@ export function buildApp(opts: AppOptions = {}) {
     const hit = fresh ? null : await store.fetch(cacheKey).catch(() => null);
     if (hit) return c.json(JSON.parse(hit));
     try {
-      const report = await scanWallet(a as `0x${string}`, { client: getClient(4663), store, deniedTargets: await deniedTargets() });
+      const client = getClient(4663);
+      const [report, holdings] = await Promise.all([
+        scanWallet(a as `0x${string}`, { client, store, deniedTargets: await deniedTargets() }),
+        explorerHoldings(a as `0x${string}`),
+      ]);
       await rememberFlagged(store, a, report.approvals.filter((r) => r.risk !== "ok"));
+      // the tokens it holds can be the trap too: fakes, blocklisted tokens, honeypots and clawbacks
+      const tokens = await flagHoldings(client, holdings, { check: (t) => cachedTokenCheck(t) }).catch(() => []);
+      Object.assign(report, { tokens, tokensChecked: holdings.length });
       await store.put(cacheKey, JSON.stringify(report), 60).catch(() => {});
       return c.json(report);
     } catch (e) {

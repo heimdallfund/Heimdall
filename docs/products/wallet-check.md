@@ -24,6 +24,10 @@ Each one is re-read live from the chain, so revoked approvals never show up.
 
 **Value at risk** is the smaller of the allowance and the wallet's balance, priced with Chainlink feeds (USDG at $1).
 
+## Suspicious tokens
+
+Wallet Check also looks at the tokens the wallet holds, because the token itself can be the trap. Each one is checked against the blocklist and for a stolen ticker (a fake NVDA or USDG), and up to five unknown tokens get a full [Token Check](https://heimdall.fund/token-check): a token that cannot be sold, can vanish from the wallet, or can be pulled out by its owner is flagged. They are listed in `tokens`, each with a `code` (`FAKE_TOKEN`, `BLOCKLISTED_TOKEN`, `HONEYPOT`, `VANISHING_TOKEN`, `ALLOWANCE_BYPASS`, …). Do not swap, approve or send a flagged token.
+
 ## API
 
 ```bash

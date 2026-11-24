@@ -13,10 +13,11 @@ const STOCKS: Record<string, string> = {
 };
 export const TOKEN_LOGOS = new Set<string>([...Object.keys(COINS), ...Object.keys(STOCKS)]);
 
-export function TokenIcon({ symbol, size = 28 }: { symbol: string; size?: number }) {
+/** `plain` skips the logo: a fake token with a real ticker must not borrow the real token's logo. */
+export function TokenIcon({ symbol, size = 28, plain = false }: { symbol: string; size?: number; plain?: boolean }) {
   const sym = symbol.toUpperCase();
-  if (COINS[sym]) return <img src={COINS[sym]} alt="" width={size} height={size} className="shrink-0 rounded-full" />;
-  if (STOCKS[sym]) {
+  if (!plain && COINS[sym]) return <img src={COINS[sym]} alt="" width={size} height={size} className="shrink-0 rounded-full" />;
+  if (!plain && STOCKS[sym]) {
     const inner = Math.round(size * 0.56);
     return (
       <span aria-hidden="true" style={{ width: size, height: size }} className="inline-flex shrink-0 items-center justify-center rounded-full border border-line bg-white">
