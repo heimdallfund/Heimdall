@@ -153,4 +153,12 @@ describe("Blocklist", () => {
     const r = await checkTransaction({ chainId: 4663, from: AGENT, to: ROUTER, data: "0xdeadbeef", value: 0n }, {}, { client: client({ probe: "ok" }), sign: false });
     expect(r.findings.map((f) => f.code)).toContain("BLOCKLISTED_TARGET");
   });
+
+  it("denies buying a token that is itself on the blocklist", async () => {
+    process.env.SHIELD_BLOCKLIST = TOKEN;
+    resetBlocklist();
+    const r = await checkTransaction({ chainId: 4663, from: AGENT, to: ROUTER, data: "0xdeadbeef", value: 0n }, {}, { client: client({ probe: "ok" }), sign: false });
+    expect(r.verdict).toBe("DENY");
+    expect(r.findings.map((f) => f.code)).toContain("BLOCKLISTED_TOKEN");
+  });
 });

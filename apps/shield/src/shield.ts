@@ -207,7 +207,10 @@ export async function checkTransaction(rawTx: TxIntent, rawPolicy: unknown, deps
   const changes = await assetChanges(client, tx, sim);
   const outflows = changes.filter((c) => c.delta < 0n);
   const inflows = changes.filter((c) => c.delta > 0n);
-  for (const c of outflows) {
+  const balances = await Promise.all(outflows.map((c) => c.kind === "erc721" ? Promise.resolve(undefined)
+    : c.kind === "native" ? client.getBalance({ address: tx.from }).catch(() => undefined)
+    : client.readContract({ address: c.asset, abi: BALANCE_ABI, functionName: "balanceOf", args: [tx.from] }).catch(() => undefined)));
+  for (const [i, c] of outflows.entries()) {
     const out = -c.delta;
     if (c.kind === "native" && policy.maxNativeOut && out > BigInt(policy.maxNativeOut))
       add("NATIVE_LIMIT", "deny", `Sends ${fmt(out, 18)} ETH, above the ${fmt(BigInt(policy.maxNativeOut), 18)} ETH limit.`);
@@ -215,13 +218,9 @@ export async function checkTransaction(rawTx: TxIntent, rawPolicy: unknown, deps
     if (c.kind === "erc20" && lim && out > BigInt(lim))
       add("TOKEN_LIMIT", "deny", `Sends ${fmt(out, c.decimals)} ${c.symbol}, above the ${fmt(BigInt(lim), c.decimals)} limit.`);
     // Drains (almost) the whole balance?
-    if (c.kind !== "erc721") {
-      const bal = c.kind === "native"
-        ? await client.getBalance({ address: tx.from }).catch(() => undefined)
-        : await client.readContract({ address: c.asset, abi: BALANCE_ABI, functionName: "balanceOf", args: [tx.from] }).catch(() => undefined);
-      if (bal && bal > 0n && out * 100n >= bal * 90n)
-        add("DRAINS_BALANCE", "warn", `Moves ≥90% of the wallet's ${c.symbol} balance in one transaction.`);
-    }
+    const bal = balances[i] as bigint | undefined;
+    if (bal && bal > 0n && out * 100n >= bal * 90n)
+      add("DRAINS_BALANCE", "warn", `Moves ≥90% of the wallet's ${c.symbol} balance in one transaction.`);
   }
   if (outflows.length && !inflows.length) {
     const untrusted = outflows.flatMap((c) => c.counterparties).filter((a) => !inList(policy.trustedRecipients, a));
@@ -236,6 +235,8 @@ export async function checkTransaction(rawTx: TxIntent, rawPolicy: unknown, deps
   for (const c of outflows) {
     for (const cp of c.counterparties) if (isBlocklisted(cp)) add("BLOCKLISTED_RECIPIENT", "deny", `Sends ${c.symbol} to ${short(cp)}, a blocklisted address.`);
   }
+  // Buying a token that is itself a known scam (a honeypot, a fake, a hacked-account promotion)
+  for (const c of inflows) if (c.kind !== "native" && isBlocklisted(c.asset)) add("BLOCKLISTED_TOKEN", "deny", `Buys ${c.symbol} (${short(c.asset)}), a token on the Heimdall blocklist of known scams.`);
 
   // 4b. Address poisoning: a recipient or spender that looks like an address the wallet trusts, but is not it.
   const familiar = new Set<string>([
@@ -259,7 +260,16 @@ export async function checkTransaction(rawTx: TxIntent, rawPolicy: unknown, deps
   for (const c of changes) if (c.kind === "erc20") touchToken(c.asset);
   for (const a of approvals) touchToken(a.token);
   if (tx.to && decoded && /^(approve|transfer|transferFrom|permit|increaseAllowance)$/.test(decoded.functionName)) touchToken(tx.to);
-  const fakes = await Promise.all([...tokensTouched.values()].slice(0, 6).map(async (t) => ({ t, f: await fakeTokenCheck(client, t) })));
+  const fakesP = Promise.all([...tokensTouched.values()].slice(0, 6).map(async (t) => ({ t, f: await fakeTokenCheck(client, t) })));
+  const unknownIn = inflows.filter((c) => c.kind === "erc20" && !knownContract(tx.chainId, c.asset));
+  const sourceOf = (token: Address) => sim.transfers.find((t) => lc(t.asset) === lc(token) && lc(t.to) === lc(tx.from) && lc(t.from) !== lc(tx.from))?.from;
+  const probesP = sim.ok && unknownIn.length
+    ? Promise.all([
+      probeTransferability(client, tx, unknownIn.map((c) => ({ token: c.asset, amount: c.delta }))),
+      Promise.all(unknownIn.slice(0, 3).map((c) => probeReceivedToken(client, tx, c.asset, c.delta, sourceOf(c.asset)))),
+    ])
+    : null;
+  const fakes = await fakesP;
   for (const { t, f } of fakes) {
     if (!f) continue;
     if (f.by === "symbol") add("FAKE_TOKEN", "deny", `${short(t)} calls itself ${f.symbol}, but the real ${f.symbol} is ${short(f.real)}. A copy with the same ticker is a common scam.`);
@@ -274,13 +284,8 @@ export async function checkTransaction(rawTx: TxIntent, rawPolicy: unknown, deps
   }
 
   // 5c. Can the agent move, sell and keep what it receives? (honeypots, sell blocks, taxes, allowance backdoors)
-  const unknownIn = inflows.filter((c) => c.kind === "erc20" && !knownContract(tx.chainId, c.asset));
-  if (sim.ok && unknownIn.length) {
-    const sourceOf = (token: Address) => sim.transfers.find((t) => lc(t.asset) === lc(token) && lc(t.to) === lc(tx.from) && lc(t.from) !== lc(tx.from))?.from;
-    const [probes, deep] = await Promise.all([
-      probeTransferability(client, tx, unknownIn.map((c) => ({ token: c.asset, amount: c.delta }))),
-      Promise.all(unknownIn.slice(0, 3).map((c) => probeReceivedToken(client, tx, c.asset, c.delta, sourceOf(c.asset)))),
-    ]);
+  if (probesP) {
+    const [probes, deep] = await probesP;
     const taxFinding = (sym: string, sent: bigint, received: bigint, what: string) => {
       if (sent <= 0n || received >= sent) return;
       const taxBps = Number(((sent - received) * 10_000n) / sent);

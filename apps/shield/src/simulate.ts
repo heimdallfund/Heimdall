@@ -145,6 +145,20 @@ const ERC20X = parseAbi([
   "function transferFrom(address,address,uint256) returns (bool)",
 ]);
 
+// owner() rarely changes: cached per client for 10 minutes (null = no owner function or renounced).
+const owners = new WeakMap<PublicClient, Map<string, { at: number; owner: Address | null }>>();
+async function ownerOf(client: PublicClient, token: Address): Promise<Address | null> {
+  let m = owners.get(client);
+  if (!m) owners.set(client, (m = new Map()));
+  const hit = m.get(token.toLowerCase());
+  if (hit && Date.now() - hit.at < 600_000) return hit.owner;
+  const o = await client.readContract({ address: token, abi: parseAbi(["function owner() view returns (address)"]), functionName: "owner" }).catch(() => null) as Address | null;
+  const owner = o && !/^0x0{40}$/i.test(o) ? o : null;
+  if (m.size > 5_000) m.delete(m.keys().next().value!);
+  m.set(token.toLowerCase(), { at: Date.now(), owner });
+  return owner;
+}
+
 /** Run the transaction, then one more call in the same block; returns that call's outcome and transfers. */
 async function afterMain(client: PublicClient, tx: TxIntent, call: { from: Address; to: Address; data: Hex }) {
   const main: Record<string, unknown> = { from: tx.from, data: tx.data, value: toHex(tx.value) };
@@ -178,23 +192,24 @@ export interface TokenProbe {
  */
 export async function probeReceivedToken(client: PublicClient, tx: TxIntent, token: Address, amount: bigint, source?: Address): Promise<TokenProbe> {
   const out: TokenProbe = { token, amount, pulledBy: [] };
-  const owner = await client.readContract({ address: token, abi: parseAbi(["function owner() view returns (address)"]), functionName: "owner" }).catch(() => undefined) as Address | undefined;
-  const pullers = [STRANGER, ...(owner && owner !== "0x0000000000000000000000000000000000000000" && owner.toLowerCase() !== tx.from.toLowerCase() ? [owner] : [])];
   const pull = (who: Address) => afterMain(client, tx, { from: who, to: token, data: encodeFunctionData({ abi: ERC20X, functionName: "transferFrom", args: [tx.from, who, amount] }) });
-  const [sell, ...pulls] = await Promise.all([
+  // The sell, the stranger's pull and the owner lookup run at once; only a token with an owner costs one more round trip.
+  const [sell, strangerPull, owner] = await Promise.all([
     source && source.toLowerCase() !== tx.from.toLowerCase()
       ? afterMain(client, tx, { from: tx.from, to: token, data: encodeFunctionData({ abi: ERC20X, functionName: "transfer", args: [source, amount] }) })
       : Promise.resolve(null),
-    ...pullers.map(pull),
+    pull(STRANGER),
+    ownerOf(client, token),
   ]);
+  const ownerPull = owner && owner.toLowerCase() !== tx.from.toLowerCase() ? await pull(owner) : null;
+  const pulls: [Address, Awaited<ReturnType<typeof pull>>][] = [[STRANGER, strangerPull], ...(owner && ownerPull !== null ? [[owner, ownerPull] as [Address, Awaited<ReturnType<typeof pull>>]] : [])];
   if (sell && source) {
     const received = sell.transfers.filter((x) => x.asset.toLowerCase() === token.toLowerCase() && x.to.toLowerCase() === source.toLowerCase()).reduce((a, x) => a + x.amount, 0n);
     out.sell = { ok: sell.ok, reason: sell.reason, received, to: source };
   }
-  pulls.forEach((p, i) => {
-    const who = pullers[i]!;
+  for (const [who, p] of pulls) {
     // a real pull moves the agent's tokens; "returns false" without a transfer is not a backdoor
     if (p?.ok && p.transfers.some((x) => x.asset.toLowerCase() === token.toLowerCase() && x.from.toLowerCase() === tx.from.toLowerCase())) out.pulledBy.push(who);
-  });
+  }
   return out;
 }
