@@ -6,7 +6,7 @@ import type { CounterStore } from "./store.js";
  * Only a Pons launch created by the Heimdall dev wallet, whose token names that wallet as deployer and whose ticker is
  * HEIM, counts: a copycat from another wallet, or another token from the dev wallet, is never picked up.
  */
-export const HEIM_DEV: Address = "0x6446eA9501a973C38b3760fA51f55D78BbB41CBC";
+export const HEIM_DEV: Address = "0x7c043cb7DC6490E65044D5C74Bf9206370069bF0";
 const PONS_FACTORY: Address = "0x7eD598BcEf8bd9Edd8C97A195C6d13f40801EC7e";
 const LAUNCHED = "0x8d4aad4953d0ca700d468f3753aa14432d1b35b43ec6409f051fb6aa43a89607";
 /** Earlier $HEIM launches that were retired (the first one, 2026-11-24): never picked up again. */
