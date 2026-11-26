@@ -1,8 +1,9 @@
 "use client";
 import { track } from "@/lib/track";
+import { useChainWrite } from "@/lib/chainWrite";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useAccount, usePublicClient, useWriteContract } from "wagmi";
+import { useAccount, usePublicClient } from "wagmi";
 import { parseAbi, type Address } from "viem";
 import { ConnectButton } from "@/components/ConnectButton";
 import { WatchButton } from "@/components/WatchButton";
@@ -39,7 +40,7 @@ export function WalletReport({ address }: { address: Address }) {
   const polls = useRef(0);
   const { address: me } = useAccount();
   const pc = usePublicClient();
-  const { writeContractAsync } = useWriteContract();
+  const { writeContractAsync } = useChainWrite();
   const own = !!me && me.toLowerCase() === address.toLowerCase();
 
   const load = useCallback(async (refresh = false) => {

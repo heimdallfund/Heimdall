@@ -1,9 +1,10 @@
 "use client";
 import { track } from "@/lib/track";
+import { useChainWrite } from "@/lib/chainWrite";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { isAddress, keccak256, parseUnits, toHex, type Address } from "viem";
-import { useAccount, usePublicClient, useReadContract, useReadContracts, useWriteContract } from "wagmi";
+import { useAccount, usePublicClient, useReadContract, useReadContracts } from "wagmi";
 import { heimdallPayAbi } from "@/lib/abi";
 import { ADDRESSES, short } from "@/lib/config";
 import { NO_ARBITER, TONE, toJob, usdg, type PayJob } from "@/lib/pay";
@@ -56,7 +57,7 @@ export function PayConsole({ pay }: { pay: Address }) {
 function CreateJob({ pay, onDone }: { pay: Address; onDone: () => Promise<void> }) {
   const { address } = useAccount();
   const pc = usePublicClient();
-  const { writeContractAsync } = useWriteContract();
+  const { writeContractAsync } = useChainWrite();
   const [f, setF] = useState({ provider: "", amount: "", days: "3", review: "24", arbiter: "", arbFee: "5", spec: "" });
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);

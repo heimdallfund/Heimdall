@@ -1,8 +1,9 @@
 "use client";
 import { useState } from "react";
+import { useChainWrite } from "@/lib/chainWrite";
 import Link from "next/link";
 import { decodeEventLog, type Address } from "viem";
-import { useAccount, usePublicClient, useWriteContract } from "wagmi";
+import { useAccount, usePublicClient } from "wagmi";
 import { ADDRESSES } from "@/lib/config";
 import { heimdallVaultFactoryAbi } from "@/lib/abi";
 import { ConnectButton } from "@/components/ConnectButton";
@@ -13,7 +14,7 @@ const input = "min-h-11 rounded-lg border border-line-strong bg-panel px-3 py-2.
 export function CreateVault() {
   const { address } = useAccount();
   const pc = usePublicClient();
-  const { writeContractAsync, isPending, error } = useWriteContract();
+  const { writeContractAsync, isPending, error } = useChainWrite();
   const [name, setName] = useState("");
   const [symbol, setSymbol] = useState("h");
   const [trade, setTrade] = useState(20);

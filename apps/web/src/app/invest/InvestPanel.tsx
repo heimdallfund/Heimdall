@@ -1,8 +1,9 @@
 "use client";
 import { track } from "@/lib/track";
+import { useChainWrite } from "@/lib/chainWrite";
 import { useEffect, useMemo, useState } from "react";
 import { formatUnits, parseUnits, type Address } from "viem";
-import { useAccount, usePublicClient, useReadContract, useReadContracts, useWriteContract } from "wagmi";
+import { useAccount, usePublicClient, useReadContract, useReadContracts } from "wagmi";
 import { heimdallAutoInvestAbi } from "@/lib/abi";
 import { ADDRESSES, INVEST_TOKENS } from "@/lib/config";
 import { ConnectButton } from "@/components/ConnectButton";
@@ -26,7 +27,7 @@ export function InvestPanel({ ai }: { ai: Address }) {
   const [closed, setClosed] = useState(false); // read the clock after mount: Date.now() cannot run during prerender
   useEffect(() => setClosed(weekendClosed()), []);
   const pc = usePublicClient();
-  const { writeContractAsync } = useWriteContract();
+  const { writeContractAsync } = useChainWrite();
   const [token, setToken] = useState(INVEST_TOKENS[0].address);
   const [amount, setAmount] = useState("50");
   const [interval, setIntervalSec] = useState<number>(604_800);

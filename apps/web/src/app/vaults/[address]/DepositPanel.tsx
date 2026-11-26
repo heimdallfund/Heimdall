@@ -1,8 +1,9 @@
 "use client";
 import { track } from "@/lib/track";
+import { useChainWrite } from "@/lib/chainWrite";
 import { useState } from "react";
 import { formatUnits, parseAbi, parseUnits, type Address } from "viem";
-import { useAccount, useReadContract, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
+import { useAccount, useReadContract, useWaitForTransactionReceipt } from "wagmi";
 import { ADDRESSES } from "@/lib/config";
 import { heimdallVaultAbi } from "@/lib/abi";
 import { ConnectButton } from "@/components/ConnectButton";
@@ -13,7 +14,7 @@ export function DepositPanel({ vault, maxLossPct = 3, maxDailyLossPct = 5 }: { v
   const { address } = useAccount();
   const [mode, setMode] = useState<"deposit" | "withdraw">("deposit");
   const [amount, setAmount] = useState("");
-  const { writeContractAsync, data: hash, isPending, error } = useWriteContract();
+  const { writeContractAsync, data: hash, isPending, error } = useChainWrite();
   const { isLoading: confirming } = useWaitForTransactionReceipt({ hash });
 
   const usdgBal = useReadContract({ address: ADDRESSES.usdg, abi: ERC20, functionName: "balanceOf", args: address ? [address] : undefined, query: { enabled: !!address } });

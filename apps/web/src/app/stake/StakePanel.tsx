@@ -1,8 +1,9 @@
 "use client";
 import { track, type TrackEvent } from "@/lib/track";
+import { useChainWrite } from "@/lib/chainWrite";
 import { useState } from "react";
 import { formatUnits, parseUnits, type Address } from "viem";
-import { useAccount, useReadContracts, useWriteContract, usePublicClient } from "wagmi";
+import { useAccount, useReadContracts, usePublicClient } from "wagmi";
 import { heimdallStakingAbi } from "@/lib/abi";
 import { ConnectButton } from "@/components/ConnectButton";
 
@@ -16,7 +17,7 @@ const f = (v: bigint | undefined, d: number, max = 2) => (v === undefined ? "—
 export function StakePanel({ staking, heim }: { staking: Address; heim: Address }) {
   const { address } = useAccount();
   const pc = usePublicClient();
-  const { writeContractAsync } = useWriteContract();
+  const { writeContractAsync } = useChainWrite();
   const [tab, setTab] = useState<"stake" | "withdraw">("stake");
   const [amt, setAmt] = useState("");
   const [busy, setBusy] = useState(false);

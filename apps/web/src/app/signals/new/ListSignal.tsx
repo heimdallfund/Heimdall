@@ -1,7 +1,8 @@
 "use client";
 import { useState } from "react";
+import { useChainWrite } from "@/lib/chainWrite";
 import { decodeEventLog, isAddress, parseUnits, type Address } from "viem";
-import { useAccount, usePublicClient, useWriteContract } from "wagmi";
+import { useAccount, usePublicClient } from "wagmi";
 import { ADDRESSES } from "@/lib/config";
 import { heimdallSignalsAbi } from "@/lib/abi";
 import { ConnectButton } from "@/components/ConnectButton";
@@ -13,7 +14,7 @@ const CATEGORIES = ["stocks", "crypto", "onchain", "sentiment", "risk"];
 export function ListSignal() {
   const { address } = useAccount();
   const pc = usePublicClient();
-  const { writeContractAsync, isPending, error } = useWriteContract();
+  const { writeContractAsync, isPending, error } = useChainWrite();
   const [f, setF] = useState({ name: "", category: "stocks", description: "", endpoint: "https://", price: "0.02", payout: "" });
   const [id, setId] = useState<string | null>(null);
   let price: bigint | null = null;

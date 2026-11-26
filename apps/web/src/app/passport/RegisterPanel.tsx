@@ -1,8 +1,9 @@
 "use client";
 import { useState } from "react";
+import { useChainWrite } from "@/lib/chainWrite";
 import { useRouter } from "next/navigation";
 import { decodeEventLog, parseAbi, type Address } from "viem";
-import { useAccount, usePublicClient, useWriteContract } from "wagmi";
+import { useAccount, usePublicClient } from "wagmi";
 import { ERC8004 } from "@/lib/config";
 import { ConnectButton } from "@/components/ConnectButton";
 
@@ -15,7 +16,7 @@ const IDENTITY = parseAbi([
 export function RegisterPanel() {
   const { address } = useAccount();
   const pc = usePublicClient();
-  const { writeContractAsync } = useWriteContract();
+  const { writeContractAsync } = useChainWrite();
   const router = useRouter();
   const [mode, setMode] = useState<"register" | "link">("register");
   const [name, setName] = useState("");
