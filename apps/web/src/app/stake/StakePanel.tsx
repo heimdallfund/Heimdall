@@ -58,16 +58,16 @@ export function StakePanel({ staking, heim }: { staking: Address; heim: Address 
   }
 
   return (
-    <div className="grid gap-5 lg:grid-cols-[1.2fr_1fr]">
-      <section className="grid gap-4 sm:grid-cols-2">
-        <div className="card p-5"><p className="text-[13px] text-muted">Total staked</p><p className="mt-1 font-mono text-[26px] font-semibold">{f(total, 18, 0)} <span className="text-[15px] text-muted">HEIM</span></p></div>
-        <div className="card p-5"><p className="text-[13px] text-muted">Paid to stakers now</p><p className="mt-1 font-mono text-[26px] font-semibold">{f(perDay, 6)} <span className="text-[15px] text-muted">USDG / day</span></p></div>
-        <div className="card p-5"><p className="text-[13px] text-muted">Per 1,000 HEIM staked</p><p className="mt-1 font-mono text-[26px] font-semibold">{f(per1k, 6, 4)} <span className="text-[15px] text-muted">USDG / week</span></p></div>
-        <div className="card p-5"><p className="text-[13px] text-muted">Your rewards</p><p className="mt-1 font-mono text-[26px] font-semibold text-allow">{f(earned, 6, 4)} <span className="text-[15px] text-muted">USDG</span></p>
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-5 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
+      <section className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-4 sm:grid-cols-2">
+        <div className="card p-5"><p className="text-[13px] text-muted">Total staked</p><p className="mt-1 break-words font-mono text-[26px] font-semibold">{f(total, 18, 0)} <span className="text-[15px] text-muted">HEIM</span></p></div>
+        <div className="card p-5"><p className="text-[13px] text-muted">Paid to stakers now</p><p className="mt-1 break-words font-mono text-[26px] font-semibold">{f(perDay, 6)} <span className="text-[15px] text-muted">USDG / day</span></p></div>
+        <div className="card p-5"><p className="text-[13px] text-muted">Per 1,000 HEIM staked</p><p className="mt-1 break-words font-mono text-[26px] font-semibold">{f(per1k, 6, 4)} <span className="text-[15px] text-muted">USDG / week</span></p></div>
+        <div className="card p-5"><p className="text-[13px] text-muted">Your rewards</p><p className="mt-1 break-words font-mono text-[26px] font-semibold text-allow">{f(earned, 6, 4)} <span className="text-[15px] text-muted">USDG</span></p>
           {address && (earned ?? 0n) > 0n && <button type="button" disabled={busy} onClick={() => run(() => writeContractAsync({ address: staking, abi: heimdallStakingAbi, functionName: "claim" }), "Rewards claimed.", "claim")} className="mt-3 text-[14px] font-semibold text-brand hover:underline disabled:opacity-50">Claim</button>}
         </div>
       </section>
-      <form onSubmit={submit} className="card flex flex-col gap-4 p-6">
+      <form onSubmit={submit} className="card flex min-w-0 flex-col gap-4 p-6">
         <div className="grid grid-cols-2 gap-1 rounded-xl bg-ink-2 p-1">
           {(["stake", "withdraw"] as const).map((t) => <button key={t} type="button" onClick={() => setTab(t)} className={`min-h-10 rounded-lg text-[15px] font-semibold capitalize ${tab === t ? "bg-white shadow-sm" : "text-muted"}`}>{t}</button>)}
         </div>
