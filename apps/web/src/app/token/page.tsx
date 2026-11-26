@@ -8,6 +8,9 @@ import { heimAddress } from "@/lib/heim";
 import { readHeimMarket } from "@/lib/heimMarket";
 
 import { LogoRow } from "@/components/BrandLogo";
+import { Providers } from "@/components/Providers";
+import { YourPerks } from "./YourPerks";
+import { ADDRESSES } from "@/lib/config";
 export const metadata: Metadata = { title: "$HEIM", description: "The Heimdall token: holding it makes the guardian cheaper to use." };
 
 const rows: [string, string, string][] = [
@@ -118,6 +121,7 @@ export default function TokenPage() {
           </table>
         </div>
         <p className="text-center text-[14px] text-muted">The balance is checked onchain, in the wallet that uses the benefit, at the moment it applies. Staked $HEIM counts too.</p>
+        {ADDRESSES.heim && <Providers><YourPerks heim={ADDRESSES.heim} holder={ADDRESSES.heimHolder} staking={ADDRESSES.staking} /></Providers>}
       </section>
 
       <section aria-labelledby="value" className="flex flex-col gap-6">
