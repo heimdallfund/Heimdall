@@ -1,5 +1,6 @@
 import { getAddress, parseAbi, type Address, type Hex, type PublicClient } from "viem";
 import type { Finding } from "./types.js";
+import { ponsProgress } from "./launchpad.js";
 
 /**
  * What happened to a dev's earlier launches on Pons, read from the chain: for each of their recent tokens, whether
@@ -23,7 +24,7 @@ export interface DevHistory {
 const PONS_FACTORY = "0x7eD598BcEf8bd9Edd8C97A195C6d13f40801EC7e";
 const LAUNCH = "0x8d4aad4953d0ca700d468f3753aa14432d1b35b43ec6409f051fb6aa43a89607";
 const TRANSFER = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
-const ABI = parseAbi(["function graduated() view returns (bool)", "function getReserves() view returns (uint256, uint256)", "function graduationThreshold() view returns (uint256)", "function symbol() view returns (string)"]);
+const ABI = parseAbi(["function totalSupply() view returns (uint256)", "function graduated() view returns (bool)", "function getReserves() view returns (uint256, uint256)", "function graduationThreshold() view returns (uint256)", "function symbol() view returns (string)"]);
 const BURN = new Set(["0x0000000000000000000000000000000000000000", "0x000000000000000000000000000000000000dead"]);
 const topic = (a: string) => `0x${a.slice(2).toLowerCase().padStart(64, "0")}` as Hex;
 const DAY_BLOCKS = 820_000n;
@@ -41,15 +42,15 @@ export async function ponsDevHistory(client: PublicClient, logs: PublicClient, d
   const r = <T>(address: Address, functionName: string) => client.readContract({ address, abi: ABI, functionName: functionName as never }).then((v) => v as T).catch(() => null);
   const results = await Promise.all(look.map(async (l) => {
     const range = { fromBlock: `0x${l.block.toString(16)}`, toBlock: `0x${head.toString(16)}` };
-    const [graduated, reserves, threshold, symbol, outs, ins] = await Promise.all([
-      r<boolean>(l.curve, "graduated"), r<readonly [bigint, bigint]>(l.curve, "getReserves"), r<bigint>(l.curve, "graduationThreshold"), r<string>(l.token, "symbol"),
+    const [graduated, reserves, threshold, symbol, supply, outs, ins] = await Promise.all([
+      r<boolean>(l.curve, "graduated"), r<readonly [bigint, bigint]>(l.curve, "getReserves"), r<bigint>(l.curve, "graduationThreshold"), r<string>(l.token, "symbol"), r<bigint>(l.token, "totalSupply"),
       logs.request({ method: "eth_getLogs", params: [{ address: l.token, topics: [TRANSFER, devT], ...range }] } as never).catch(() => null) as Promise<{ topics: Hex[]; data: Hex }[] | null>,
       logs.request({ method: "eth_getLogs", params: [{ address: l.token, topics: [TRANSFER, null, devT], ...range }] } as never).catch(() => null) as Promise<{ topics: Hex[]; data: Hex }[] | null>,
     ]);
     const sum = (ls: { topics: Hex[]; data: Hex }[] | null, skipBurn: boolean) => (ls ?? []).filter((x) => !skipBurn || !BURN.has(`0x${x.topics[2]!.slice(26)}`)).reduce((a, x) => a + BigInt(x.data.slice(0, 66)), 0n);
     const got = sum(ins, false), sent = sum(outs, true);
     const soldPct = got > 0n ? Number((sent * 100n) / got) : null;
-    const progress = reserves && threshold && threshold > 0n ? Number((reserves[0] * 100n) / threshold) : null;
+    const progress = ponsProgress(reserves, threshold, supply); // real ETH raised, not the curve's virtual reserve
     const outcome: Outcome = graduated ? "graduated"
       : soldPct !== null && soldPct >= 50 ? "dumped"
       : head - l.block > DAY_BLOCKS && progress !== null && progress < 10 ? "dead"

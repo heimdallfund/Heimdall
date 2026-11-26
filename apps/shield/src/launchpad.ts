@@ -59,6 +59,7 @@ export const LAUNCHPAD_HOOKS: Record<string, string> = {
 const ABI = parseAbi([
   "function curve() view returns (address)",
   "function symbol() view returns (string)",
+  "function totalSupply() view returns (uint256)",
   "function deployer() view returns (address)",
   "function factory() view returns (address)",
   "function graduated() view returns (bool)",
@@ -86,6 +87,18 @@ const BOTTOM_ABI = parseAbi(["function launches(address) view returns (address t
 const ZERO = /^0x0{40}$/i;
 const pctOf = (a: bigint, b: bigint) => (b > 0n ? Math.min(100, Number((a * 10_000n) / b) / 100) : null);
 
+/**
+ * Pons graduation progress. The curve's ETH reserve includes a virtual starting reserve (1.68 ETH at launch) that is
+ * never paid in; graduation is reached when the real ETH raised hits the threshold (4.2 ETH). The virtual part is
+ * recovered from the constant product: the curve starts holding the whole supply, so virtual = reserveEth × reserveTokens / supply.
+ */
+export function ponsProgress(reserves: readonly [bigint, bigint] | null | undefined, threshold: bigint | null | undefined, supply: bigint | null | undefined): number | null {
+  if (!reserves || !threshold || threshold <= 0n || !supply || supply <= 0n) return null;
+  const virtual = (reserves[0] * reserves[1]) / supply;
+  const real = reserves[0] > virtual ? reserves[0] - virtual : 0n;
+  return pctOf(real, threshold);
+}
+
 export async function detectLaunch(client: PublicClient, raw: Address): Promise<Launch | null> {
   const token = getAddress(raw);
   const r = <T>(address: Address, functionName: string, args: unknown[] = [], abi: readonly unknown[] = ABI) =>
@@ -96,12 +109,12 @@ export async function detectLaunch(client: PublicClient, raw: Address): Promise<
   if (curve && !ZERO.test(curve)) {
     const factory = await r<Address>(curve, "factory");
     if (factory && getAddress(factory) === PONS_V2_FACTORY) {
-      const [dev, graduated, reserves, threshold, fee, pair] = await Promise.all([
-        r<Address>(token, "deployer"), r<boolean>(curve, "graduated"), r<[bigint, bigint]>(curve, "getReserves"), r<bigint>(curve, "graduationThreshold"), r<bigint>(curve, "feeBps"), r<Address>(curve, "pairToken"),
+      const [dev, graduated, reserves, threshold, fee, pair, supply] = await Promise.all([
+        r<Address>(token, "deployer"), r<boolean>(curve, "graduated"), r<[bigint, bigint]>(curve, "getReserves"), r<bigint>(curve, "graduationThreshold"), r<bigint>(curve, "feeBps"), r<Address>(curve, "pairToken"), r<bigint>(token, "totalSupply"),
       ]);
       return {
         launchpad: "Pons", url: "https://ponsfamily.com", model: "curve", dev: dev ? getAddress(dev) : null, curve: getAddress(curve),
-        graduated, progressPct: graduated ? 100 : reserves && threshold ? pctOf(reserves[0], threshold) : null,
+        graduated, progressPct: graduated ? 100 : ponsProgress(reserves, threshold, supply),
         simulate: graduated ? undefined : "ponsV2", feePct: fee === null ? undefined : Number(fee) / 100,
         pairToken: pair && !ZERO.test(pair) ? getAddress(pair) : undefined,
       };
