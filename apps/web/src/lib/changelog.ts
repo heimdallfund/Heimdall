@@ -4,6 +4,16 @@ export interface ChangeEntry { date: string; title: string; summary: string; cha
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: "2026-11-26",
+    title: "$HEIM is live",
+    summary: "$HEIM launched on Pons. Holding 5,000,000 makes Heimdall cheaper to use, and staking it earns USDG from Heimdall fees.",
+    changes: [
+      { tag: "Contracts", text: "$HEIM launched on Pons (0xe74C9ce171Bf1f5a851F9dDA762F023B97C7c868). The dev wallet burned every token it bought at launch two minutes later." },
+      { tag: "Contracts", text: "Staking, the fee splitter (50% of fees to stakers, paid in USDG) and the holder balance are deployed and source-verified on Sourcify." },
+      { tag: "Web", text: "The $HEIM page shows the contract address, price, market cap, holders and staked supply live; Stake is open." },
+    ],
+  },
+  {
     date: "2026-11-24",
     title: "Agents can find and use Heimdall on their own",
     summary: "A hosted MCP server, an OpenAPI spec and discovery files mean an agent or a developer tool can connect without anyone setting it up. Plus a live status page, a bigger sourced blocklist and a security pass on the Shield API.",

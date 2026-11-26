@@ -138,6 +138,10 @@ Deployed at block 122057226, verified on Sourcify and owned by a 2-of-3 Safe. Va
 | Auto-Invest | [`0xeacf613ff7d6dbc8acbf51b411ad092d48e5a932`](https://robinhoodchain.blockscout.com/address/0xeacf613ff7d6dbc8acbf51b411ad092d48e5a932) |
 | Risk Oracle | [`0x84da850303db7cca6d5194b9d9f8f392a6c9e3e0`](https://robinhoodchain.blockscout.com/address/0x84da850303db7cca6d5194b9d9f8f392a6c9e3e0) |
 | Guard Module (Safe) | [`0xd2a8815c10f1d71fc854edb7a78405db8fe86ae6`](https://robinhoodchain.blockscout.com/address/0xd2a8815c10f1d71fc854edb7a78405db8fe86ae6) |
+| $HEIM token (Pons) | [`0xe74C9ce171Bf1f5a851F9dDA762F023B97C7c868`](https://robinhoodchain.blockscout.com/address/0xe74C9ce171Bf1f5a851F9dDA762F023B97C7c868) |
+| Staking ($HEIM → USDG) | [`0x2f23c62e48e1099f16eb41e0e728065fee4c1953`](https://robinhoodchain.blockscout.com/address/0x2f23c62e48e1099f16eb41e0e728065fee4c1953) |
+| Fee Splitter | [`0x8d3c0d6874a54cde3342031271fbdaf2c49371d3`](https://robinhoodchain.blockscout.com/address/0x8d3c0d6874a54cde3342031271fbdaf2c49371d3) |
+| Holder Balance | [`0x185b29b0015d4dc5e658d6bb3f81eba8240c70a3`](https://robinhoodchain.blockscout.com/address/0x185b29b0015d4dc5e658d6bb3f81eba8240c70a3) |
 | Admin Safe (2-of-3) | [`0xaF1c3b55D204899CEd14d23C996153bC82424168`](https://robinhoodchain.blockscout.com/address/0xaF1c3b55D204899CEd14d23C996153bC82424168) |
 
 Every address, including the 16 stock price feeds, is in [contracts/deployments/robinhood.json](contracts/deployments/robinhood.json).

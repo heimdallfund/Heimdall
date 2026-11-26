@@ -13,7 +13,10 @@
     "HeimdallPay": "0xd8bd0bfc6ad1c5cee42c4f64bfcea9555a170265",
     "HeimdallAutoInvest": "0xeacf613ff7d6dbc8acbf51b411ad092d48e5a932",
     "HeimdallRiskOracle": "0x84da850303db7cca6d5194b9d9f8f392a6c9e3e0",
-    "HeimdallGuardModule": "0xd2a8815c10f1d71fc854edb7a78405db8fe86ae6"
+    "HeimdallGuardModule": "0xd2a8815c10f1d71fc854edb7a78405db8fe86ae6",
+    "HeimdallStaking": "0x2f23c62e48e1099f16eb41e0e728065fee4c1953",
+    "HeimdallFeeSplitter": "0x8d3c0d6874a54cde3342031271fbdaf2c49371d3",
+    "HeimdallHolderBalance": "0x185b29b0015d4dc5e658d6bb3f81eba8240c70a3"
   },
   "priceAdapters": {
     "NVDA": "0x1b8a95850fe344ddf67b98b61de9b5a1417edc8f",
