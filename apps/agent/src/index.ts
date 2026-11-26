@@ -25,7 +25,11 @@ const manager = createWalletClient({ chain: robinhoodChain, transport, account: 
 const cfg: AgentConfig = {
   vault: need("VAULT") as Address,
   usdg: (env.USDG_ADDRESS ?? "0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168") as Address,
-  router: uniswapV3(need("ROUTER_ADDRESS") as Address, () => Number(env.POOL_FEE ?? 3000)),
+  // POOL_FEES: {"0xtoken": 500, ...} for pools on different fee tiers; POOL_FEE is the fallback
+  router: uniswapV3(need("ROUTER_ADDRESS") as Address, (a, b) => {
+    const fees = Object.fromEntries(Object.entries(JSON.parse(env.POOL_FEES ?? "{}") as Record<string, number>).map(([k, v]) => [k.toLowerCase(), v]));
+    return fees[a.toLowerCase()] ?? fees[b.toLowerCase()] ?? Number(env.POOL_FEE ?? 3000);
+  }),
   targetsBps: Object.fromEntries(Object.entries(JSON.parse(need("TARGETS")) as Record<string, number>).map(([k, v]) => [k.toLowerCase(), v])),
   bandBps: Number(env.BAND_BPS ?? 500),
   slippageBps: Number(env.SLIPPAGE_BPS ?? 100),
