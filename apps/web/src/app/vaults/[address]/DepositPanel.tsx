@@ -4,7 +4,7 @@ import { useChainWrite } from "@/lib/chainWrite";
 import { useState } from "react";
 import { formatUnits, parseAbi, parseUnits, type Address } from "viem";
 import { useAccount, useReadContract, useWaitForTransactionReceipt } from "wagmi";
-import { ADDRESSES } from "@/lib/config";
+import { ADDRESSES, chain } from "@/lib/config";
 import { heimdallVaultAbi } from "@/lib/abi";
 import { ConnectButton } from "@/components/ConnectButton";
 
@@ -15,13 +15,13 @@ export function DepositPanel({ vault, maxLossPct = 3, maxDailyLossPct = 5 }: { v
   const [mode, setMode] = useState<"deposit" | "withdraw">("deposit");
   const [amount, setAmount] = useState("");
   const { writeContractAsync, data: hash, isPending, error } = useChainWrite();
-  const { isLoading: confirming } = useWaitForTransactionReceipt({ hash });
+  const { isLoading: confirming } = useWaitForTransactionReceipt({ hash, chainId: chain.id });
 
-  const usdgBal = useReadContract({ address: ADDRESSES.usdg, abi: ERC20, functionName: "balanceOf", args: address ? [address] : undefined, query: { enabled: !!address } });
-  const allowance = useReadContract({ address: ADDRESSES.usdg, abi: ERC20, functionName: "allowance", args: address ? [address, vault] : undefined, query: { enabled: !!address } });
-  const shares = useReadContract({ address: vault, abi: heimdallVaultAbi, functionName: "balanceOf", args: address ? [address] : undefined, query: { enabled: !!address } });
-  const sharesValue = useReadContract({ address: vault, abi: heimdallVaultAbi, functionName: "convertToAssets", args: [shares.data ?? 0n], query: { enabled: shares.data !== undefined } });
-  const maxWithdraw = useReadContract({ address: vault, abi: heimdallVaultAbi, functionName: "maxWithdraw", args: address ? [address] : undefined, query: { enabled: !!address } });
+  const usdgBal = useReadContract({ chainId: chain.id, address: ADDRESSES.usdg, abi: ERC20, functionName: "balanceOf", args: address ? [address] : undefined, query: { enabled: !!address } });
+  const allowance = useReadContract({ chainId: chain.id, address: ADDRESSES.usdg, abi: ERC20, functionName: "allowance", args: address ? [address, vault] : undefined, query: { enabled: !!address } });
+  const shares = useReadContract({ chainId: chain.id, address: vault, abi: heimdallVaultAbi, functionName: "balanceOf", args: address ? [address] : undefined, query: { enabled: !!address } });
+  const sharesValue = useReadContract({ chainId: chain.id, address: vault, abi: heimdallVaultAbi, functionName: "convertToAssets", args: [shares.data ?? 0n], query: { enabled: shares.data !== undefined } });
+  const maxWithdraw = useReadContract({ chainId: chain.id, address: vault, abi: heimdallVaultAbi, functionName: "maxWithdraw", args: address ? [address] : undefined, query: { enabled: !!address } });
 
   let parsed: bigint | null = null;
   try { parsed = amount ? parseUnits(amount, 6) : null; } catch { parsed = null; }

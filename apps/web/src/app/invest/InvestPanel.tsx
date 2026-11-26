@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { formatUnits, parseUnits, type Address } from "viem";
 import { useAccount, usePublicClient, useReadContract, useReadContracts } from "wagmi";
 import { heimdallAutoInvestAbi } from "@/lib/abi";
-import { ADDRESSES, INVEST_TOKENS } from "@/lib/config";
+import { ADDRESSES, INVEST_TOKENS, chain } from "@/lib/config";
 import { ConnectButton } from "@/components/ConnectButton";
 import { TokenIcon } from "@/components/TokenIcon";
 
@@ -26,7 +26,7 @@ export function InvestPanel({ ai }: { ai: Address }) {
   const { address } = useAccount();
   const [closed, setClosed] = useState(false); // read the clock after mount: Date.now() cannot run during prerender
   useEffect(() => setClosed(weekendClosed()), []);
-  const pc = usePublicClient();
+  const pc = usePublicClient({ chainId: chain.id });
   const { writeContractAsync } = useChainWrite();
   const [token, setToken] = useState(INVEST_TOKENS[0].address);
   const [amount, setAmount] = useState("50");
@@ -36,8 +36,8 @@ export function InvestPanel({ ai }: { ai: Address }) {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
-  const { data: prices } = useReadContracts({ contracts: INVEST_TOKENS.map((t) => ({ address: ai, abi: heimdallAutoInvestAbi, functionName: "oraclePrice", args: [t.address] })), query: { refetchInterval: 30_000 } });
-  const { data: ids, refetch } = useReadContract({ address: ai, abi: heimdallAutoInvestAbi, functionName: "plansOf", args: [address ?? "0x0000000000000000000000000000000000000000"], query: { enabled: !!address } });
+  const { data: prices } = useReadContracts({ contracts: INVEST_TOKENS.map((t) => ({ chainId: chain.id, address: ai, abi: heimdallAutoInvestAbi, functionName: "oraclePrice", args: [t.address] })), query: { refetchInterval: 30_000 } });
+  const { data: ids, refetch } = useReadContract({ chainId: chain.id, address: ai, abi: heimdallAutoInvestAbi, functionName: "plansOf", args: [address ?? "0x0000000000000000000000000000000000000000"], query: { enabled: !!address } });
   const list = useMemo(() => [...((ids as readonly bigint[] | undefined) ?? [])].reverse(), [ids]);
   const { data: rawPlans, refetch: refetchPlans } = useReadContracts({ contracts: list.map((id) => ({ address: ai, abi: heimdallAutoInvestAbi, functionName: "getPlan", args: [id] })), query: { enabled: list.length > 0 } });
   const plans = (rawPlans ?? []).flatMap((r, i) => (r.status === "success" ? [{ id: list[i], ...(r.result as unknown as Plan) }] : []));

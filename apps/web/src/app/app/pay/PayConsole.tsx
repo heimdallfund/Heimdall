@@ -6,7 +6,7 @@ import { useMemo, useState } from "react";
 import { isAddress, keccak256, parseUnits, toHex, type Address } from "viem";
 import { useAccount, usePublicClient, useReadContract, useReadContracts } from "wagmi";
 import { heimdallPayAbi } from "@/lib/abi";
-import { ADDRESSES, short } from "@/lib/config";
+import { ADDRESSES, short, chain } from "@/lib/config";
 import { NO_ARBITER, TONE, toJob, usdg, type PayJob } from "@/lib/pay";
 import { ConnectButton } from "@/components/ConnectButton";
 
@@ -19,7 +19,7 @@ export function PayConsole({ pay }: { pay: Address }) {
   const { address } = useAccount();
   const [role, setRole] = useState<"client" | "provider">("client");
   const me = address ?? NO_ARBITER;
-  const { data: ids, refetch } = useReadContract({ address: pay, abi: heimdallPayAbi, functionName: role === "client" ? "jobsOfClient" : "jobsOfProvider", args: [me], query: { enabled: !!address } });
+  const { data: ids, refetch } = useReadContract({ chainId: chain.id, address: pay, abi: heimdallPayAbi, functionName: role === "client" ? "jobsOfClient" : "jobsOfProvider", args: [me], query: { enabled: !!address } });
   const list = useMemo(() => [...((ids as readonly bigint[] | undefined) ?? [])].reverse().slice(0, 30), [ids]);
   const { data: raw, refetch: refetchJobs } = useReadContracts({ contracts: list.map((id) => ({ address: pay, abi: heimdallPayAbi, functionName: "getJob", args: [id] })), query: { enabled: list.length > 0 } });
   const jobs: PayJob[] = (raw ?? []).flatMap((r, i) => (r.status === "success" ? [toJob(list[i], r.result as unknown as Record<string, unknown>)] : []));
@@ -56,7 +56,7 @@ export function PayConsole({ pay }: { pay: Address }) {
 
 function CreateJob({ pay, onDone }: { pay: Address; onDone: () => Promise<void> }) {
   const { address } = useAccount();
-  const pc = usePublicClient();
+  const pc = usePublicClient({ chainId: chain.id });
   const { writeContractAsync } = useChainWrite();
   const [f, setF] = useState({ provider: "", amount: "", days: "3", review: "24", arbiter: "", arbFee: "5", spec: "" });
   const [busy, setBusy] = useState(false);

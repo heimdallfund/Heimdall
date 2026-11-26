@@ -5,7 +5,7 @@ import { useState } from "react";
 import { keccak256, toHex, type Address } from "viem";
 import { useAccount, usePublicClient, useReadContract } from "wagmi";
 import { heimdallPayAbi } from "@/lib/abi";
-import { explorerAddress, short } from "@/lib/config";
+import { explorerAddress, short, chain } from "@/lib/config";
 import { NO_ARBITER, TONE, toJob, usdg } from "@/lib/pay";
 import { ConnectButton } from "@/components/ConnectButton";
 import { ScanLoader } from "@/components/Motif";
@@ -14,9 +14,9 @@ const when = (s: bigint | number) => new Date(Number(s) * 1000).toISOString().re
 
 export function JobView({ pay, id }: { pay: Address; id: bigint }) {
   const { address } = useAccount();
-  const pc = usePublicClient();
+  const pc = usePublicClient({ chainId: chain.id });
   const { writeContractAsync } = useChainWrite();
-  const { data, refetch, isLoading } = useReadContract({ address: pay, abi: heimdallPayAbi, functionName: "getJob", args: [id], query: { refetchInterval: 20_000 } });
+  const { data, refetch, isLoading } = useReadContract({ chainId: chain.id, address: pay, abi: heimdallPayAbi, functionName: "getJob", args: [id], query: { refetchInterval: 20_000 } });
   const [text, setText] = useState(""); const [split, setSplit] = useState(50); const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false); const [msg, setMsg] = useState<string | null>(null);
   if (isLoading) return <div className="flex justify-center py-16"><ScanLoader /></div>;

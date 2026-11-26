@@ -9,7 +9,7 @@ import { ConnectButton } from "@/components/ConnectButton";
 import { WatchButton } from "@/components/WatchButton";
 import { Icon } from "@/components/Icons";
 import { ScanLoader } from "@/components/Motif";
-import { explorerAddress, short } from "@/lib/config";
+import { explorerAddress, short, chain } from "@/lib/config";
 import { TokenIcon } from "@/components/TokenIcon";
 
 type Risk = "danger" | "review" | "ok";
@@ -39,7 +39,7 @@ export function WalletReport({ address }: { address: Address }) {
   const [allTokens, setAllTokens] = useState(false);
   const polls = useRef(0);
   const { address: me } = useAccount();
-  const pc = usePublicClient();
+  const pc = usePublicClient({ chainId: chain.id });
   const { writeContractAsync } = useChainWrite();
   const own = !!me && me.toLowerCase() === address.toLowerCase();
 

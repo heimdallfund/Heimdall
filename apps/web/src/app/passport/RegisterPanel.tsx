@@ -4,7 +4,7 @@ import { useChainWrite } from "@/lib/chainWrite";
 import { useRouter } from "next/navigation";
 import { decodeEventLog, parseAbi, type Address } from "viem";
 import { useAccount, usePublicClient } from "wagmi";
-import { ERC8004 } from "@/lib/config";
+import { ERC8004, chain } from "@/lib/config";
 import { ConnectButton } from "@/components/ConnectButton";
 
 const IDENTITY = parseAbi([
@@ -15,7 +15,7 @@ const IDENTITY = parseAbi([
 /** Register an agent in the official ERC-8004 Identity Registry (from the user's wallet), then link it to Heimdall. */
 export function RegisterPanel() {
   const { address } = useAccount();
-  const pc = usePublicClient();
+  const pc = usePublicClient({ chainId: chain.id });
   const { writeContractAsync } = useChainWrite();
   const router = useRouter();
   const [mode, setMode] = useState<"register" | "link">("register");

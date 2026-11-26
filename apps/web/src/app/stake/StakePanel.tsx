@@ -1,5 +1,6 @@
 "use client";
 import { track, type TrackEvent } from "@/lib/track";
+import { chain } from "@/lib/config";
 import { useChainWrite } from "@/lib/chainWrite";
 import { useState } from "react";
 import { formatUnits, parseUnits, type Address } from "viem";
@@ -16,7 +17,7 @@ const f = (v: bigint | undefined, d: number, max = 2) => (v === undefined ? "—
 
 export function StakePanel({ staking, heim }: { staking: Address; heim: Address }) {
   const { address } = useAccount();
-  const pc = usePublicClient();
+  const pc = usePublicClient({ chainId: chain.id });
   const { writeContractAsync } = useChainWrite();
   const [tab, setTab] = useState<"stake" | "withdraw">("stake");
   const [amt, setAmt] = useState("");
@@ -24,12 +25,12 @@ export function StakePanel({ staking, heim }: { staking: Address; heim: Address 
   const [msg, setMsg] = useState<string | null>(null);
   const me = address ?? "0x0000000000000000000000000000000000000000";
   const { data, refetch } = useReadContracts({ contracts: [
-    { address: staking, abi: heimdallStakingAbi, functionName: "totalStaked" },
-    { address: staking, abi: heimdallStakingAbi, functionName: "rewardPerDay" },
-    { address: staking, abi: heimdallStakingAbi, functionName: "stakedOf", args: [me] },
-    { address: staking, abi: heimdallStakingAbi, functionName: "earned", args: [me] },
-    { address: heim, abi: ERC20, functionName: "balanceOf", args: [me] },
-    { address: heim, abi: ERC20, functionName: "allowance", args: [me, staking] },
+    { chainId: chain.id, address: staking, abi: heimdallStakingAbi, functionName: "totalStaked" },
+    { chainId: chain.id, address: staking, abi: heimdallStakingAbi, functionName: "rewardPerDay" },
+    { chainId: chain.id, address: staking, abi: heimdallStakingAbi, functionName: "stakedOf", args: [me] },
+    { chainId: chain.id, address: staking, abi: heimdallStakingAbi, functionName: "earned", args: [me] },
+    { chainId: chain.id, address: heim, abi: ERC20, functionName: "balanceOf", args: [me] },
+    { chainId: chain.id, address: heim, abi: ERC20, functionName: "allowance", args: [me, staking] },
   ], query: { refetchInterval: 15_000 } });
   const [total, perDay, mine, earned, bal, allowance] = (data ?? []).map((x) => x.result as bigint | undefined);
   const per1k = total && perDay ? (perDay * 7n * 1000n * 10n ** 18n) / total : undefined; // USDG per 1,000 HEIM per week
@@ -73,6 +74,12 @@ export function StakePanel({ staking, heim }: { staking: Address; heim: Address 
         <label className="flex flex-col gap-2 text-[14px] font-medium">Amount (HEIM)
           <input value={amt} onChange={(e) => setAmt(e.target.value.replace(/[^0-9.]/g, ""))} inputMode="decimal" placeholder="0.00" className="min-h-14 rounded-xl border border-line px-4 font-mono text-[22px] outline-none focus:border-brand" />
         </label>
+        <div className="grid grid-cols-4 gap-2">
+          {([25, 50, 75, 100] as const).map((pct) => {
+            const base = (tab === "stake" ? bal : mine) ?? 0n;
+            return <button key={pct} type="button" disabled={!address || base === 0n} onClick={() => setAmt(formatUnits((base * BigInt(pct)) / 100n, 18))} className="min-h-10 rounded-lg border border-line font-mono text-[13px] font-semibold hover:border-ink disabled:opacity-40">{pct === 100 ? "MAX" : `${pct}%`}</button>;
+          })}
+        </div>
         <div className="flex justify-between text-[14px] text-muted"><span>{tab === "stake" ? "Wallet" : "Staked"}</span><button type="button" className="font-mono hover:text-ink" onClick={() => setAmt(formatUnits((tab === "stake" ? bal : mine) ?? 0n, 18))}>{f(tab === "stake" ? bal : mine, 18)} HEIM</button></div>
         {address ? <button type="submit" disabled={busy || value === 0n} className="btn btn-primary min-h-12 disabled:opacity-50">{busy ? "Confirm in wallet…" : tab === "stake" ? "Stake" : "Withdraw"}</button> : <ConnectButton />}
         {msg && <p role="status" className="text-[14px] text-muted">{msg}</p>}
