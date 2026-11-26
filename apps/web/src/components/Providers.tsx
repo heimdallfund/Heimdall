@@ -1,7 +1,7 @@
 "use client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
-import { WagmiProvider, createConfig, http } from "wagmi";
+import { WagmiProvider, createConfig, fallback, http } from "wagmi";
 import { coinbaseWallet, injected, walletConnect } from "wagmi/connectors";
 import { chain } from "@/lib/config";
 
@@ -20,7 +20,8 @@ export const wagmiConfig = createConfig({
     })] : []),
     coinbaseWallet({ appName: "Heimdall", appLogoUrl: "https://heimdall.fund/apple-icon.png", preference: { options: "eoaOnly" } }),
   ],
-  transports: { [chain.id]: http() },
+  // reads go through our own origin first (some phone networks and in-app browsers cannot reach the public RPC), then direct
+  transports: { [chain.id]: typeof window === "undefined" ? http() : fallback([http(`${window.location.origin}/api/rpc`, { batch: true }), http()]) },
   ssr: true,
 });
 
