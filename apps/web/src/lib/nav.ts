@@ -24,6 +24,7 @@ export const SEARCH: SearchEntry[] = [
   { title: "Open a vault", section: "App", href: "/vaults/new", keywords: "manager create factory" },
   { title: "Agents leaderboard", section: "Product", href: "/agents", keywords: "ranking returns guardian" },
   { title: "$HEIM", section: "Token", href: "/token", keywords: "token holder discount" },
+  { title: "How to buy $HEIM", section: "Token", href: "/how-to-buy", keywords: "buy heim wallet bridge pons add network robinhood chain" },
   { title: "Security", section: "Trust", href: "/security", keywords: "audit review vulnerability report" },
   { title: "Trust center", section: "Trust", href: "/trust", keywords: "status signer multisig contracts admin history" },
   { title: "Threat Board", section: "Trust", href: "/threats", keywords: "drainer scam malicious blocklist attacks" },
