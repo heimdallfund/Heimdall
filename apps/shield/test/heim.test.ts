@@ -32,3 +32,13 @@ describe("$HEIM auto-detection", () => {
     expect(f.reads()).toBe(n);
   });
 });
+
+describe("relaunch", () => {
+  it("skips the retired first $HEIM and takes the newest launch", async () => {
+    const OLD = "0x6e446368fd41f18edb48a8a55766802e0713bcbc", NEW = "0x00000000000000000000000000000000000000b2";
+    const f = fake({ [OLD]: { deployer: HEIM_DEV, symbol: "HEIM" }, [NEW]: { deployer: HEIM_DEV, symbol: "HEIM" } });
+    expect((await heimToken(new MemoryStore(), f.client, f.logs))?.toLowerCase()).toBe(NEW);
+    const g = fake({ [OLD]: { deployer: HEIM_DEV, symbol: "HEIM" } });
+    expect(await heimToken(new MemoryStore(), g.client, g.logs)).toBeNull();
+  });
+});

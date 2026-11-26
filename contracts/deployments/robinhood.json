@@ -13,10 +13,7 @@
     "HeimdallPay": "0xd8bd0bfc6ad1c5cee42c4f64bfcea9555a170265",
     "HeimdallAutoInvest": "0xeacf613ff7d6dbc8acbf51b411ad092d48e5a932",
     "HeimdallRiskOracle": "0x84da850303db7cca6d5194b9d9f8f392a6c9e3e0",
-    "HeimdallGuardModule": "0xd2a8815c10f1d71fc854edb7a78405db8fe86ae6",
-    "HeimdallStaking": "0x1ad45c77da9e326854536a05ea0a4b49fe364a74",
-    "HeimdallFeeSplitter": "0x1a9496cea16a6b89833485f385b0bfb65a7c9e4c",
-    "HeimdallHolderBalance": "0x11e9e3d7a73dabf9af84ca2f97d43439eff35c2d"
+    "HeimdallGuardModule": "0xd2a8815c10f1d71fc854edb7a78405db8fe86ae6"
   },
   "priceAdapters": {
     "NVDA": "0x1b8a95850fe344ddf67b98b61de9b5a1417edc8f",
@@ -114,6 +111,14 @@
       "poolFee": 3000,
       "stockFeed": "0x703035f4a43b87cdf6a8fbda028c0d6c48104cfb",
       "feed": "0xa4bc3aeaef4712c622f5c18f7a73d78e5cf4a460"
+    }
+  },
+  "retired": {
+    "note": "First $HEIM launch (2026-11-24), retired for a relaunch. Nothing routes fees here: the Safe never accepted the splitter.",
+    "contracts": {
+      "HeimdallStaking": "0x1ad45c77da9e326854536a05ea0a4b49fe364a74",
+      "HeimdallFeeSplitter": "0x1a9496cea16a6b89833485f385b0bfb65a7c9e4c",
+      "HeimdallHolderBalance": "0x11e9e3d7a73dabf9af84ca2f97d43439eff35c2d"
     }
   }
 }
