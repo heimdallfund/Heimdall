@@ -5,6 +5,8 @@ import { Providers } from "@/components/Providers";
 import { Faq, Steps } from "@/components/ProductSections";
 import { LaunchBanner, AuditNotice } from "@/components/Preview";
 import { StakePanel } from "./StakePanel";
+import { Stakers } from "./Stakers";
+import { Suspense } from "react";
 
 import { LogoRow } from "@/components/BrandLogo";
 export const metadata: Metadata = { title: "Stake $HEIM", description: "Stake $HEIM and earn a share of Heimdall protocol fees, paid in USDG. No lock-up." };
@@ -22,6 +24,7 @@ export default function Page() {
       <AuditNotice />
       {live ? <Providers><StakePanel staking={ADDRESSES.staking!} heim={ADDRESSES.heim!} /></Providers>
         : <LaunchBanner>Staking opens when $HEIM launches. The contract is written, tested and goes live with the token.</LaunchBanner>}
+      {live && <Suspense fallback={<div className="h-[160px] animate-pulse rounded-xl border border-line bg-ice" />}><Stakers /></Suspense>}
       <Steps title="Where the USDG comes from" steps={[
         ["signal", "Fees are paid", "Signals take a cut of every paid call. Vaults pay a platform fee on profit. All of it goes to the fee splitter."],
         ["coins", "The splitter shares it", "Once a day the splitter sends the stakers' share to the staking contract and the rest to the treasury."],
