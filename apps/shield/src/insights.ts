@@ -1,5 +1,6 @@
 import type { CounterStore } from "./store.js";
 import { blocklistEntries } from "./blocklist.js";
+import { notDemo } from "./demo.js";
 
 /**
  * Public insights built from checks: per-agent counters, a Threat Board (finding codes, most-denied
@@ -64,11 +65,11 @@ export async function threats(store: CounterStore, now = Date.now(), days = 7) {
   const codeCounts = await Promise.all(codes.map(async (code) => ({
     code, count: (await Promise.all(dayKeys.map((d) => store.get(`threat:code:${d}:${code}`)))).reduce((a, b) => a + b, 0),
   })));
-  const targets = await store.members("threat:targets");
+  const targets = (await store.members("threat:targets")).filter(notDemo);
   const targetCounts = (await Promise.all(targets.map(async (address) => ({ address, denies: await store.get(`threat:target:${address}`) }))))
     .filter((t) => t.denies > 0).sort((a, b) => b.denies - a.denies).slice(0, 25);
   const recent = (await Promise.all(Array.from({ length: RECENT }, (_, i) => store.fetch(`threat:recent:${i}`))))
-    .filter((x): x is string => !!x).map((x) => JSON.parse(x) as { at: number }).sort((a, b) => b.at - a.at).slice(0, 20);
+    .filter((x): x is string => !!x).map((x) => JSON.parse(x) as { at: number; target?: string | null }).filter((e) => notDemo(e.target)).sort((a, b) => b.at - a.at).slice(0, 20);
   const blocklist = blocklistEntries();
   const blocked = new Set(blocklist.map((b) => b.address.toLowerCase()));
   return {

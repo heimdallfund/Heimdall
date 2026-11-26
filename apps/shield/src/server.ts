@@ -6,6 +6,7 @@ import { agentCard, handleA2A } from "./a2a.js";
 import { tokenCheck } from "./tokencheck.js";
 import { summarize } from "./ai.js";
 import { alchemyHoldings, explorerHoldings, flagHoldings } from "./holdings.js";
+import { isDemoSig, isDemoTx, purgeDemoTraffic } from "./demo.js";
 import { countVerdict, listIncidents, recordHeartbeat, status, upsertIncident } from "./status.js";
 import { runWatch, subscribe, unsubscribe, validSubscription, webPushSender } from "./watch.js";
 import { pushToWatchers, runTokenWatch, subscribeToken, unsubscribeToken } from "./tokenwatch.js";
@@ -157,6 +158,9 @@ export function buildApp(opts: AppOptions = {}) {
     return name ? { plan: "pro", id: name } : null;
   }
 
+  // one-time removal of demo samples counted before they were filtered (atomic guard; a no-op after the first run)
+  if (env.NODE_ENV !== "test") purgeDemoTraffic(store).catch(() => {});
+
   const app = new Hono<Vars>();
   // a hard ceiling for every route; check routes use the tighter limitBody (128 KB)
   app.use("*", bodyLimit({ maxSize: 1024 * 1024, onError: (c) => c.json({ error: "payload_too_large" }, 413) }));
@@ -187,8 +191,8 @@ export function buildApp(opts: AppOptions = {}) {
   });
 
   app.get("/v1/stats", async (c) => {
-    const [checks, allowed, warned, denied] = await Promise.all(["checks", "allowed", "warned", "denied"].map((k) => store.get(`stats:${k}`)));
-    return c.json({ checks, allowed, warned, denied });
+    const [checks, allowed, warned, denied, lookups] = await Promise.all(["checks", "allowed", "warned", "denied", "lookups"].map((k) => store.get(`stats:${k}`)));
+    return c.json({ checks, allowed, warned, denied, lookups });
   });
 
   app.get("/v1/signer", async (c) => {
@@ -344,10 +348,13 @@ export function buildApp(opts: AppOptions = {}) {
           ? await checkAuthorization(b.chainId, b.authorization, policy, getClient(b.chainId))
           : checkPersonalMessage(b.message!, policy);
       const bucket = result.verdict === "ALLOW" ? "allowed" : result.verdict === "WARN" ? "warned" : "denied";
-      await countVerdict(store, bucket).catch(() => {});
       const checkId = keccak256(toHex(`sig:${b.signer}:${Date.now()}:${Math.random()}`));
       const spender = result.approvals?.[0]?.spender ?? null;
-      await recordCheck(store, { kind: "sig", wallet: b.signer, target: spender, result: { ...result, checkId } }).catch(() => {});
+      // the site's own demo samples are judged but never counted as traffic
+      if (!isDemoSig(b.signer, spender)) {
+        await countVerdict(store, bucket).catch(() => {});
+        await recordCheck(store, { kind: "sig", wallet: b.signer, target: spender, result: { ...result, checkId } }).catch(() => {});
+      }
       if (b.share) await saveVerdict(store, checkId, { kind: "sig", at: Date.now(), chainId: b.chainId, signer: b.signer, primaryType: b.typedData?.primaryType ?? (b.authorization ? "EIP7702Authorization" : "personal_sign"), result: toJSON(result) }).catch(() => {});
       notifyVerdict(c, "sig", { ...result, checkId } as never, { chainId: b.chainId, signer: b.signer, primaryType: b.typedData?.primaryType ?? (b.authorization ? "EIP7702Authorization" : "personal_sign") });
       return c.json(b.share ? { ...(toJSON(result) as object), shareId: checkId } : result);
@@ -386,10 +393,15 @@ export function buildApp(opts: AppOptions = {}) {
         await Promise.all([...peers].map((p) => store.addMember(peersKey, p))).catch(() => {});
       }
       const bucket = result.verdict === "ALLOW" ? "allowed" : result.verdict === "WARN" ? "warned" : "denied";
-      await countVerdict(store, bucket).catch(() => {});
       // For approvals the threat is the spender, not the token contract.
       const threatTarget = result.approvals?.[0]?.spender ?? b.to ?? null;
-      if (!b.probe) await recordCheck(store, { kind: "tx", wallet: b.from, target: threatTarget, result: result as never }).catch(() => {});
+      // The site's own demo samples are judged but never counted. Lookups (probe) count as checks, tallied apart,
+      // and stay off the agent counters and the Threat Board.
+      if (!isDemoTx(b)) {
+        await countVerdict(store, bucket).catch(() => {});
+        if (b.probe) await store.incr("stats:lookups", 10 * 365 * 86_400).catch(() => {});
+        else await recordCheck(store, { kind: "tx", wallet: b.from, target: threatTarget, result: result as never }).catch(() => {});
+      }
       const callerId = (c.get("caller") as Caller | undefined)?.id ?? "";
       if (callerId.startsWith("acct:")) await countCheck(store, callerId.split(":")[1]!).catch(() => {});
       notifyVerdict(c, "tx", result as never, { chainId: b.chainId, from: b.from, to: b.to ?? null, value: String(b.value) });

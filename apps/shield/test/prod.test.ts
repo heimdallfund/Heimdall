@@ -94,7 +94,7 @@ const okClient = {
 } as unknown as PublicClient;
 
 const KEY = "hd_live_test_123";
-const body = (from = "0x1111111111111111111111111111111111111111") => JSON.stringify({
+const body = (from = "0x7777777777777777777777777777777777777777") => JSON.stringify({
   from, to: "0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168",
   data: encodeFunctionData({ abi: parseAbi(["function approve(address,uint256)"]), functionName: "approve", args: ["0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168", maxUint256] }),
 });
@@ -126,7 +126,7 @@ describe("Shield API limits", () => {
     const second = await post(a);
     expect(second.headers.get("x-heimdall-quota-remaining")).toBe("0");
     expect((await post(a)).status).toBe(429);
-    expect((await post(a, {}, body("0x2222222222222222222222222222222222222222"))).status).toBe(429); // per-minute limit (3) now hit for this IP
+    expect((await post(a, {}, body("0x8888888888888888888888888888888888888888"))).status).toBe(429); // per-minute limit (3) now hit for this IP
   });
 
   it("rate-limits anonymous callers per minute", async () => {
@@ -148,7 +148,7 @@ describe("Shield API limits", () => {
   });
 
   it("rejects oversized bodies", async () => {
-    const res = await post(app(), {}, JSON.stringify({ from: "0x1111111111111111111111111111111111111111", data: "0x" + "00".repeat(200_000) }));
+    const res = await post(app(), {}, JSON.stringify({ from: "0x7777777777777777777777777777777777777777", data: "0x" + "00".repeat(200_000) }));
     expect(res.status).toBe(413);
   });
 });

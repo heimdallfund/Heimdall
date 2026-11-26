@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { MemoryStore } from "../src/store.js";
 import { agentStats, loadVerdict, recordCheck, saveVerdict, threats } from "../src/insights.js";
 
-const W = "0x1111111111111111111111111111111111111111", T = "0x3333333333333333333333333333333333333333";
+const W = "0x7777777777777777777777777777777777777777", T = "0x9999999999999999999999999999999999999999";
 const res = (verdict: "ALLOW" | "WARN" | "DENY", code = "UNLIMITED_APPROVAL_TO_EOA") => ({
   checkId: `0x${"ab".repeat(32)}`, verdict, riskScore: verdict === "DENY" ? 90 : 10, summary: ["Approves unlimited USDG"],
   findings: verdict === "ALLOW" ? [] : [{ code, severity: verdict === "DENY" ? "deny" : "warn" }],
