@@ -12,6 +12,7 @@ import { ShieldVisual, SignalsVisual, VaultVisual } from "@/components/Visuals";
 import { getShieldStats, getSignals, getVaults } from "@/lib/reads";
 import { BrandLogo } from "@/components/BrandLogo";
 import { TokenIcon } from "@/components/TokenIcon";
+import { HeimStrip } from "@/components/home/HeimStrip";
 
 function Stat({ label, value, suffix = "", tone }: { label: string; value: number | null; suffix?: string; tone?: string }) {
   return (
@@ -125,6 +126,8 @@ export default function Home() {
           </ul>
         </div>
       </section>
+
+      <Suspense fallback={null}><HeimStrip /></Suspense>
 
       {/* 01 HOW A CHECK WORKS */}
       <section aria-labelledby="how" className="border-y border-ink bg-panel">
