@@ -6,11 +6,13 @@
     "start": "tsx src/index.ts",
     "once": "tsx src/index.ts --once",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "sync-agent": "node scripts/sync-agent.mjs"
   },
   "dependencies": {
     "viem": "^2.58.4",
-    "@types/node": "^26.6.6"
+    "@types/node": "^26.6.6",
+    "@heimdallfund/sdk": "^0.4.0"
   },
   "devDependencies": {
     "tsx": "^4.23.15",
