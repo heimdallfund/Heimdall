@@ -1,6 +1,6 @@
 import type { CounterStore } from "./store.js";
 import { blocklistEntries } from "./blocklist.js";
-import { notDemo } from "./demo.js";
+import { NOT_A_THREAT, notDemo } from "./demo.js";
 
 /**
  * Public insights built from checks: per-agent counters, a Threat Board (finding codes, most-denied
@@ -28,15 +28,18 @@ export async function recordCheck(store: CounterStore, input: { kind: "tx" | "si
   const day = dayKey(now);
   for (const f of input.result.findings) {
     if (f.severity !== "deny" && f.severity !== "warn") continue;
+    if (NOT_A_THREAT.has(f.code)) continue;
     ops.push(store.incr(`threat:code:${day}:${f.code}`, KEEP), store.addMember("threat:codes", f.code));
   }
-  if (input.result.verdict === "DENY") {
+  // A denial only says something about the target when a real risk caused it, not when the tx would merely fail.
+  const threatening = input.result.findings.some((f) => f.severity === "deny" && !NOT_A_THREAT.has(f.code));
+  if (input.result.verdict === "DENY" && threatening) {
     const t = input.target?.toLowerCase();
     if (t) ops.push(store.incr(`threat:target:${t}`, KEEP), store.addMember("threat:targets", t));
     const seq = await store.incr("threat:recent:seq", 10 * 365 * DAY);
     ops.push(store.put(`threat:recent:${seq % RECENT}`, JSON.stringify({
       at: now, kind: input.kind, target: t ?? null,
-      codes: input.result.findings.filter((f) => f.severity === "deny").map((f) => f.code).slice(0, 3),
+      codes: input.result.findings.filter((f) => f.severity === "deny" && !NOT_A_THREAT.has(f.code)).map((f) => f.code).slice(0, 3),
       summary: input.result.summary[0] ?? "",
     }), KEEP));
   }

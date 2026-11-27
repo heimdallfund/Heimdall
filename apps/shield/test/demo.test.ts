@@ -38,3 +38,28 @@ describe("demo traffic", () => {
     expect(board.codes).toEqual([{ code: "UNLIMITED_APPROVAL_TO_EOA", count: 1 }]);
   });
 });
+
+describe("revert-only denials", () => {
+  const revert = { checkId: `0x${"cd".repeat(32)}`, verdict: "DENY" as const, riskScore: 60, summary: ["Plain transfer"], findings: [{ code: "SIM_REVERTED", severity: "deny" }] };
+  const TOKEN = "0x5555555555555555555555555555555555555555";
+  it("never puts a target on the Threat Board just because a tx would revert", async () => {
+    const s = new MemoryStore();
+    await recordCheck(s, { kind: "tx", wallet: REAL, target: TOKEN, result: revert });
+    const board = await threats(s);
+    expect(board.targets).toEqual([]);
+    expect(board.recent).toEqual([]);
+    expect(board.codes).toEqual([]);
+  });
+  it("clears revert-only denials recorded before the rule", async () => {
+    const { purgeDemoRecent } = await import("../src/demo.js");
+    const s = new MemoryStore();
+    await s.incr(`threat:target:${TOKEN}`, 3600); await s.addMember("threat:targets", TOKEN);
+    await s.put("threat:recent:0", JSON.stringify({ at: Date.now(), kind: "tx", target: TOKEN, codes: ["SIM_REVERTED"], summary: "x" }));
+    await s.incr(`threat:code:${new Date().toISOString().slice(0, 10)}:SIM_REVERTED`, 3600); await s.addMember("threat:codes", "SIM_REVERTED");
+    expect(await purgeDemoRecent(s)).toBe(1);
+    const board = await threats(s);
+    expect(board.targets).toEqual([]);
+    expect(board.recent).toEqual([]);
+    expect(board.codes).toEqual([]);
+  });
+});

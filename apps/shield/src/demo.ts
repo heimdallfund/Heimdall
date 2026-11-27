@@ -13,6 +13,9 @@ export const DEMO_ADDRESSES = [
 /** A Uniswap pool the console uses as a realistic sender. A pool contract never signs, so nothing real comes "from" it. */
 export const DEMO_SENDERS = ["0xd4eb21209c4d6093f80b5b84f5c45cc093ea14a3"];
 
+/** Findings that stop a transaction without pointing at anyone: a tx that would just revert is a mistake, not an attack. */
+export const NOT_A_THREAT = new Set(["SIM_REVERTED"]);
+
 const bare = DEMO_ADDRESSES.map((a) => a.slice(2));
 const isDemoAddr = (a?: string | null) => !!a && DEMO_ADDRESSES.includes(a.toLowerCase());
 
@@ -63,16 +66,23 @@ export async function purgeDemoRecent(store: CounterStore): Promise<number> {
   for (const [i, raw] of raws.entries()) {
     if (!raw) continue;
     const e = JSON.parse(raw) as { at: number; target: string | null; codes?: string[] };
-    if (!isDemoAddr(e.target)) continue;
+    const codes = e.codes ?? [];
+    const harmless = codes.length > 0 && codes.every((c) => NOT_A_THREAT.has(c));
+    if (!isDemoAddr(e.target) && !harmless) continue;
     await store.remove(`threat:recent:${i}`);
     const day = new Date(e.at).toISOString().slice(0, 10);
-    await Promise.all((e.codes ?? []).map((code) => store.incr(`threat:code:${day}:${code}`, KEEP, -1)));
+    await Promise.all(codes.map((code) => store.incr(`threat:code:${day}:${code}`, KEEP, -1)));
+    // a denial that only meant "this would revert" never belonged to its target either
+    if (harmless && e.target && (await store.incr(`threat:target:${e.target}`, KEEP, -1)) <= 0) {
+      await store.removeMember("threat:targets", e.target);
+      await store.remove(`threat:target:${e.target}`);
+    }
     n++;
   }
   return n;
 }
 
-let recentSwept: Promise<number> | null = null;
+let recentSwept: Promise<number> | null = null; // v2: also clears revert-only denials
 /** Once per instance, before the Threat Board is served (a serverless instance may stop background work early). */
 export const sweepDemoRecentOnce = (store: CounterStore) => (recentSwept ??= purgeDemoRecent(store).catch(() => 0));
 
