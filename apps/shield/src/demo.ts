@@ -49,17 +49,32 @@ export async function purgeDemoTraffic(store: CounterStore): Promise<boolean> {
     await store.removeMember("threat:targets", t);
     await store.remove(`threat:target:${t}`);
   }
-  for (let i = 0; i < 50; i++) {
-    const raw = await store.fetch(`threat:recent:${i}`);
+  await purgeDemoRecent(store);
+  return true;
+}
+
+/**
+ * Drops demo denials from the recent list and takes their finding codes back out of the daily counts.
+ * Safe to run again: an entry is removed as it is handled, so a second pass finds nothing to do.
+ */
+export async function purgeDemoRecent(store: CounterStore): Promise<number> {
+  const raws = await Promise.all(Array.from({ length: 50 }, (_, i) => store.fetch(`threat:recent:${i}`)));
+  let n = 0;
+  for (const [i, raw] of raws.entries()) {
     if (!raw) continue;
     const e = JSON.parse(raw) as { at: number; target: string | null; codes?: string[] };
     if (!isDemoAddr(e.target)) continue;
+    await store.remove(`threat:recent:${i}`);
     const day = new Date(e.at).toISOString().slice(0, 10);
     await Promise.all((e.codes ?? []).map((code) => store.incr(`threat:code:${day}:${code}`, KEEP, -1)));
-    await store.remove(`threat:recent:${i}`);
+    n++;
   }
-  return true;
+  return n;
 }
+
+let recentSwept: Promise<number> | null = null;
+/** Once per instance, before the Threat Board is served (a serverless instance may stop background work early). */
+export const sweepDemoRecentOnce = (store: CounterStore) => (recentSwept ??= purgeDemoRecent(store).catch(() => 0));
 
 /** Read-side guard for anything that slipped in: demo targets never show on the board. */
 export const notDemo = (address: string | null | undefined) => !isDemoAddr(address);

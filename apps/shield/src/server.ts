@@ -6,7 +6,7 @@ import { agentCard, handleA2A } from "./a2a.js";
 import { tokenCheck } from "./tokencheck.js";
 import { summarize } from "./ai.js";
 import { alchemyHoldings, explorerHoldings, flagHoldings } from "./holdings.js";
-import { isDemoSig, isDemoTx, purgeDemoTraffic } from "./demo.js";
+import { isDemoSig, isDemoTx, purgeDemoTraffic, sweepDemoRecentOnce } from "./demo.js";
 import { countVerdict, listIncidents, recordHeartbeat, status, upsertIncident } from "./status.js";
 import { runWatch, subscribe, unsubscribe, validSubscription, webPushSender } from "./watch.js";
 import { pushToWatchers, runTokenWatch, subscribeToken, unsubscribeToken } from "./tokenwatch.js";
@@ -603,6 +603,7 @@ export function buildApp(opts: AppOptions = {}) {
 
   app.get("/v1/threats", async (c) => {
     c.header("cache-control", "public, max-age=30, s-maxage=60");
+    if (env.NODE_ENV !== "test") await sweepDemoRecentOnce(store);
     return c.json(await memo("threats", 60, () => threats(store)));
   });
 
